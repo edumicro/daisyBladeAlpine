@@ -80,40 +80,54 @@ const dbDataTable = (config = {}) => ({
 const dbAutoForm = (config = {}) => ({
     values: config.values ?? {},
     errors: {},
+    globalError: '',
+    success: false,
     loading: false,
     async submit() {
-        this.loading = true; this.errors = {}
+        this.loading = true; this.errors = {}; this.globalError = ''; this.success = false
         try {
             const { data } = await axios({ method: config.method ?? 'POST', url: config.action, data: this.values })
+            this.success = true
             if (data.redirect) window.location.href = data.redirect
+            else if (config.onSuccess) config.onSuccess(data)
         } catch (e) {
-            if (e.response?.status === 422) this.errors = e.response.data.errors ?? {}
+            if (e.response?.status === 422) {
+                this.errors = e.response.data.errors ?? {}
+            } else {
+                this.globalError = e.response?.data?.message ?? e.message ?? 'An error occurred'
+            }
         } finally { this.loading = false }
     },
     hasError(field) { return !!this.errors[field] },
     firstError(field) { return this.errors[field]?.[0] ?? '' },
+    reset() { this.errors = {}; this.globalError = ''; this.success = false },
 })
 
 const dbWizard = (config = {}) => {
-    const key = `db_wizard_${config.userId ?? 'guest'}_${config.formId}_v${config.schemaVersion ?? 1}`
+    const key = `db_wizard_${config.userId ?? 'guest'}_${config.formId ?? 'wizard'}_v${config.schemaVersion ?? 1}`
     return {
-        step: 0, data: {}, errors: {}, loading: false,
+        step: 0, data: {}, errors: {}, globalError: '', loading: false,
         init() {
             const saved = localStorage.getItem(key)
-            if (saved) { try { const p = JSON.parse(saved); this.step = p.step ?? 0; this.data = p.data ?? {} } catch {} }
+            if (saved) { try { const p = JSON.parse(saved); this.step = p.step ?? 0; this.data = { ...this.data, ...p.data } } catch {} }
         },
         save() { localStorage.setItem(key, JSON.stringify({ step: this.step, data: this.data })) },
         clear() { localStorage.removeItem(key) },
-        next() { this.step++; this.save() },
-        prev() { if (this.step > 0) { this.step--; this.save() } },
+        next() { this.step++; this.errors = {}; this.save() },
+        prev() { if (this.step > 0) { this.step--; this.errors = {}; this.save() } },
         async submit() {
-            this.loading = true; this.errors = {}
+            this.loading = true; this.errors = {}; this.globalError = ''
             try {
-                const { data } = await axios.post(config.action, this.data)
-                if (data.success) { this.clear(); window.location.href = data.redirect }
-                else this.errors = data.errors ?? {}
+                const { data } = await axios({ method: config.method ?? 'POST', url: config.action, data: this.data })
+                this.clear()
+                if (data.redirect) window.location.href = data.redirect
+                else if (config.onSuccess) config.onSuccess(data)
             } catch (e) {
-                if (e.response?.status === 422) this.errors = e.response.data.errors ?? {}
+                if (e.response?.status === 422) {
+                    this.errors = e.response.data.errors ?? {}
+                } else {
+                    this.globalError = e.response?.data?.message ?? e.message ?? 'An error occurred'
+                }
             } finally { this.loading = false }
         },
     }
