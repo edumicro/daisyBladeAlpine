@@ -1,0 +1,53 @@
+{
+    "name": "edumicro/daisyblade",
+    "description": "Pure Blade + Alpine.js UI components for Laravel ERP/CRM. DaisyUI styled.",
+    "keywords": ["laravel", "blade", "alpinejs", "daisyui", "tailwind", "components"],
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "edumicro",
+            "homepage": "https://github.com/edumicro"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0|^12.0",
+        "blade-ui-kit/blade-heroicons": "^2.4"
+    },
+    "require-dev": {
+        "pestphp/pest": "^4.3",
+        "pestphp/pest-plugin-laravel": "^4.0",
+        "orchestra/testbench": "^10.9"
+    },
+    "suggest": {
+        "maatwebsite/excel": "Required by the daisyblade import/spreadsheet component (^3.1)"
+    },
+    "autoload": {
+        "psr-4": {
+            "Edumicro\\DaisyBlade\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Edumicro\\DaisyBlade\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Edumicro\\DaisyBlade\\DaisyBladeServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
