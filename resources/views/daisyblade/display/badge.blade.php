@@ -1,6 +1,7 @@
 @props([
     'label'   => '',
     'text'    => '',
+    'color'   => '',
     'variant' => 'primary',
     'size'    => 'md',
     'icon'    => '',
@@ -11,7 +12,8 @@
 ])
 
 @php
-$variantClass = $ghost ? 'badge-ghost' : (($outline ? 'badge-outline ' : '') . "badge-{$variant}");
+$resolvedVariant = $color ?: $variant;
+$variantClass = $ghost ? 'badge-ghost' : (($outline ? 'badge-outline ' : '') . "badge-{$resolvedVariant}");
 $sizeClass    = match($size) { 'xs' => 'badge-xs', 'sm' => 'badge-sm', 'lg' => 'badge-lg', default => '' };
 @endphp
 

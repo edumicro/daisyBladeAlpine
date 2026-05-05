@@ -15,7 +15,7 @@
 </head>
 <body class="antialiased min-h-screen bg-base-200 flex items-center justify-center p-4">
 
-    <x-db::feedback.toast position="end" vertical="top" />
+    <x-dbl::feedback.toast position="end" vertical="top" />
 
     <div class="card bg-base-100 w-full max-w-md shadow-xl">
         <div class="card-body">

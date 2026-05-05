@@ -1,7 +1,8 @@
 @props([
-    'id'    => null,
-    'title' => null,
-    'size'  => 'md',   // sm | md | lg | xl | full
+    'id'       => null,
+    'title'    => null,
+    'size'     => 'md',   // sm | md | lg | xl | full
+    'closable' => true,
 ])
 
 @php
@@ -49,11 +50,13 @@ $sizeClass = match($size) {
         x-transition:leave-end="opacity-0 scale-95"
         @click.stop
     >
-        <button
-            type="button"
-            class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-            @click="hide()"
-        >✕</button>
+        @if($closable)
+            <button
+                type="button"
+                class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                @click="hide()"
+            >✕</button>
+        @endif
 
         @if($title)
             <h3 class="font-bold text-lg mb-4">{{ $title }}</h3>

@@ -1,34 +1,35 @@
 @props([
-    'tabs'    => [],   // [['id'=>'t1','label'=>'Tab 1','icon'=>null,'badge'=>null], ...]
-    'default' => null,
-    'style'   => 'lifted',   // lifted | bordered | boxed
+    'items'  => [],   // [['label'=>'Tab 1', 'content'=>'HTML', 'icon'=>null, 'badge'=>null], ...]
+    'active' => 0,
+    'style'  => 'lifted',
+    'class'  => '',
 ])
 
-@php $defaultTab = $default ?? ($tabs[0]['id'] ?? ''); @endphp
-
-<div x-data="dbTabs({ default: '{{ $defaultTab }}' })">
-
+<div x-data="{ active: {{ (int)$active }} }" {{ $attributes->merge(['class' => $class]) }}>
     <div role="tablist" class="tabs tabs-{{ $style }}">
-        @foreach($tabs as $tab)
+        @foreach($items as $i => $item)
             <button
                 type="button"
                 role="tab"
                 class="tab gap-2"
-                :class="{ 'tab-active': isActive('{{ $tab['id'] }}') }"
-                :aria-selected="isActive('{{ $tab['id'] }}')"
-                @click="select('{{ $tab['id'] }}')"
+                :class="{ 'tab-active': active === {{ $i }} }"
+                :aria-selected="active === {{ $i }}"
+                @click="active = {{ $i }}"
             >
-                @if(!empty($tab['icon']))
-                    <x-dynamic-component :component="$tab['icon']" class="w-4 h-4" />
+                @if(!empty($item['icon']))
+                    <x-dynamic-component :component="$item['icon']" class="w-4 h-4" />
                 @endif
-                {{ __($tab['label'] ?? $tab['id']) }}
-                @if(!empty($tab['badge']))
-                    <span class="badge badge-sm">{{ $tab['badge'] }}</span>
+                {{ $item['label'] ?? "Tab {$i}" }}
+                @if(!empty($item['badge']))
+                    <span class="badge badge-sm">{{ $item['badge'] }}</span>
                 @endif
             </button>
         @endforeach
     </div>
 
-    {{ $slot }}
-
+    @foreach($items as $i => $item)
+        <div x-show="active === {{ $i }}" x-cloak class="pt-4">
+            {!! $item['content'] ?? '' !!}
+        </div>
+    @endforeach
 </div>

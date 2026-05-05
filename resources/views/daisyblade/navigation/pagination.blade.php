@@ -1,99 +1,72 @@
 @props([
-    'currentPage'   => 1,
-    'total'         => 0,
-    'perPage'       => 15,
-    'window'        => 2,
+    'meta'          => [],   // ['current_page'=>1,'last_page'=>5,'from'=>1,'to'=>15,'total'=>50,'per_page'=>15]
+    'baseUrl'       => '',
     'showFirstLast' => true,
     'showPrevNext'  => true,
-    'queryParam'    => 'page',
-    'url'           => '',
+    'window'        => 2,
     'class'         => '',
     'containerClass' => '',
 ])
 
 @php
-$totalPages = (int)ceil($total / max(1, $perPage)) ?: 1;
+$current    = (int)($meta['current_page'] ?? 1);
+$last       = (int)($meta['last_page'] ?? 1);
+$total      = (int)($meta['total'] ?? 0);
+$from       = (int)($meta['from'] ?? (($current - 1) * ($meta['per_page'] ?? 15) + 1));
+$to         = (int)($meta['to'] ?? min($current * ($meta['per_page'] ?? 15), $total));
 
 $pages = [];
-if ($showFirstLast && $currentPage > ($window + 2)) {
+if ($showFirstLast && $current > ($window + 2)) {
     $pages[] = 1;
-    if ($currentPage > ($window + 3)) $pages[] = '...';
+    if ($current > ($window + 3)) $pages[] = '...';
 }
-$start = max(1, $currentPage - $window);
-$end   = min($totalPages, $currentPage + $window);
+$start = max(1, $current - $window);
+$end   = min($last, $current + $window);
 for ($i = $start; $i <= $end; $i++) $pages[] = $i;
-if ($showFirstLast && $currentPage < ($totalPages - $window - 1)) {
-    if ($currentPage < ($totalPages - $window - 2)) $pages[] = '...';
-    $pages[] = $totalPages;
+if ($showFirstLast && $current < ($last - $window - 1)) {
+    if ($current < ($last - $window - 2)) $pages[] = '...';
+    $pages[] = $last;
 }
 
-$startItem = ($currentPage - 1) * $perPage + 1;
-$endItem   = min($currentPage * $perPage, $total);
-
-$pageUrl = fn(int $p) => $url ? ($url . (str_contains($url, '?') ? '&' : '?') . $queryParam . '=' . $p) : '#';
+$pageUrl = fn(int $p) => $baseUrl ? ($baseUrl . (str_contains($baseUrl, '?') ? '&' : '?') . 'page=' . $p) : '#';
 @endphp
 
 <div {{ $attributes->merge(['class' => "flex flex-col gap-4 {$containerClass}"]) }}>
     @if($total > 0)
         <div class="text-sm text-base-content/70 text-center">
             {{ __('Showing') }}
-            <span class="font-semibold">{{ $startItem }}</span>
-            {{ __('to') }}
-            <span class="font-semibold">{{ $endItem }}</span>
-            {{ __('of') }}
-            <span class="font-semibold">{{ $total }}</span>
-            {{ __('items') }}
+            <span class="font-semibold">{{ $from }}</span>–<span class="font-semibold">{{ $to }}</span>
+            {{ __('of') }} <span class="font-semibold">{{ $total }}</span>
         </div>
     @endif
 
     <div class="join justify-center {{ $class }}">
         @if($showPrevNext)
-            @php $prevPage = max(1, $currentPage - 1); @endphp
-            @if($url)
-                <a href="{{ $pageUrl($prevPage) }}" class="join-item btn btn-sm {{ $currentPage === 1 ? 'btn-disabled' : '' }}">{{ __('Previous') }}</a>
+            @if($baseUrl)
+                <a href="{{ $pageUrl(max(1, $current - 1)) }}" class="join-item btn btn-sm {{ $current <= 1 ? 'btn-disabled' : '' }}">‹ {{ __('Previous') }}</a>
             @else
-                <button type="button" @click="$dispatch('page-changed', { page: {{ $prevPage }} })" @disabled($currentPage === 1) class="join-item btn btn-sm">{{ __('Previous') }}</button>
+                <button type="button" @click="$dispatch('page-changed', { page: {{ max(1, $current - 1) }} })" @disabled($current <= 1) class="join-item btn btn-sm">‹ {{ __('Previous') }}</button>
             @endif
         @endif
 
         @foreach($pages as $page)
             @if($page === '...')
-                <button disabled class="join-item btn btn-sm btn-disabled">...</button>
+                <button disabled class="join-item btn btn-sm btn-disabled">…</button>
             @else
-                @if($url)
-                    <a href="{{ $pageUrl($page) }}" class="join-item btn btn-sm {{ $page === $currentPage ? 'btn-active' : '' }}">{{ $page }}</a>
+                @if($baseUrl)
+                    <a href="{{ $pageUrl($page) }}" class="join-item btn btn-sm {{ $page === $current ? 'btn-active' : '' }}">{{ $page }}</a>
                 @else
-                    <button type="button" @click="$dispatch('page-changed', { page: {{ $page }} })" class="join-item btn btn-sm {{ $page === $currentPage ? 'btn-active' : '' }}">{{ $page }}</button>
+                    <button type="button" @click="$dispatch('page-changed', { page: {{ $page }} })" class="join-item btn btn-sm {{ $page === $current ? 'btn-active' : '' }}">{{ $page }}</button>
                 @endif
             @endif
         @endforeach
 
         @if($showPrevNext)
-            @php $nextPage = min($totalPages, $currentPage + 1); @endphp
-            @if($url)
-                <a href="{{ $pageUrl($nextPage) }}" class="join-item btn btn-sm {{ $currentPage === $totalPages ? 'btn-disabled' : '' }}">{{ __('Next') }}</a>
+            @if($baseUrl)
+                <a href="{{ $pageUrl(min($last, $current + 1)) }}" class="join-item btn btn-sm {{ $current >= $last ? 'btn-disabled' : '' }}">{{ __('Next') }} ›</a>
             @else
-                <button type="button" @click="$dispatch('page-changed', { page: {{ $nextPage }} })" @disabled($currentPage === $totalPages) class="join-item btn btn-sm">{{ __('Next') }}</button>
+                <button type="button" @click="$dispatch('page-changed', { page: {{ min($last, $current + 1) }} })" @disabled($current >= $last) class="join-item btn btn-sm">{{ __('Next') }} ›</button>
             @endif
         @endif
     </div>
-
-    @if($totalPages > 1)
-        <div class="flex justify-center items-center gap-2">
-            <label class="text-sm text-base-content/70">{{ __('Go to page') }}:</label>
-            @if($url)
-                <select onchange="window.location.href='{{ $url }}' + ({{ json_encode(str_contains($url, '?')) }} ? '&' : '?') + '{{ $queryParam }}=' + this.value" class="select select-sm select-bordered w-20">
-                    @for($i = 1; $i <= $totalPages; $i++)
-                        <option value="{{ $i }}" {{ $i === $currentPage ? 'selected' : '' }}>{{ $i }}</option>
-                    @endfor
-                </select>
-            @else
-                <select @change="$dispatch('page-changed', { page: parseInt($event.target.value) })" class="select select-sm select-bordered w-20">
-                    @for($i = 1; $i <= $totalPages; $i++)
-                        <option value="{{ $i }}" {{ $i === $currentPage ? 'selected' : '' }}>{{ $i }}</option>
-                    @endfor
-                </select>
-            @endif
-        </div>
-    @endif
 </div>

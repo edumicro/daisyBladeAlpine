@@ -4,14 +4,14 @@
     @prop loadUrl   — Axios GET endpoint. Must return:
                        { data: [...rows], meta: { current_page, last_page, total, per_page } }
     @prop columns   — [ ['key'=>'name', 'label'=>'Name', 'sortable'=>true] ]
-    @prop filters   — filters config forwarded to <x-db::display.filters> (optional)
+    @prop filters   — filters config forwarded to <x-dbl::display.filters> (optional)
     @prop params    — extra static query params merged on every request
     @prop searchable — show global search input
     @prop perPage   — default page size
     @prop actions   — slot for per-row action buttons (receives $row via Alpine :data-row)
 
     Usage:
-      <x-db::display.data-table
+      <x-dbl::display.data-table
           load-url="/api/users"
           :columns="[['key'=>'name','label'=>'Name','sortable'=>true], ...]"
           :filters="[['key'=>'status','type'=>'select','options'=>[...]]]"
@@ -19,7 +19,7 @@
           <x-slot:rowActions>
               <a :href="`/users/${row.id}/edit`" class="btn btn-xs btn-ghost">Edit</a>
           </x-slot:rowActions>
-      </x-db::display.data-table>
+      </x-dbl::display.data-table>
 --}}
 @props([
     'loadUrl'        => '',
@@ -65,7 +65,7 @@
             @endif
 
             @if(!empty($filters))
-                <x-db::display.filters :filters="$filters" />
+                <x-dbl::display.filters :filters="$filters" />
             @endif
 
             {{-- Reload button --}}
@@ -105,13 +105,14 @@
             </thead>
 
             <tbody>
-                {{-- Loading skeleton --}}
+                {{-- Loading skeleton — always renders regardless of column count --}}
                 <template x-if="loading">
+                    @php $skelCols = max(count($columns), 3); @endphp
                     @for($r = 0; $r < 5; $r++)
                         <tr>
-                            @foreach($columns as $col)
+                            @for($c = 0; $c < $skelCols; $c++)
                                 <td><div class="skeleton h-4 rounded w-full"></div></td>
-                            @endforeach
+                            @endfor
                             @if(isset($rowActions)) <td></td> @endif
                         </tr>
                     @endfor

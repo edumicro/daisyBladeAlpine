@@ -54,7 +54,100 @@ const dbSidebarTree = (config = {}) => ({
     isOpen(key) { return !!this.expanded[key] },
 })
 
-// ── Tipo 3: Alpine + Axios (phase 4-6) ────────────────────────────────────
+// ── Tipo 3: Alpine + Axios ────────────────────────────────────────────────
+
+const dbSelectRemote = (config = {}) => ({
+    options: [],
+    loading: false,
+    search: '',
+    open: false,
+    value: config.value ?? null,
+    async init() { if (config.optionsUrl) await this.fetch('') },
+    async fetch(q = '') {
+        this.loading = true
+        try {
+            const { data } = await axios.get(config.optionsUrl, { params: { search: q, ...(config.params ?? {}) } })
+            this.options = Array.isArray(data) ? data : (data.data ?? [])
+        } finally { this.loading = false }
+    },
+    filtered() {
+        if (!this.search) return this.options
+        const q = this.search.toLowerCase()
+        return this.options.filter(o => String(o.label ?? o.name ?? o).toLowerCase().includes(q))
+    },
+    select(opt) { this.value = opt.value ?? opt.id ?? opt; this.open = false },
+    labelFor(val) { return this.options.find(o => (o.value ?? o.id) == val)?.label ?? val ?? '' },
+})
+
+const dbResourceDetails = (config = {}) => ({
+    resource: null, loading: true, error: null,
+    get displayData() {
+        if (!this.resource) return {}
+        if (config.fields?.length) return Object.fromEntries(config.fields.map(k => [k, this.resource[k]]))
+        return this.resource
+    },
+    async init() { await this.load() },
+    async load() {
+        this.loading = true; this.error = null
+        try {
+            const { data } = await axios.get(config.loadUrl)
+            this.resource = data.data ?? data
+        } catch (e) {
+            this.error = e.response?.data?.message ?? 'Error loading resource'
+        } finally { this.loading = false }
+    },
+    refresh() { return this.load() },
+})
+
+const dbTabsLazy = (config = {}) => ({
+    active: config.active ?? 0,
+    tabs: config.tabs ?? [],
+    contents: {},
+    loading: {},
+    async init() { if (this.tabs[this.active]?.url) await this._load(this.active) },
+    async select(index) {
+        this.active = index
+        if (!(index in this.contents) && this.tabs[index]?.url) await this._load(index)
+    },
+    async _load(index) {
+        this.loading = { ...this.loading, [index]: true }
+        try {
+            const { data } = await axios.get(this.tabs[index].url)
+            this.contents = { ...this.contents, [index]: typeof data === 'string' ? data : JSON.stringify(data) }
+        } finally {
+            this.loading = { ...this.loading, [index]: false }
+        }
+    },
+    isActive(i) { return this.active === i },
+    isLoading(i) { return !!this.loading[i] },
+})
+
+const dbSpreadsheetImport = (config = {}) => ({
+    file: null, step: 'upload',
+    headers: [], preview: [], totalRows: 0,
+    progress: 0, loading: false, error: null, result: null,
+    async handleFile(event) { this.file = event.target.files[0]; if (this.file) await this._parsePreview() },
+    async handleDrop(event) { this.file = event.dataTransfer.files[0]; if (this.file) await this._parsePreview() },
+    async _parsePreview() {
+        this.step = 'preview'
+        this.totalRows = 0; this.headers = []; this.preview = []
+    },
+    async upload() {
+        this.loading = true; this.error = null; this.progress = 0; this.step = 'importing'
+        const form = new FormData()
+        form.append('file', this.file)
+        if (config.chunkSize) form.append('chunk_size', config.chunkSize)
+        try {
+            const { data } = await axios.post(config.uploadUrl, form, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                onUploadProgress: e => { this.progress = e.total ? Math.round(e.loaded * 100 / e.total) : 50 },
+            })
+            this.result = data; this.step = 'done'
+        } catch (e) {
+            this.error = e.response?.data?.message ?? 'Upload failed'; this.step = 'error'
+        } finally { this.loading = false }
+    },
+})
 
 const dbDataTable = (config = {}) => ({
     rows: [], meta: {}, loading: true,
@@ -135,7 +228,11 @@ const dbWizard = (config = {}) => {
 
 // ── Registration ───────────────────────────────────────────────────────────
 
-const _all = { dbModal, dbToast, dbTabs, dbNavbar, dbSidebar, dbSidebarTree, dbDataTable, dbAutoForm, dbWizard }
+const _all = {
+    dbModal, dbToast, dbTabs, dbNavbar, dbSidebar, dbSidebarTree,
+    dbDataTable, dbAutoForm, dbWizard,
+    dbSelectRemote, dbResourceDetails, dbTabsLazy, dbSpreadsheetImport,
+}
 
 function _register(Alpine) {
     for (const [name, fn] of Object.entries(_all)) Alpine.data(name, fn)
@@ -152,4 +249,8 @@ if (typeof window !== 'undefined') {
 }
 
 // ESM export for Vite / import
-export { dbModal, dbToast, dbTabs, dbNavbar, dbSidebar, dbSidebarTree, dbDataTable, dbAutoForm, dbWizard }
+export {
+    dbModal, dbToast, dbTabs, dbNavbar, dbSidebar, dbSidebarTree,
+    dbDataTable, dbAutoForm, dbWizard,
+    dbSelectRemote, dbResourceDetails, dbTabsLazy, dbSpreadsheetImport,
+}

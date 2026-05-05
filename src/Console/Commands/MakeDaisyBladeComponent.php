@@ -34,7 +34,7 @@ class MakeDaisyBladeComponent extends Command
         File::put($dest, $this->stub($name, $type));
 
         $this->info("  ✓ Created: {$dest}");
-        $this->line("    Usage: <x-db::{$name} />");
+        $this->line("    Usage: <x-dbl::{$name} />");
 
         return self::SUCCESS;
     }
@@ -64,7 +64,7 @@ class MakeDaisyBladeComponent extends Command
             <div x-data="{ loading: true, rows: [] }" x-init="
                 axios.get(loadUrl).then(r => { rows = r.data.data; loading = false })
             ">
-                <template x-if="loading"><x-db::feedback.loading /></template>
+                <template x-if="loading"><x-dbl::feedback.loading /></template>
                 <template x-if="!loading">
                     {{-- {$label} --}}
                     {{ \$slot }}

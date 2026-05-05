@@ -16,7 +16,7 @@
 <body class="antialiased">
 
     {{-- Global toast notifications — dispatch 'notify' from anywhere --}}
-    <x-db::feedback.toast position="end" vertical="top" />
+    <x-dbl::feedback.toast position="end" vertical="top" />
 
     <div class="flex min-h-screen">
 

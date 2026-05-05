@@ -16,10 +16,10 @@
 
 <div {{ $attributes->merge(['class' => implode(' ', array_filter([
     "card bg-{$background}",
-    $shadow    ? 'shadow-md' : 'shadow-none',
+    $shadow    ? 'shadow-md' : '',
     $hoverable ? 'hover:shadow-lg transition-shadow cursor-pointer' : '',
     $glass     ? 'glass' : '',
-    $compact   ? 'compact' : '',
+    $compact   ? 'card-compact' : '',
     $borderColor ? "border border-{$borderColor}" : '',
 ]))]) }}>
 

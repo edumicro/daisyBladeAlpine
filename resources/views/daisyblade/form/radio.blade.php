@@ -2,6 +2,7 @@
     'name'           => '',
     'label'          => '',
     'options'        => [],
+    'value'          => null,
     'disabled'       => false,
     'required'       => false,
     'color'          => 'primary',
@@ -24,6 +25,7 @@
                     type="radio"
                     value="{{ $optVal }}"
                     @if($name) name="{{ $name }}" @endif
+                    @if($value !== null && (string)$value === (string)$optVal) checked @endif
                     @if($disabled) disabled @endif
                     {{ $attributes->merge(['class' => trim("radio radio-{$color} " . $class)]) }}
                 />

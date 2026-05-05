@@ -27,7 +27,7 @@
     <textarea
         placeholder="{{ $placeholder }}"
         rows="{{ $rows }}"
-        @if($name) id="{{ $name }}" @endif
+        @if($name) id="{{ $name }}" name="{{ $name }}" @endif
         @if($disabled) disabled @endif
         @if($readonly) readonly @endif
         @if($required) required @endif

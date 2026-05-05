@@ -2,6 +2,7 @@
     'name'           => '',
     'label'          => '',
     'options'        => [],
+    'optionsUrl'     => '',
     'placeholder'    => '',
     'multiple'       => false,
     'searchable'     => false,
@@ -23,7 +24,23 @@ $sizeClass = match($size) { 'xs'=>'select-xs','sm'=>'select-sm','lg'=>'select-lg
         </label>
     @endif
 
-    @if($searchable)
+    @if($optionsUrl)
+        {{-- Remote select via Alpine dbSelectRemote factory --}}
+        <select
+            x-data="dbSelectRemote({ url: '{{ $optionsUrl }}', name: '{{ $name }}' })"
+            x-init="init()"
+            @if($name) id="{{ $name }}" name="{{ $name }}{{ $multiple ? '[]' : '' }}" @endif
+            @if($multiple) multiple @endif
+            @if($disabled) disabled @endif
+            @if($required) required @endif
+            {{ $attributes->merge(['class' => trim('select select-bordered w-full ' . $sizeClass . ' ' . $class)]) }}
+        >
+            @if($placeholder) <option value="">{{ $placeholder }}</option> @endif
+            <template x-for="opt in options" :key="opt.value">
+                <option :value="opt.value" x-text="opt.label"></option>
+            </template>
+        </select>
+    @elseif($searchable)
         {{-- Alpine searchable combobox --}}
         <div x-data="{
             search: '',

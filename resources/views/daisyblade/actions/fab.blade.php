@@ -2,6 +2,7 @@
     'icon'     => 'heroicon-o-plus',
     'label'    => '',
     'tooltip'  => '',
+    'href'     => '',
     'variant'  => 'btn-primary',
     'size'     => 'btn-lg',
     'position' => 'bottom-right',
@@ -18,17 +19,36 @@ $posClass = match($position) {
 };
 @endphp
 
-<div class="fixed {{ $posClass }} z-40">
+<div
+    x-data="{ menuOpen: false }"
+    class="fixed {{ $posClass }} z-40"
+>
+    {{-- Slot actions (speed-dial menu) --}}
+    @if($slot->isNotEmpty())
+        <div x-show="menuOpen" x-cloak class="absolute bottom-full pb-3 flex flex-col items-center gap-2">
+            {{ $slot }}
+        </div>
+    @endif
+
     <div class="tooltip tooltip-left" @if($tooltip) data-tip="{{ __($tooltip) }}" @endif>
-        <button
-            type="button"
-            @disabled($disabled)
-            {{ $attributes->merge(['class' => "btn btn-circle {$variant} {$size} shadow-lg hover:shadow-xl transition-all duration-200 {$class}"]) }}
-        >
-            <x-dynamic-component :component="$icon" class="w-6 h-6" />
-            @if($label)
-                <span class="ml-2">{{ __($label) }}</span>
-            @endif
-        </button>
+        @if($href)
+            <a
+                href="{{ $href }}"
+                {{ $attributes->merge(['class' => "btn btn-circle {$variant} {$size} shadow-lg hover:shadow-xl transition-all duration-200 {$class}"]) }}
+            >
+                <x-dynamic-component :component="$icon" class="w-6 h-6" />
+                @if($label) <span class="ml-2">{{ __($label) }}</span> @endif
+            </a>
+        @else
+            <button
+                type="button"
+                @if($slot->isNotEmpty()) @click="menuOpen = !menuOpen" @endif
+                @disabled($disabled)
+                {{ $attributes->merge(['class' => "btn btn-circle {$variant} {$size} shadow-lg hover:shadow-xl transition-all duration-200 {$class}"]) }}
+            >
+                <x-dynamic-component :component="$icon" class="w-6 h-6" />
+                @if($label) <span class="ml-2">{{ __($label) }}</span> @endif
+            </button>
+        @endif
     </div>
 </div>

@@ -8,6 +8,7 @@
 ])
 
 @php
+$keys = is_array($keys) ? $keys : ($keys !== '' && $keys !== [] ? [$keys] : []);
 $kbdClass = 'kbd' . match($variant) {
     'primary'   => ' kbd-primary',
     'secondary' => ' kbd-secondary',

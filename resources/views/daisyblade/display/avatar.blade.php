@@ -15,9 +15,9 @@
 $sizeClass = match($size) {
     'xs'  => 'w-6 h-6',
     'sm'  => 'w-8 h-8',
-    'lg'  => 'w-12 h-12',
-    'xl'  => 'w-16 h-16',
-    '2xl' => 'w-20 h-20',
+    'lg'  => 'w-16 h-16',
+    'xl'  => 'w-20 h-20',
+    '2xl' => 'w-24 h-24',
     default => 'w-10 h-10',
 };
 @endphp

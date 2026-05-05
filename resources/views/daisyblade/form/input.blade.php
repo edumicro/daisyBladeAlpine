@@ -8,6 +8,8 @@
     'disabled'       => false,
     'readonly'       => false,
     'required'       => false,
+    'error'          => '',
+    'hint'           => '',
     'description'    => '',
     'class'          => '',
     'containerClass' => '',
@@ -34,14 +36,14 @@
         <input
             type="{{ $type }}"
             placeholder="{{ $placeholder }}"
-            @if($name) id="{{ $name }}" @endif
+            @if($name) id="{{ $name }}" name="{{ $name }}" @endif
             @if($disabled) disabled @endif
             @if($readonly) readonly @endif
             @if($required) required @endif
             {{ $attributes->merge(['class' => trim('input input-bordered w-full '
                 . ($icon && $iconSide === 'left' ? 'pl-10 ' : '')
                 . ($icon && $iconSide === 'right' ? 'pr-10 ' : '')
-                . ($name && isset($errors) && $errors->has($name) ? 'input-error ' : '')
+                . ($error ? 'input-error ' : ($name && isset($errors) && $errors->has($name) ? 'input-error ' : ''))
                 . $class)]) }}
         />
 
@@ -52,11 +54,21 @@
         @endif
     </div>
 
-    @if($name && isset($errors))
+    @if($error)
+        <label class="label p-0 mt-1">
+            <span class="label-text-alt text-error font-semibold">{{ $error }}</span>
+        </label>
+    @elseif($name && isset($errors))
         @error($name)
             <label class="label p-0 mt-1">
                 <span class="label-text-alt text-error font-semibold">{{ $message }}</span>
             </label>
         @enderror
+    @endif
+
+    @if($hint)
+        <label class="label p-0 mt-1">
+            <span class="label-text-alt text-base-content/60">{{ $hint }}</span>
+        </label>
     @endif
 </div>

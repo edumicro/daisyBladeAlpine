@@ -3,28 +3,27 @@
 namespace Edumicro\DaisyBlade;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Blade;
 use Illuminate\View\Compilers\BladeCompiler;
 
 class DaisyBladeServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadViewsFrom(__DIR__.'/../resources/views', 'daisyblade');
+        $this->loadViewsFrom(__DIR__.'/../resources/views/daisyblade', 'daisyblade');
         $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'daisyblade');
 
         $this->callAfterResolving(BladeCompiler::class, function (BladeCompiler $blade) {
-            // Prefer published views, fallback to vendor views
+            // Prefer published views, fallback to package views
             $path = is_dir(resource_path('views/vendor/daisyblade'))
                 ? resource_path('views/vendor/daisyblade')
                 : realpath(__DIR__.'/../resources/views/daisyblade');
 
-            $blade->anonymousComponentNamespace($path, 'db');
+            $blade->anonymousComponentPath($path, 'dbl');
         });
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__.'/../resources/views' => resource_path('views/vendor/daisyblade'),
+                __DIR__.'/../resources/views/daisyblade' => resource_path('views/vendor/daisyblade'),
             ], 'daisyblade-views');
 
             $this->publishes([
