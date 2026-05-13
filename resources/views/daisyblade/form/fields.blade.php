@@ -19,7 +19,17 @@
 @foreach($fields as $key => $field)
     @php
         $ft          = $field['type'] ?? 'text';
-        $cols        = $field['cols'] ?? 'col-span-12';
+        $colsRaw     = $field['cols'] ?? null;
+        if (is_null($colsRaw)) {
+            $typeDefault = match($ft) {
+                'toggle', 'boolean', 'checkbox' => 3,
+                'number', 'money', 'percentage', 'date', 'datetime' => 4,
+                'textarea' => 12,
+                default => 6,
+            };
+            $colsRaw = function_exists('theme_config') ? theme_config('form.cols.' . $ft, $typeDefault) : $typeDefault;
+        }
+        $cols        = is_numeric($colsRaw) ? 'col-span-' . (int)$colsRaw : $colsRaw;
         $label       = $field['label'] ?? ucwords(str_replace(['_', '.'], ' ', $key));
         $placeholder = $field['placeholder'] ?? '';
         $required    = !empty($field['required']);
@@ -185,6 +195,20 @@
                         </label>
                     @endif
                 </div>
+            @break
+
+            @case('repeater')
+                <x-db::form.repeater
+                    :name="$key"
+                    :label="$label"
+                    :fields="$field['fields'] ?? []"
+                    :value="is_array($value) ? $value : []"
+                    :mode="$mode"
+                    :alpineData="$aD"
+                    :addLabel="$field['add_label'] ?? null"
+                    :min="$field['min'] ?? 0"
+                    :max="$field['max'] ?? 0"
+                />
             @break
 
             @default

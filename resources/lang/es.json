@@ -16,5 +16,7 @@
     "Select an option": "Selecciona una opción",
     "Previous": "Anterior",
     "of": "de",
-    "rows per page": "filas por página"
+    "rows per page": "filas por página",
+    "Add row": "Agregar fila",
+    "Remove row": "Eliminar fila"
 }
