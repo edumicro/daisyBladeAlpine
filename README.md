@@ -109,7 +109,9 @@ No JavaScript. Receive props, render HTML.
 | `display.timeline` | Vertical event timeline |
 | `display.kbd` | Keyboard shortcut display |
 | `display.chat-bubble` | Chat message bubble |
-| `display.diff` | Before/after diff viewer |
+| `display.diff` | Code diff viewer (line-by-line +/−/~) |
+| `display.compare` | Side-by-side property comparison table |
+| `display.tree` | Recursive tree from nested array |
 | `display.list` | Styled list component |
 | `display.mask` | DaisyUI mask shapes |
 | `display.radial-progress` | Circular progress indicator |
@@ -348,17 +350,11 @@ composer test
 vendor/bin/pest
 ```
 
-173 tests, 265 assertions. All green.
+188 tests, 294 assertions. All green.
 
 ---
 
-## Relation to FLOW-STUDIO
 
-DaisyBlade is the reference ThemeDriver for [FLOW-STUDIO](https://github.com/edumicro/flow-studio), a modular ERP framework where modules declare UI intentions (`list`, `form`, `stats`...) and the active theme translates them to real components.
-
-DaisyBlade has zero coupling to FLOW-STUDIO — it works as a standalone component library in any Laravel project. The two packages connect through the `ThemeDriverContract` interface defined by FLOW-STUDIO.
-
----
 
 ## License
 

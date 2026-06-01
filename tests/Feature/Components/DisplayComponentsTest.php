@@ -16,6 +16,8 @@ $displayComponents = [
     '<x-dbl::display.chat-bubble message="Hi" />',
     '<x-dbl::display.collapse title="T" />',
     '<x-dbl::display.diff :changes="[]" />',
+    '<x-dbl::display.compare :rows="[]" />',
+    '<x-dbl::display.tree :items="[]" />',
     '<x-dbl::display.hover-gallery :images="[]" />',
     '<x-dbl::display.kbd keys="Ctrl" />',
     '<x-dbl::display.list :items="[]" />',
@@ -240,6 +242,99 @@ it('timeline shows item titles and dates', function () {
 it('timeline renders empty without exception', function () {
     $html = Blade::render('<x-dbl::display.timeline :items="[]" />');
     expect($html)->not->toBeEmpty();
+});
+
+// ── display/compare ───────────────────────────────────────────────────────────
+
+it('compare renders table element', function () {
+    $html = Blade::render('<x-dbl::display.compare :rows="[]" />');
+    expect($html)->toContain('<table');
+});
+
+it('compare shows left and right labels', function () {
+    $html = Blade::render('<x-dbl::display.compare :rows="[]" left-label="Instancia A" right-label="Catálogo" />');
+    expect($html)->toContain('Instancia A')->toContain('Catálogo');
+});
+
+it('compare shows row label and values', function () {
+    $html = Blade::render(
+        '<x-dbl::display.compare :rows="$rows" />',
+        ['rows' => [['key' => 'masa', 'label' => 'Masa (kg)', 'left' => '0.035', 'right' => '0.037', 'status' => 'changed']]]
+    );
+    expect($html)->toContain('Masa (kg)')->toContain('0.035')->toContain('0.037');
+});
+
+it('compare changed row contains warning class', function () {
+    $html = Blade::render(
+        '<x-dbl::display.compare :rows="$rows" />',
+        ['rows' => [['key' => 'x', 'left' => 'a', 'right' => 'b', 'status' => 'changed']]]
+    );
+    expect($html)->toContain('bg-warning/10');
+});
+
+it('compare equal row has no highlight class', function () {
+    $html = Blade::render(
+        '<x-dbl::display.compare :rows="$rows" />',
+        ['rows' => [['key' => 'x', 'left' => 'a', 'right' => 'a', 'status' => 'equal']]]
+    );
+    expect($html)->not->toContain('bg-warning')->not->toContain('bg-info');
+});
+
+it('compare only_left row renders dash in right column', function () {
+    $html = Blade::render(
+        '<x-dbl::display.compare :rows="$rows" />',
+        ['rows' => [['key' => 'x', 'label' => 'Campo', 'left' => '45', 'right' => null, 'status' => 'only_left']]]
+    );
+    expect($html)->toContain('bg-info/10')->toContain('—');
+});
+
+it('compare shows label prop and shows title attribute for description', function () {
+    $html = Blade::render('<x-dbl::display.compare :rows="[]" label="Comparativa" />');
+    expect($html)->toContain('Comparativa');
+});
+
+// ── display/tree ──────────────────────────────────────────────────────────────
+
+it('tree renders ul element', function () {
+    $html = Blade::render('<x-dbl::display.tree :items="[]" />');
+    expect($html)->not->toBeEmpty();
+});
+
+it('tree renders leaf nodes', function () {
+    $html = Blade::render(
+        '<x-dbl::display.tree :items="$items" />',
+        ['items' => ['composer.json' => 'Dependencies', 'README.md' => '']]
+    );
+    expect($html)->toContain('composer.json')->toContain('README.md');
+});
+
+it('tree renders description on leaf nodes', function () {
+    $html = Blade::render(
+        '<x-dbl::display.tree :items="$items" />',
+        ['items' => ['config' => 'Configuration files']]
+    );
+    expect($html)->toContain('config')->toContain('Configuration files');
+});
+
+it('tree renders nested branches with details/summary', function () {
+    $html = Blade::render(
+        '<x-dbl::display.tree :items="$items" />',
+        ['items' => ['src' => ['Models' => null, 'Controllers' => null]]]
+    );
+    expect($html)->toContain('<details')->toContain('<summary')->toContain('src')->toContain('Models');
+});
+
+it('tree with expandAll=true renders details open', function () {
+    $html = Blade::render(
+        '<x-dbl::display.tree :items="$items" :expand-all="true" />',
+        ['items' => ['src' => ['Models' => null]]]
+    );
+    expect($html)->toContain('<details open');
+});
+
+it('tree shows label heading', function () {
+    $html = Blade::render('<x-dbl::display.tree :items="[]" label="Estructura del proyecto" />');
+    expect($html)->toContain('Estructura del proyecto');
 });
 
 // ── display/resource-details ──────────────────────────────────────────────────
