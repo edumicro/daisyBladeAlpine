@@ -7,7 +7,7 @@
     'class'       => '',
 ])
 
-<div x-data="dbListEditor({ items: @json(array_values((array) $value)) })" class="{{ $class }}">
+<div x-data="dbListEditor({ items: {{ \Illuminate\Support\Js::from(array_values((array) $value)) }} })" class="{{ $class }}">
 
     @if($label)
     <div class="label pb-1">
