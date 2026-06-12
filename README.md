@@ -101,26 +101,37 @@ No JavaScript. Receive props, render HTML.
 
 | Component | Usage |
 |---|---|
-| `display.badge` | Status badges with color variants |
+| `display.accordion` | DaisyUI accordion (CSS-driven) |
 | `display.avatar` | User avatar with initials fallback |
-| `display.stat` | KPI card with value, title, trend |
+| `display.badge` | Status badges with color variants |
 | `display.card` | Content card with optional shadow |
-| `display.table` | Static HTML table from array data |
-| `display.timeline` | Vertical event timeline |
-| `display.kbd` | Keyboard shortcut display |
 | `display.chat-bubble` | Chat message bubble |
-| `display.diff` | Code diff viewer (line-by-line +/−/~) |
+| `display.collapse` | DaisyUI collapse panel (CSS-driven) |
 | `display.compare` | Side-by-side property comparison table |
-| `display.tree` | Recursive tree from nested array |
+| `display.diff` | Code diff viewer (line-by-line +/−/~) |
+| `display.hover-3d-card` | CSS 3D tilt card on hover |
+| `display.hover-gallery` | CSS-animated image gallery |
+| `display.kbd` | Keyboard shortcut display |
 | `display.list` | Styled list component |
 | `display.mask` | DaisyUI mask shapes |
 | `display.radial-progress` | Circular progress indicator |
+| `display.resource-details` | Detail view loaded from URL |
+| `display.stat` | KPI card with value, title, trend |
 | `display.status` | Status dot with label |
+| `display.table` | Static HTML table from array data |
+| `display.timeline` | Vertical event timeline |
+| `display.tree` | Recursive tree from nested array |
 | `feedback.alert` | Alert message with type variants |
 | `feedback.loading` | Loading spinner |
 | `feedback.progress` | Linear progress bar |
 | `feedback.skeleton` | Content skeleton placeholder |
 | `feedback.tooltip` | Tooltip wrapper |
+| `form.checkbox` | Checkbox field with label |
+| `form.input` | Text/email/number/date input |
+| `form.radio` | Radio button group |
+| `form.textarea` | Textarea with label |
+| `form.toggle` | Toggle switch |
+| `form.validator` | Inline validation message display |
 | `layout.divider` | Section divider |
 | `layout.footer` | Page footer |
 | `layout.hero` | Hero section |
@@ -143,13 +154,20 @@ UI state managed by Alpine. No Axios.
 | Component | Usage |
 |---|---|
 | `actions.modal` | Modal with Alpine open/close |
+| `display.carousel` | Image/content carousel |
+| `display.filters` | Filter bar with Alpine state |
+| `display.node-graph` | Tree graph with event timeline + detail modal |
+| `display.text-rotate` | Animated rotating text |
 | `feedback.toast` | Toast notification |
-| `navigation.tabs` | Tab switcher (inline content) |
+| `form.repeater` | Dynamic repeatable field group |
+| `navigation.menu` | Dropdown / nested menu |
 | `navigation.navbar` | Top navigation bar |
+| `navigation.pagination` | Page navigation controls |
 | `navigation.sidebar` | Collapsible sidebar |
 | `navigation.sidebar-tree` | Nested sidebar menu |
 | `layout.app` | Full page layout with slots |
 | `layout.auth` | Auth page layout |
+| `navigation.tabs` | Tab switcher (inline content) |
 
 ### Type 3 — Interactive remote (Alpine + Axios)
 
@@ -158,11 +176,10 @@ Receive a `load-url` or `action` prop. Call plain Laravel controllers returning 
 | Component | Usage |
 |---|---|
 | `display.data-table` | Paginated, sortable, filterable table |
-| `display.resource-details` | Detail view loaded from URL |
-| `form.auto-form` | Declarative form from schema array |
-| `form.select` | Select with remote search |
 | `form.filter` | Filter bar for data-table |
+| `form.select` | Select with remote search |
 | `import.spreadsheet` | Excel/CSV chunked import |
+| `sections.auto-form` | Declarative form from schema array |
 | `sections.tabs` | Tabs with lazy-loaded content |
 | `sections.wizard` | Multi-step form with localStorage resume |
 
@@ -189,6 +206,42 @@ Receive a `load-url` or `action` prop. Call plain Laravel controllers returning 
     icon="heroicon-o-banknotes"
 />
 ```
+
+### Node graph (Type 2)
+
+Renders a tree of simulation/workflow nodes with per-event color coding and a detail modal. Each node is an array with `id`, `parent` (null for roots), `label`, `status`, `events[]`, and optional `meta{}`.
+
+```blade
+@php
+$nodes = [
+    [
+        'id'     => 1,
+        'parent' => null,
+        'label'  => 'Main trajectory',
+        'status' => 'completed',
+        'events' => [
+            ['name' => 'timer_done', 'action_type' => 'terminate', 'termination_type' => 'end',   't_s' => 12.5],
+            ['name' => 'heat_acc',   'action_type' => 'accumulator_abort', 'termination_type' => 'abort', 'acc_value' => 42.7],
+        ],
+        'meta' => ['h_max_m' => 350.2, 't_final_s' => 12.5],
+    ],
+    [
+        'id'     => 2,
+        'parent' => 1,
+        'label'  => 'Branch — ricochet',
+        'status' => 'failed',
+        'events' => [
+            ['name' => 'impact', 'action_type' => 'accumulator_fail', 'termination_type' => 'fail', 'acc_value' => 0.1],
+        ],
+        'meta' => [],
+    ],
+];
+@endphp
+
+<x-dbl::display.node-graph :nodes="$nodes" label="Execution tree" />
+```
+
+Event badge colours: `end` → green, `abort` → amber, `fail` → red, no termination → ghost. Accumulator events show `acc_value` inline. Click any node dot or event badge to open the detail modal.
 
 ### Data table (Type 3)
 
@@ -230,7 +283,7 @@ public function data(Request $request)
 ### Declarative form (Type 3)
 
 ```blade
-<x-dbl::form.auto-form
+<x-dbl::sections.auto-form
     :schema="[
         ['name' => 'name',        'label' => 'Product name', 'order' => 10],
         ['name' => 'category_id', 'label' => 'Category',     'type' => 'relation',
@@ -262,6 +315,23 @@ public function store(Request $request)
         'redirect' => route('products.index'),
     ]);
 }
+```
+
+### Repeater field (Type 2)
+
+```blade
+<x-dbl::form.repeater
+    name="events"
+    label="Events"
+    :fields="[
+        ['name' => 'label', 'type' => 'text',   'label' => 'Label'],
+        ['name' => 'value', 'type' => 'number', 'label' => 'Value'],
+    ]"
+    :value="old('events', [])"
+    add-label="Add event"
+    :min="1"
+    :max="10"
+/>
 ```
 
 ### Multi-step wizard with localStorage resume
@@ -353,8 +423,6 @@ vendor/bin/pest
 188 tests, 294 assertions. All green.
 
 ---
-
-
 
 ## License
 

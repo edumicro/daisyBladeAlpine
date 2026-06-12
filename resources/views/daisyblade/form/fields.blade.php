@@ -198,7 +198,7 @@
             @break
 
             @case('repeater')
-                <x-db::form.repeater
+                <x-dbl::form.repeater
                     :name="$key"
                     :label="$label"
                     :fields="$field['fields'] ?? []"
