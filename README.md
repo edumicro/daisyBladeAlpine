@@ -159,6 +159,8 @@ UI state managed by Alpine. No Axios.
 | `display.node-graph` | Tree graph with event timeline + detail modal |
 | `display.text-rotate` | Animated rotating text |
 | `feedback.toast` | Toast notification |
+| `form.kv-editor` | Key-value editor with auto-inferring type selector |
+| `form.list-editor` | Chip/tag array-of-strings editor |
 | `form.repeater` | Dynamic repeatable field group |
 | `navigation.menu` | Dropdown / nested menu |
 | `navigation.navbar` | Top navigation bar |
@@ -331,6 +333,35 @@ public function store(Request $request)
     add-label="Add event"
     :min="1"
     :max="10"
+/>
+```
+
+### Key-value editor (Type 2)
+
+Renders a table of key/value rows with an auto-inferring type selector (num/str/bool/{…}). Serialises to a hidden `<input>` as JSON.
+
+```blade
+<x-dbl::form.kv-editor
+    name="parameters"
+    :value="$model->parameters ?? []"
+    label="Parámetros"
+    hint="Campos habituales: mass_kg, v0_ms, diameter_m"
+/>
+```
+
+`value` accepts a PHP associative array. Types are inferred automatically when the user types; the selector lets them override if needed.
+
+### List editor (Type 2)
+
+Chip/tag input for an array of strings. Enter or comma adds a chip; Backspace removes the last one.
+
+```blade
+<x-dbl::form.list-editor
+    name="output_fields"
+    :value="$model->output_fields ?? []"
+    label="Campos de output"
+    hint="Disponibles: t_s, x_m, h_m, v_ms, mach"
+    placeholder="Escribe un campo y pulsa Enter…"
 />
 ```
 

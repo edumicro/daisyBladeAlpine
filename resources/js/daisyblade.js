@@ -226,12 +226,80 @@ const dbWizard = (config = {}) => {
     }
 }
 
+const dbKvEditor = (config = {}) => ({
+    rows: (config.rows ?? []).map((r, i) => ({ ...r, id: i })),
+
+    init() {
+        if (this.rows.length === 0) this.addRow()
+    },
+
+    addRow() {
+        this.rows.push({ id: Date.now() + Math.random(), key: '', value: '', type: 'number', dirty: false })
+    },
+
+    inferType(val) {
+        const s = String(val).trim()
+        if (s === 'true' || s === 'false') return 'bool'
+        if (s !== '' && !isNaN(Number(s))) return 'number'
+        return 'string'
+    },
+
+    onValueInput(row) {
+        if (!row.dirty) row.type = this.inferType(row.value)
+    },
+
+    onTypeChange(row) {
+        row.dirty = true
+        if (row.type === 'bool' && row.value !== 'true' && row.value !== 'false') row.value = 'false'
+    },
+
+    castValue(row) {
+        const s = String(row.value).trim()
+        switch (row.type) {
+            case 'number': return s === '' ? 0 : Number(s)
+            case 'bool':   return s === 'true'
+            case 'object': try { return JSON.parse(s) } catch { return {} }
+            default:       return s
+        }
+    },
+
+    toJson() {
+        const obj = {}
+        for (const row of this.rows) {
+            const k = String(row.key).trim()
+            if (k) obj[k] = this.castValue(row)
+        }
+        return JSON.stringify(obj)
+    },
+})
+
+const dbListEditor = (config = {}) => ({
+    items: config.items ?? [],
+    draft: '',
+
+    add() {
+        const v = this.draft.trim()
+        if (v && !this.items.includes(v)) this.items.push(v)
+        this.draft = ''
+    },
+
+    remove(i) { this.items.splice(i, 1) },
+
+    onKeydown(e) {
+        if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); this.add() }
+        if (e.key === 'Backspace' && this.draft === '' && this.items.length > 0) this.items.pop()
+    },
+
+    toJson() { return JSON.stringify(this.items) },
+})
+
 // ── Registration ───────────────────────────────────────────────────────────
 
 const _all = {
     dbModal, dbToast, dbTabs, dbNavbar, dbSidebar, dbSidebarTree,
     dbDataTable, dbAutoForm, dbWizard,
     dbSelectRemote, dbResourceDetails, dbTabsLazy, dbSpreadsheetImport,
+    dbKvEditor, dbListEditor,
 }
 
 function _register(Alpine) {
@@ -253,4 +321,5 @@ export {
     dbModal, dbToast, dbTabs, dbNavbar, dbSidebar, dbSidebarTree,
     dbDataTable, dbAutoForm, dbWizard,
     dbSelectRemote, dbResourceDetails, dbTabsLazy, dbSpreadsheetImport,
+    dbKvEditor, dbListEditor,
 }
