@@ -357,6 +357,16 @@ worse than failing outright.
 `'type' => 'decimal'` renders `type="text" inputmode="decimal"`: the numeric keypad still comes up
 on mobile, the text arrives intact, and the backend parses it in its own locale.
 
+#### `default` — what a new row starts from
+
+Field definitions take `default`, and it applies to the first row *and* to every row `add()`
+creates. A default that only reaches the first row is a default the user stops seeing the moment
+they add a second one:
+
+```php
+['key' => 'unit', 'type' => 'select', 'options' => $units, 'default' => 'mg/h']
+```
+
 #### `attrs` — raw HTML attributes
 
 Schema-driven components take arrays, so there is no attribute bag to merge into. `attrs` is the

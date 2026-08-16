@@ -118,3 +118,24 @@ it('does not reference rows outside the Alpine scope in x-data', function () {
 
     expect($xData)->not->toContain('canRemove')->not->toContain('canAdd');
 });
+
+// ── field defaults ────────────────────────────────────────────────────────────
+
+it('starts the first row from the field defaults', function () {
+    $html = repeater(fields: "[['key'=>'unit','type'=>'select','options'=>['mg'=>'mg'],'default'=>'mg']]");
+
+    expect($html)->toContain('rows: JSON.parse(\'[{\u0022unit\u0022:\u0022mg\u0022}]\')');
+});
+
+it('gives an added row the same defaults as the first', function () {
+    $html = repeater(fields: "[['key'=>'unit','type'=>'select','options'=>['mg'=>'mg'],'default'=>'mg']]");
+
+    // add() pushes this literal, so row two arrives with the unit already chosen.
+    expect($html)->toContain('this.rows.push(JSON.parse(\'{\u0022unit\u0022:\u0022mg\u0022}\'))');
+});
+
+it('still starts blank when no default is declared', function () {
+    $html = repeater(fields: "[['key'=>'a']]");
+
+    expect($html)->toContain('rows: JSON.parse(\'[{\u0022a\u0022:\u0022\u0022}]\')');
+});

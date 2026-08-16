@@ -38,10 +38,17 @@
     use Edumicro\DaisyBlade\Support\Attrs;
     use Edumicro\DaisyBlade\Support\Bindings;
 
-    $addLabel ??= __('Add row');
-    $rows      = !empty($value) ? array_values($value) : [[]];
-    $emptyRow  = array_fill_keys(array_column($fields, 'key'), '');
+    $addLabel  ??= __('Add row');
     $fieldDefs = array_values($fields);
+
+    // Every new row starts from the field defaults, not from blanks: a select whose default only
+    // applies to the first row is a default the user stops seeing the moment they add a second.
+    $emptyRow = [];
+    foreach ($fieldDefs as $fieldDef) {
+        $emptyRow[$fieldDef['key'] ?? ''] = $fieldDef['default'] ?? '';
+    }
+
+    $rows = !empty($value) ? array_values($value) : [$emptyRow];
 
     $bind = fn (string $target, array $defaults = []) => Bindings::render($defaults, $events[$target] ?? []);
 @endphp
