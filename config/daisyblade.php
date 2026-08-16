@@ -3,18 +3,18 @@
 return [
 
     'component_map' => [
-        'text'     => 'db::form.input',
-        'email'    => 'db::form.input',
-        'password' => 'db::form.input',
-        'number'   => 'db::form.input',
-        'money'    => 'db::form.input',
-        'date'     => 'db::form.input',
-        'datetime' => 'db::form.input',
-        'select'   => 'db::form.select',
-        'relation' => 'db::form.select',
-        'textarea' => 'db::form.textarea',
-        'toggle'   => 'db::form.toggle',
-        'checkbox' => 'db::form.checkbox',
+        'text'     => 'dbl::form.input',
+        'email'    => 'dbl::form.input',
+        'password' => 'dbl::form.input',
+        'number'   => 'dbl::form.input',
+        'money'    => 'dbl::form.input',
+        'date'     => 'dbl::form.input',
+        'datetime' => 'dbl::form.input',
+        'select'   => 'dbl::form.select',
+        'relation' => 'dbl::form.select',
+        'textarea' => 'dbl::form.textarea',
+        'toggle'   => 'dbl::form.toggle',
+        'checkbox' => 'dbl::form.checkbox',
     ],
 
     'defaults' => [
