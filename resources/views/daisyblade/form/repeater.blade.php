@@ -139,7 +139,7 @@
                                     @if($mode === 'form') :name="`{{ $name }}[${index}][{{ $fKey }}]`" @endif
                                     x-model="row['{{ $fKey }}']"
                                     {{ Attrs::render($fAttrs) }}
-                                    class="select select-bordered select-sm w-full"
+                                    class="select select-sm w-full"
                                 >
                                     <option value="">{{ $fPh ?: '—' }}</option>
                                     @foreach($fOpts as $optVal => $optLabel)
@@ -154,7 +154,7 @@
                                     rows="{{ $field['rows'] ?? 2 }}"
                                     placeholder="{{ $fPh }}"
                                     {{ Attrs::render($fAttrs) }}
-                                    class="textarea textarea-bordered textarea-sm w-full"
+                                    class="textarea textarea-sm w-full"
                                 ></textarea>
 
                             @else
@@ -167,7 +167,7 @@
                                     @isset($field['field_min']) min="{{ $field['field_min'] }}" @endisset
                                     @isset($field['field_max']) max="{{ $field['field_max'] }}" @endisset
                                     {{ Attrs::render($fAttrs) }}
-                                    class="input input-bordered input-sm w-full"
+                                    class="input input-sm w-full"
                                 />
                             @endif
                         </div>

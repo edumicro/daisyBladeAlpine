@@ -145,9 +145,11 @@ it('card with shadow=false has no shadow class', function () {
     expect($html)->not->toContain('shadow');
 });
 
-it('card with compact=true contains card-compact', function () {
+it('card with compact=true uses the daisyUI 5 name for the compact size', function () {
     $html = Blade::render('<x-dbl::display.card title="T" :compact="true" />');
-    expect($html)->toContain('card-compact');
+
+    // daisyUI 5 renamed card-compact to card-sm. The old name generates nothing at all.
+    expect($html)->toContain('card-sm')->not->toContain('card-compact');
 });
 
 // ── display/table ─────────────────────────────────────────────────────────────

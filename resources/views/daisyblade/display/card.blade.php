@@ -19,7 +19,7 @@
     $shadow    ? 'shadow-md' : '',
     $hoverable ? 'hover:shadow-lg transition-shadow cursor-pointer' : '',
     $glass     ? 'glass' : '',
-    $compact   ? 'card-compact' : '',
+    $compact   ? 'card-sm' : '',
     $borderColor ? "border border-{$borderColor}" : '',
 ]))]) }}>
 

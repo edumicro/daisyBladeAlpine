@@ -52,14 +52,14 @@ $initialRows = collect($value)->map(function ($v, $k) {
                     type="text"
                     x-model="row.key"
                     placeholder="campo"
-                    class="input input-bordered input-sm flex-1 font-mono text-sm min-w-0"
+                    class="input input-sm flex-1 font-mono text-sm min-w-0"
                 />
 
                 {{-- Value (conditional by type) --}}
                 <div class="flex-1 min-w-0">
                     <template x-if="row.type === 'bool'">
                         <select x-model="row.value"
-                                class="select select-bordered select-sm w-full font-mono text-sm">
+                                class="select select-sm w-full font-mono text-sm">
                             <option value="true">true</option>
                             <option value="false">false</option>
                         </select>
@@ -68,7 +68,7 @@ $initialRows = collect($value)->map(function ($v, $k) {
                         <textarea
                             x-model="row.value"
                             rows="2"
-                            class="textarea textarea-bordered text-xs font-mono w-full leading-snug"
+                            class="textarea text-xs font-mono w-full leading-snug"
                             placeholder='{"key": "value"}'
                         ></textarea>
                     </template>
@@ -77,7 +77,7 @@ $initialRows = collect($value)->map(function ($v, $k) {
                             type="text"
                             x-model="row.value"
                             @input="onValueInput(row)"
-                            class="input input-bordered input-sm w-full font-mono text-sm"
+                            class="input input-sm w-full font-mono text-sm"
                         />
                     </template>
                 </div>
@@ -86,7 +86,7 @@ $initialRows = collect($value)->map(function ($v, $k) {
                 <select
                     x-model="row.type"
                     @change="onTypeChange(row)"
-                    class="select select-bordered select-xs w-16 shrink-0 font-mono self-start mt-0.5"
+                    class="select select-xs w-16 shrink-0 font-mono self-start mt-0.5"
                 >
                     <option value="number">num</option>
                     <option value="string">str</option>

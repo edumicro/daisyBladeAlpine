@@ -59,7 +59,7 @@
                         x-model="search"
                         @input.debounce.400="page = 1; load()"
                         placeholder="{{ __('Search...') }}"
-                        class="input input-bordered input-sm pl-9 w-48 focus:w-64 transition-all"
+                        class="input input-sm pl-9 w-48 focus:w-64 transition-all"
                     />
                 </div>
             @endif

@@ -51,7 +51,7 @@
 
                 @switch($fType)
                     @case('select')
-                        <select x-model="values.{{ $fName }}" @change="apply()" class="select select-bordered select-sm">
+                        <select x-model="values.{{ $fName }}" @change="apply()" class="select select-sm">
                             <option value="">{{ __('All') }}</option>
                             @foreach($field['options'] ?? [] as $ov => $ol)
                                 <option value="{{ $ov }}">{{ $ol }}</option>
@@ -68,12 +68,12 @@
                     @break
 
                     @case('date')
-                        <input type="date" x-model="values.{{ $fName }}" @change="apply()" class="input input-bordered input-sm" />
+                        <input type="date" x-model="values.{{ $fName }}" @change="apply()" class="input input-sm" />
                     @break
 
                     @default
                         <input type="text" x-model="values.{{ $fName }}" @input.debounce.400="apply()"
-                            placeholder="{{ $field['placeholder'] ?? '' }}" class="input input-bordered input-sm" />
+                            placeholder="{{ $field['placeholder'] ?? '' }}" class="input input-sm" />
                 @endswitch
             </div>
         @endforeach

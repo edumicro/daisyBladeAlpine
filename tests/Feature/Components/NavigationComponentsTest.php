@@ -120,3 +120,28 @@ it('tabs has no wire: attributes', function () {
     );
     expect($html)->not->toContain('wire:');
 });
+
+// ── navigation/sidebar: fuera de pantalla, no un raíl que recorta ──────────────
+
+it('sidebar slides off-canvas instead of collapsing to a clipped rail', function () {
+    $html = Blade::render('<x-dbl::navigation.sidebar>menu</x-dbl::navigation.sidebar>');
+
+    expect($html)
+        ->toContain('-translate-x-full')
+        ->not->toContain("'w-16'");
+});
+
+it('sidebar keeps a way back in once it is closed', function () {
+    $html = Blade::render('<x-dbl::navigation.sidebar>menu</x-dbl::navigation.sidebar>');
+
+    // The floating toggle must not depend on the host defining [x-cloak], or it flashes on load.
+    expect($html)
+        ->toContain('x-show="!open"')
+        ->toContain('style="display: none"');
+});
+
+it('sidebar with collapsible=false has no toggles at all', function () {
+    $html = Blade::render('<x-dbl::navigation.sidebar :collapsible="false">menu</x-dbl::navigation.sidebar>');
+
+    expect($html)->not->toContain('toggle()');
+});

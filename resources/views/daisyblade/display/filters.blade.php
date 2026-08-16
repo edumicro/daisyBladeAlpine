@@ -33,7 +33,7 @@
         <span x-show="count() > 0" x-cloak class="badge badge-primary badge-sm" x-text="count()"></span>
     </label>
 
-    <div tabindex="0" class="dropdown-content z-50 card card-compact w-80 p-4 shadow-lg bg-base-100 border border-base-300 mt-2">
+    <div tabindex="0" class="dropdown-content z-50 card card-sm w-80 p-4 shadow-lg bg-base-100 border border-base-300 mt-2">
         <div class="space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-base-300">
                 <h3 class="font-semibold text-sm">{{ __('Filter options') }}</h3>
@@ -56,7 +56,7 @@
 
                     @switch($fType)
                         @case('select')
-                            <select @change="update('{{ $fKey }}', $event.target.value)" class="select select-bordered select-sm w-full">
+                            <select @change="update('{{ $fKey }}', $event.target.value)" class="select select-sm w-full">
                                 <option value="">{{ __('All') }}</option>
                                 @foreach($filter['options'] ?? [] as $ov => $ol)
                                     <option value="{{ $ov }}">{{ $ol }}</option>
@@ -73,25 +73,25 @@
                         @break
 
                         @case('date')
-                            <input type="date" @change="update('{{ $fKey }}', $event.target.value)" class="input input-bordered input-sm w-full" />
+                            <input type="date" @change="update('{{ $fKey }}', $event.target.value)" class="input input-sm w-full" />
                         @break
 
                         @case('daterange')
                             <div class="flex gap-2">
-                                <input type="date" @change="update('{{ $fKey }}_from', $event.target.value)" placeholder="{{ __('From') }}" class="input input-bordered input-sm flex-1" />
-                                <input type="date" @change="update('{{ $fKey }}_to', $event.target.value)" placeholder="{{ __('To') }}" class="input input-bordered input-sm flex-1" />
+                                <input type="date" @change="update('{{ $fKey }}_from', $event.target.value)" placeholder="{{ __('From') }}" class="input input-sm flex-1" />
+                                <input type="date" @change="update('{{ $fKey }}_to', $event.target.value)" placeholder="{{ __('To') }}" class="input input-sm flex-1" />
                             </div>
                         @break
 
                         @case('number')
                             <input type="number" @input.debounce.300="update('{{ $fKey }}', $event.target.value)"
                                 min="{{ $filter['min'] ?? '' }}" max="{{ $filter['max'] ?? '' }}"
-                                placeholder="{{ $filter['placeholder'] ?? '' }}" class="input input-bordered input-sm w-full" />
+                                placeholder="{{ $filter['placeholder'] ?? '' }}" class="input input-sm w-full" />
                         @break
 
                         @default
                             <input type="text" @input.debounce.300="update('{{ $fKey }}', $event.target.value)"
-                                placeholder="{{ $filter['placeholder'] ?? '' }}" class="input input-bordered input-sm w-full" />
+                                placeholder="{{ $filter['placeholder'] ?? '' }}" class="input input-sm w-full" />
                     @endswitch
 
                     @if(isset($filter['help']))

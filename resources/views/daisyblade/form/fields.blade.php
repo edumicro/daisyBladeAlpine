@@ -80,7 +80,7 @@
                         rows="{{ $field['rows'] ?? 4 }}"
                         @if($disabled) disabled @endif
                         @if($required) required @endif
-                        class="textarea textarea-bordered w-full @if($mode==='form' && $errors->has($key)) textarea-error @endif"
+                        class="textarea w-full @if($mode==='form' && $errors->has($key)) textarea-error @endif"
                     >@if($mode==='form'){{ $value }}@endif</textarea>
                     @if($mode==='form')
                         @error($key) <label class="label p-0 mt-1"><span class="label-text-alt text-error">{{ $message }}</span></label> @enderror
@@ -179,7 +179,7 @@
                         @if($disabled) disabled @endif
                         @if($required) required @endif
                         {{ $attrs }}
-                        class="select select-bordered w-full @if($mode==='form' && $errors->has($key)) select-error @endif"
+                        class="select w-full @if($mode==='form' && $errors->has($key)) select-error @endif"
                     >
                         @if(!$multiple)
                             <option value="">{{ $placeholder ?: __('Select...') }}</option>
@@ -241,7 +241,7 @@
                         @if($disabled) disabled @endif
                         @if($required) required @endif
                         {{ $attrs }}
-                        class="input input-bordered w-full @if($mode==='form' && $errors->has($key)) input-error @endif"
+                        class="input w-full @if($mode==='form' && $errors->has($key)) input-error @endif"
                     />
                     @if($mode==='form')
                         @error($key) <label class="label p-0 mt-1"><span class="label-text-alt text-error">{{ $message }}</span></label> @enderror

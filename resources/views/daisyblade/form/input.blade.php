@@ -40,7 +40,7 @@
             @if($disabled) disabled @endif
             @if($readonly) readonly @endif
             @if($required) required @endif
-            {{ $attributes->merge(['class' => trim('input input-bordered w-full '
+            {{ $attributes->merge(['class' => trim('input w-full '
                 . ($icon && $iconSide === 'left' ? 'pl-10 ' : '')
                 . ($icon && $iconSide === 'right' ? 'pr-10 ' : '')
                 . ($error ? 'input-error ' : ($name && isset($errors) && $errors->has($name) ? 'input-error ' : ''))
