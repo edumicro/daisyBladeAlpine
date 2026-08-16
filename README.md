@@ -321,20 +321,87 @@ public function store(Request $request)
 
 ### Repeater field (Type 2)
 
+Each field definition is keyed by `key` (not `name`):
+
 ```blade
 <x-dbl::form.repeater
-    name="events"
-    label="Events"
+    name="installments"
+    label="Installments"
     :fields="[
-        ['name' => 'label', 'type' => 'text',   'label' => 'Label'],
-        ['name' => 'value', 'type' => 'number', 'label' => 'Value'],
+        ['key' => 'label',  'type' => 'text',    'label' => 'Label'],
+        ['key' => 'amount', 'type' => 'decimal', 'label' => 'Amount'],
     ]"
-    :value="old('events', [])"
-    add-label="Add event"
+    :value="old('installments', [])"
+    add-label="Add installment"
     :min="1"
     :max="10"
 />
 ```
+
+The repeater dispatches `dbl-repeater-change` (`{ name, rows }`) whenever the rows change, so a
+parent can react without reaching into its Alpine scope:
+
+```blade
+<div x-data="{ save() { /* … */ } }" @dbl-repeater-change.debounce.500ms="save()">
+    <x-dbl::form.repeater name="installments" :fields="$fields" />
+</div>
+```
+
+#### `decimal` — the field type for localised numbers
+
+`<input type="number">` is the wrong element wherever the decimal separator is not a dot. When the
+browser cannot parse what was typed it sanitises `value` to the empty string, so `0,5` reaches the
+server as nothing at all — and which browsers do this in which locale is inconsistent, which is
+worse than failing outright.
+
+`'type' => 'decimal'` renders `type="text" inputmode="decimal"`: the numeric keypad still comes up
+on mobile, the text arrives intact, and the backend parses it in its own locale.
+
+#### `attrs` — raw HTML attributes
+
+Schema-driven components take arrays, so there is no attribute bag to merge into. `attrs` is the
+array equivalent, available on `form.repeater` fields and `form.fields`:
+
+```php
+['key' => 'ref', 'attrs' => ['autocomplete' => 'off', 'maxlength' => 12, 'aria-label' => 'Reference']]
+```
+
+Values are escaped. Attribute names are validated, and `on*` handlers are refused — event handlers
+go through `events`, which is explicit about executing code.
+
+#### `events` — Alpine bindings, per target
+
+`events` maps a target element to Alpine bindings, merged over the component's own defaults. The
+path is the binding spec and the leaf is the expression:
+
+```blade
+<x-dbl::form.repeater
+    name="drugs"
+    :fields="$fields"
+    :events="[
+        'root' => ['keydown' => ['enter' => ['prevent' => 'add()']]],
+    ]"
+/>
+```
+
+Targets are `root`, `row`, `add` and `remove`. In scope: `rows`, `add()`, `remove(index)`,
+`notify()` — plus `index` inside a row.
+
+Dotted keys mean the same thing, so a binding can be pasted straight out of the Alpine docs:
+
+```php
+['root' => ['keydown.enter.prevent' => 'add()']]
+```
+
+The nesting is what makes overriding work. A leaf replaces the branch below it, so passing
+`['keydown' => ['enter' => 'mine()']]` over a default of `keydown.enter.prevent` leaves **one**
+binding — yours. With flat keys the two would be different keys, both would survive, and both would
+fire. Declaring the same binding twice, or a handler and modifiers on the same node, throws.
+
+To extend a default rather than replace it, call it: `['add' => ['click' => 'add(); mine()']]`.
+
+> `events` leaves are executable by design. They are for expressions written by the developer, never
+> for values arriving from outside the application.
 
 ### Key-value editor (Type 2)
 
