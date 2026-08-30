@@ -257,6 +257,39 @@ Event badge colours: `end` → green, `abort` → amber, `fail` → red, no term
 />
 ```
 
+#### Toolbar links — export, print, anything
+
+The `toolbar` prop adds header links that carry the table's **current** state (page, search,
+sort, active filters) to a URL of your choosing:
+
+```blade
+<x-dbl::display.data-table
+    :load-url="route('products.data')"
+    :columns="$columns"
+    :toolbar="[
+        ['label' => 'Excel', 'url' => route('products.export'), 'icon' => 'heroicon-o-arrow-down-tray'],
+        ['label' => 'CSV',   'url' => route('products.export.csv')],
+    ]"
+/>
+```
+
+The component is deliberately **format agnostic** — it knows nothing about spreadsheets, CSV or
+PDF. It hands the state over and the URL decides what to build, so a second format is a second
+array entry, not a change here. Each item takes `label`, `url`, an optional `icon` (a full
+blade-heroicons component name) and an optional `download` (defaults to `true`; set it to
+`false` for a link meant to open in the page, like a printable view).
+
+Your endpoint receives the same query params as `load-url`, so build the query in **one** place
+and let both the JSON endpoint and the export use it — otherwise the file people download stops
+matching what they were looking at.
+
+```php
+public function export(Request $request)
+{
+    return Excel::download(new ProductsExport($request), 'products.xlsx');
+}
+```
+
 ```php
 // In your controller
 public function index()
