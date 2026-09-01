@@ -34,7 +34,13 @@
         x-data="dbAutoForm({
             action: '{{ $action }}',
             method: '{{ strtoupper($method) }}',
-            values: @js($values),
+            {{-- (object) y no @js($values) a secas: en PHP un array asociativo VACIO se serializa
+                 como [] —un array JS—, no como {}. x-model escribe values.email sin protestar,
+                 pero JSON.stringify descarta las propiedades con nombre de un array y axios manda
+                 [] al servidor: el formulario se envia vacio y el fallo se ve como un 422 de
+                 "campo obligatorio". Afecta a todo formulario sin valores iniciales, es decir a
+                 todos los de alta. --}}
+            values: @js((object) $values),
         })"
         {{ $attributes->merge(['class' => $containerClass]) }}
     >

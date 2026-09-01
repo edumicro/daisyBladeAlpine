@@ -235,3 +235,29 @@ it('fields passes events down to a nested repeater', function () {
 
     expect($html)->toContain('x-on:keydown.enter="add()"');
 });
+
+// ── regresion: el formulario sin valores iniciales enviaba el payload vacio ───
+//
+// En PHP un array asociativo vacio se serializa como `[]`, no como `{}`. Alpine escribia
+// `values.email` sobre ese array sin protestar, pero `JSON.stringify` descarta las propiedades
+// con nombre de un array, asi que axios mandaba `[]` y el servidor respondia 422 "campo
+// obligatorio". Afectaba a TODOS los formularios de alta, el de login incluido.
+
+it('auto-form seeds values as an object so an empty form still submits its fields', function () {
+    $html = Blade::render(
+        '<x-dbl::sections.auto-form :fields="$fields" action="/login" />',
+        ['fields' => ['email' => ['type' => 'email'], 'password' => ['type' => 'password']]],
+    );
+
+    expect($html)->toContain('values: {}')
+        ->not->toContain('values: []');
+});
+
+it('auto-form keeps the values it is given', function () {
+    $html = Blade::render(
+        '<x-dbl::sections.auto-form :fields="$fields" :values="$values" action="/x" />',
+        ['fields' => ['email' => ['type' => 'email']], 'values' => ['email' => 'ana@example.com']],
+    );
+
+    expect($html)->toContain('ana@example.com');
+});
