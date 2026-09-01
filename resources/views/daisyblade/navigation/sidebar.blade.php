@@ -20,7 +20,18 @@
     'class'       => '',
 ])
 
-<div x-data="dbSidebar()" x-init="init()">
+{{-- `sidebar-toggle` en window: la barra y la navbar viven en slots distintos del layout, asi
+     que no comparten ambito Alpine y un boton de la navbar no puede llamar a toggle() por su
+     cuenta. Con el evento global, cualquier parte de la pagina puede recuperarla:
+
+         <button x-data @click="$dispatch('sidebar-toggle')">
+
+     Importa porque, cerrada, el unico acceso era el boton de la esquina inferior; si alguien no lo
+     encuentra se queda sin navegacion y sin forma evidente de volver.
+
+     Solo cuando es plegable: con `collapsible => false` la barra esta fija a proposito, y dejarle
+     el escuchador permitiria cerrarla desde fuera, que es justo lo que esa opcion promete evitar. --}}
+<div x-data="dbSidebar()" x-init="init()" @if($collapsible) @sidebar-toggle.window="toggle()" @endif>
 
     @if($collapsible)
         {{-- The way back in once it is closed.

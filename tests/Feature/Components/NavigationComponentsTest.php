@@ -145,3 +145,13 @@ it('sidebar with collapsible=false has no toggles at all', function () {
 
     expect($html)->not->toContain('toggle()');
 });
+
+// ── sidebar: la forma de recuperarla ─────────────────────────────────────────
+
+it('sidebar can be reopened from anywhere via a window event', function () {
+    // La barra y la navbar estan en slots distintos del layout: no comparten ambito Alpine, asi
+    // que sin el escuchador global la unica forma de recuperarla es su propio boton de esquina.
+    $html = Blade::render('<x-dbl::navigation.sidebar>menu</x-dbl::navigation.sidebar>');
+
+    expect($html)->toContain('sidebar-toggle.window');
+});
