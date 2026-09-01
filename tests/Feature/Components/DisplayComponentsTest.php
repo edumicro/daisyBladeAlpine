@@ -382,3 +382,21 @@ it('resource-details contains Alpine factory and load-url', function () {
         ->toContain('x-data')
         ->not->toContain('wire:');
 });
+
+// ── card: `class` es del elemento, no de su interior ─────────────────────────
+//
+// `class` estaba declarado como prop y se colocaba en el `card-body`: un `class="mb-6"` acababa
+// como margen interior y las tarjetas seguían pegadas unas a otras.
+
+it('card puts class on the card itself, not inside it', function () {
+    $html = Blade::render('<x-dbl::display.card class="mb-6">contenido</x-dbl::display.card>');
+
+    expect($html)->toContain('card bg-base-100 shadow-md mb-6')
+        ->not->toContain('card-body mb-6');
+});
+
+it('card still lets you style the inside with bodyClass', function () {
+    $html = Blade::render('<x-dbl::display.card body-class="p-0">contenido</x-dbl::display.card>');
+
+    expect($html)->toContain('card-body p-0');
+});

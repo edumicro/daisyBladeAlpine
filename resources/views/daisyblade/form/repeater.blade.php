@@ -65,9 +65,7 @@
     class="space-y-2"
 >
     @if($label)
-        <label class="label py-0.5">
-            <span class="label-text font-medium">{{ $label }}</span>
-        </label>
+        <label class="mb-1 block text-sm font-medium">{{ $label }}</label>
     @endif
 
     <template x-for="(row, index) in rows" :key="index">
@@ -91,7 +89,13 @@
                         $fType  = $field['type']  ?? 'text';
                         $fLbl   = $field['label'] ?? ucfirst(str_replace('_', ' ', $fKey));
                         $fCols  = $field['cols']  ?? 4;
-                        $fCols  = is_numeric($fCols) ? 'col-span-' . (int)$fCols : $fCols;
+                        // Ver form/fields: clases enteras, no construidas en ejecución.
+                        $fCols  = is_numeric($fCols) ? match ((int) $fCols) {
+                            1 => 'col-span-1',   2 => 'col-span-2',   3 => 'col-span-3',
+                            4 => 'col-span-4',   5 => 'col-span-5',   6 => 'col-span-6',
+                            7 => 'col-span-7',   8 => 'col-span-8',   9 => 'col-span-9',
+                            10 => 'col-span-10', 11 => 'col-span-11', default => 'col-span-12',
+                        } : $fCols;
                         $fPh    = $field['placeholder'] ?? '';
                         $fOpts  = $field['options'] ?? [];
                         $fAttrs = $field['attrs'] ?? [];
@@ -110,12 +114,23 @@
                             $fAttrs = array_merge(['inputmode' => 'decimal'], $fAttrs);
                         }
                     @endphp
+                    {{-- Igual que en form/fields: un `hidden` no ocupa celda ni lleva etiqueta.
+                         En el repeater importa todavía más, porque la clave que se colaba era el
+                         `id` de la fila: editarlo a mano hace que al guardar se pise OTRA fila. --}}
+                    @if($fType === 'hidden')
+                        @if($mode === 'form')
+                            <input type="hidden"
+                                :name="`{{ $name }}[${index}][{{ $fKey }}]`"
+                                :value="row['{{ $fKey }}']"
+                            />
+                        @endif
+                        @continue
+                    @endif
+
                     <div class="{{ $fCols }}">
-                        <div class="form-control w-full">
+                        <div class="w-full">
                             @if($fLbl)
-                                <label class="label py-0.5">
-                                    <span class="label-text text-xs text-base-content/70">{{ $fLbl }}</span>
-                                </label>
+                                <label class="mb-1 block text-xs text-base-content/70">{{ $fLbl }}</label>
                             @endif
 
                             @if(in_array($fType, ['toggle', 'boolean', 'checkbox']))
@@ -125,7 +140,7 @@
                                         :value="row['{{ $fKey }}'] ? '1' : '0'"
                                     />
                                 @endif
-                                <label class="label cursor-pointer justify-start gap-2 py-2">
+                                <label class="flex w-full cursor-pointer items-center justify-start gap-2 py-2">
                                     <input
                                         type="checkbox"
                                         x-model="row['{{ $fKey }}']"

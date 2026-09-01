@@ -11,16 +11,14 @@
     'containerClass' => '',
 ])
 
-<div class="form-control w-full {{ $containerClass }}">
+<div class="w-full {{ $containerClass }}">
     @if($label)
-        <label class="label">
-            <span class="label-text font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
-        </label>
+        <label class="mb-1 block text-sm font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
 
     <div class="{{ $inline ? 'flex flex-wrap gap-4' : 'space-y-1' }}">
         @foreach($options as $optVal => $optLabel)
-            <label class="label cursor-pointer justify-start gap-3 py-1">
+            <label class="flex w-full cursor-pointer items-center justify-start gap-3 py-1">
                 <input
                     type="radio"
                     value="{{ $optVal }}"
@@ -29,16 +27,16 @@
                     @if($disabled) disabled @endif
                     {{ $attributes->merge(['class' => trim("radio radio-{$color} " . $class)]) }}
                 />
-                <span class="label-text">{{ $optLabel }}</span>
+                <span class="text-sm">{{ $optLabel }}</span>
             </label>
         @endforeach
     </div>
 
     @if($name && isset($errors))
         @error($name)
-            <label class="label p-0 mt-1">
-                <span class="label-text-alt text-error font-semibold">{{ $message }}</span>
-            </label>
+            <div class="mt-1">
+                <span class="text-xs text-error font-semibold">{{ $message }}</span>
+            </div>
         @enderror
     @endif
 </div>

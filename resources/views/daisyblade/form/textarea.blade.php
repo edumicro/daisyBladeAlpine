@@ -12,11 +12,14 @@
     'containerClass' => '',
 ])
 
-<div class="form-control w-full {{ $containerClass }}">
+<div class="w-full {{ $containerClass }}">
     @if($label)
-        <label class="label" @if($name) for="{{ $name }}" @endif>
-            <span class="label-text font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
-            @if($maxLength > 0) <span class="label-text-alt text-xs">0/{{ $maxLength }}</span> @endif
+        {{-- Texto y contador en la misma linea: `flex justify-between` explicito, porque la
+             clase `.label` de DaisyUI 4 que lo hacia ya no existe en la 5. --}}
+        <label class="mb-1 flex items-center justify-between gap-2 text-sm font-medium"
+               @if($name) for="{{ $name }}" @endif>
+            <span>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
+            @if($maxLength > 0) <span class="text-xs font-normal text-base-content/60">0/{{ $maxLength }}</span> @endif
         </label>
     @endif
 
@@ -39,9 +42,8 @@
 
     @if($name && isset($errors))
         @error($name)
-            <label class="label p-0 mt-1">
-                <span class="label-text-alt text-error font-semibold">{{ $message }}</span>
-            </label>
+            <div class="mt-1">
+                <span class="text-xs text-error font-semibold">{{ $message }}</div>
         @enderror
     @endif
 </div>

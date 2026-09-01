@@ -9,12 +9,12 @@
     'containerClass' => '',
 ])
 
-<div class="form-control w-full {{ $containerClass }}">
+<div class="w-full {{ $containerClass }}">
     @if($name && isset($errors))
         <input type="hidden" name="{{ $name }}" value="0" />
     @endif
 
-    <label class="label cursor-pointer justify-start gap-3 py-1">
+    <label class="flex w-full cursor-pointer items-center justify-start gap-3 py-1">
         <input
             type="checkbox"
             @if($name) id="{{ $name }}" name="{{ $name }}" value="1" @endif
@@ -23,7 +23,7 @@
             {{ $attributes->merge(['class' => trim("checkbox checkbox-{$color} " . $class)]) }}
         />
         @if($label)
-            <span class="label-text font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
+            <span class="text-sm font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
         @endif
     </label>
 
@@ -33,9 +33,9 @@
 
     @if($name && isset($errors))
         @error($name)
-            <label class="label p-0 mt-1">
-                <span class="label-text-alt text-error font-semibold">{{ $message }}</span>
-            </label>
+            <div class="mt-1">
+                <span class="text-xs text-error font-semibold">{{ $message }}</span>
+            </div>
         @enderror
     @endif
 </div>

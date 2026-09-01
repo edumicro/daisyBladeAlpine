@@ -49,10 +49,8 @@
                     $fLabel = $filter['label'] ?? ucfirst($fKey);
                 @endphp
 
-                <div class="form-control">
-                    <label class="label py-1">
-                        <span class="label-text text-xs font-medium">{{ $fLabel }}</span>
-                    </label>
+                <div class="w-full">
+                    <label class="mb-1 block font-medium text-xs">{{ $fLabel }}</label>
 
                     @switch($fType)
                         @case('select')
@@ -95,7 +93,7 @@
                     @endswitch
 
                     @if(isset($filter['help']))
-                        <label class="label py-1"><span class="label-text-alt text-xs text-base-content/60">{{ $filter['help'] }}</span></label>
+                        <label class="mb-1 block font-medium text-xs text-base-content/60">{{ $filter['help'] }}</label>
                     @endif
                 </div>
             @empty

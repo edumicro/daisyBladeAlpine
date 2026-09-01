@@ -165,3 +165,13 @@ it('sidebar can drop the floating toggle for hosts that provide their own', func
         ->not->toContain('bottom-4')
         ->toContain('sidebar-toggle.window');   // sigue siendo recuperable desde fuera
 });
+
+it('app layout puts the content canvas a shade below the cards', function () {
+    // Una tarjeta `bg-base-100` sobre un lienzo `bg-base-100` no se distingue del fondo.
+    // `withoutVite`: el layout llama a @vite y en testbench no hay manifest compilado.
+    $this->withoutVite();
+
+    $html = Blade::render('<x-dbl::layout.app>contenido</x-dbl::layout.app>');
+
+    expect($html)->toContain('bg-base-200');
+});

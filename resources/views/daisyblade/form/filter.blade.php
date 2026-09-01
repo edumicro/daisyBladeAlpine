@@ -44,10 +44,8 @@
                 $fLabel = $field['label'] ?? ucfirst($fName);
             @endphp
 
-            <div class="form-control min-w-36">
-                <label class="label py-1">
-                    <span class="label-text text-xs font-medium">{{ $fLabel }}</span>
-                </label>
+            <div class="min-w-36">
+                <label class="mb-1 block font-medium text-xs">{{ $fLabel }}</label>
 
                 @switch($fType)
                     @case('select')
@@ -61,9 +59,9 @@
 
                     @case('boolean')
                     @case('toggle')
-                        <label class="label cursor-pointer gap-2 justify-start">
+                        <label class="flex w-full cursor-pointer items-center gap-2 justify-start">
                             <input type="checkbox" x-model="values.{{ $fName }}" @change="apply()" class="toggle toggle-primary toggle-sm" />
-                            <span class="label-text text-xs">{{ $field['description'] ?? __('Yes') }}</span>
+                            <span class="text-xs">{{ $field['description'] ?? __('Yes') }}</span>
                         </label>
                     @break
 

@@ -30,7 +30,11 @@
                 {{ $navbar }}
             @endisset
 
-            <main class="flex-1 p-6">
+            {{-- El lienzo va un tono por debajo de las tarjetas. Sin esto el contenido es
+                 `base-100` y las tarjetas también: una tarjeta sobre su mismo color no se ve como
+                 tarjeta, solo como texto con sombra, y una pantalla de seis secciones se lee como
+                 un único bloque continuo. `layout.auth` ya usaba `base-200` por lo mismo. --}}
+            <main class="flex-1 p-6 bg-base-200">
                 {{ $slot }}
             </main>
 

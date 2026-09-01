@@ -26,9 +26,7 @@ $initialRows = collect($value)->map(function ($v, $k) {
 <div x-data="dbKvEditor({ rows: {{ \Illuminate\Support\Js::from($initialRows) }} })" class="{{ $class }}">
 
     @if($label)
-    <div class="label pb-1">
-        <span class="label-text font-medium">{{ $label }}</span>
-    </div>
+    <div class="mb-1 text-sm font-medium">{{ $label }}</div>
     @endif
 
     {{-- Hidden input keeps the serialised JSON in sync --}}
@@ -121,9 +119,7 @@ $initialRows = collect($value)->map(function ($v, $k) {
     </button>
 
     @if($hint)
-    <div class="label mt-0">
-        <span class="label-text-alt text-base-content/40">{{ $hint }}</span>
-    </div>
+    <div class="mt-1 text-xs text-base-content/40">{{ $hint }}</div>
     @endif
 
 </div>

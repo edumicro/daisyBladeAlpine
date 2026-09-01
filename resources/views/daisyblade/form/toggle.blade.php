@@ -9,14 +9,14 @@
     'containerClass' => '',
 ])
 
-<div class="form-control w-full {{ $containerClass }}">
+<div class="w-full {{ $containerClass }}">
     @if($name && isset($errors))
         <input type="hidden" name="{{ $name }}" value="0" />
     @endif
 
-    <label class="label cursor-pointer justify-between">
+    <label class="flex w-full cursor-pointer items-center justify-between">
         @if($label)
-            <span class="label-text font-medium">{{ $label }}</span>
+            <span class="text-sm font-medium">{{ $label }}</span>
         @endif
         <input
             type="checkbox"
@@ -32,9 +32,9 @@
 
     @if($name && isset($errors))
         @error($name)
-            <label class="label p-0 mt-1">
-                <span class="label-text-alt text-error font-semibold">{{ $message }}</span>
-            </label>
+            <div class="mt-1">
+                <span class="text-xs text-error font-semibold">{{ $message }}</span>
+            </div>
         @enderror
     @endif
 </div>

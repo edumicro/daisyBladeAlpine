@@ -15,11 +15,9 @@
     'containerClass' => '',
 ])
 
-<div class="form-control w-full {{ $containerClass }}">
+<div class="w-full {{ $containerClass }}">
     @if($label)
-        <label class="label" @if($name) for="{{ $name }}" @endif>
-            <span class="label-text font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
-        </label>
+        <label class="mb-1 block text-sm font-medium" @if($name) for="{{ $name }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
 
     @if($description)
@@ -55,20 +53,20 @@
     </div>
 
     @if($error)
-        <label class="label p-0 mt-1">
-            <span class="label-text-alt text-error font-semibold">{{ $error }}</span>
-        </label>
+        <div class="mt-1">
+            <span class="text-xs text-error font-semibold">{{ $error }}</span>
+        </div>
     @elseif($name && isset($errors))
         @error($name)
-            <label class="label p-0 mt-1">
-                <span class="label-text-alt text-error font-semibold">{{ $message }}</span>
-            </label>
+            <div class="mt-1">
+                <span class="text-xs text-error font-semibold">{{ $message }}</span>
+            </div>
         @enderror
     @endif
 
     @if($hint)
-        <label class="label p-0 mt-1">
-            <span class="label-text-alt text-base-content/60">{{ $hint }}</span>
-        </label>
+        <div class="mt-1">
+            <span class="text-xs text-base-content/60">{{ $hint }}</span>
+        </div>
     @endif
 </div>

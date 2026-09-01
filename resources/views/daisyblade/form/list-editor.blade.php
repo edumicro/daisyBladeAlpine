@@ -10,9 +10,7 @@
 <div x-data="dbListEditor({ items: {{ \Illuminate\Support\Js::from(array_values((array) $value)) }} })" class="{{ $class }}">
 
     @if($label)
-    <div class="label pb-1">
-        <span class="label-text font-medium">{{ $label }}</span>
-    </div>
+    <div class="mb-1 text-sm font-medium">{{ $label }}</div>
     @endif
 
     {{-- Hidden input keeps the JSON array in sync --}}
@@ -47,9 +45,7 @@
     </div>
 
     @if($hint)
-    <div class="label mt-0">
-        <span class="label-text-alt text-base-content/40">{{ $hint }}</span>
-    </div>
+    <div class="mt-1 text-xs text-base-content/40">{{ $hint }}</div>
     @endif
 
 </div>

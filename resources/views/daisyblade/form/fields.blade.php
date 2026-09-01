@@ -29,7 +29,15 @@
             };
             $colsRaw = function_exists('theme_config') ? theme_config('form.cols.' . $ft, $typeDefault) : $typeDefault;
         }
-        $cols        = is_numeric($colsRaw) ? 'col-span-' . (int)$colsRaw : $colsRaw;
+        // Clases enteras y no 'col-span-'.$n: Tailwind solo genera lo que encuentra literal al
+        // escanear. Una clase construida en ejecución no llega al CSS, y entonces el ancho de
+        // columna no se aplica y todos los campos caen en la misma fila.
+        $cols        = is_numeric($colsRaw) ? match ((int) $colsRaw) {
+            1 => 'col-span-1',   2 => 'col-span-2',   3 => 'col-span-3',
+            4 => 'col-span-4',   5 => 'col-span-5',   6 => 'col-span-6',
+            7 => 'col-span-7',   8 => 'col-span-8',   9 => 'col-span-9',
+            10 => 'col-span-10', 11 => 'col-span-11', default => 'col-span-12',
+        } : $colsRaw;
         $label       = $field['label'] ?? ucwords(str_replace(['_', '.'], ' ', $key));
         $placeholder = $field['placeholder'] ?? '';
         $required    = !empty($field['required']);
@@ -58,15 +66,29 @@
         $aE = $alphaErrors;
     @endphp
 
+    {{-- `hidden` sale ANTES del <div> de la celda: un campo oculto no ocupa columna, no lleva
+         etiqueta y no se puede tocar. Sin esto caía al `default => 'text'` de arriba y una clave
+         ajena —el id de la fila, el del alumno— se pintaba como una caja de texto editable
+         estrecha, encajada entre dos etiquetas. Además de feo, es peligroso: quien la edite
+         reapunta el registro a otro padre.
+
+         En modo Alpine no se pinta NADA a propósito: el valor ya viaja en el estado del
+         formulario (`values`), que es lo que se envía. Un input suelto solo podría desincronizarse
+         de él. En modo form sí hace falta, porque ahí lo que se manda es el HTML. --}}
+    @if($ft === 'hidden')
+        @if($mode === 'form')
+            <input type="hidden" name="{{ $key }}" value="{{ $value }}" />
+        @endif
+        @continue
+    @endif
+
     <div class="{{ $cols }}">
         @switch($ft)
 
             @case('textarea')
-                <div class="form-control w-full">
+                <div class="w-full">
                     @if($label)
-                        <label class="label" @if($mode==='form') for="{{ $key }}" @endif>
-                            <span class="label-text font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
-                        </label>
+                        <label class="mb-1 block text-sm font-medium" @if($mode==='form') for="{{ $key }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
                     @endif
                     <textarea
                         @if($mode==='form')
@@ -83,20 +105,18 @@
                         class="textarea w-full @if($mode==='form' && $errors->has($key)) textarea-error @endif"
                     >@if($mode==='form'){{ $value }}@endif</textarea>
                     @if($mode==='form')
-                        @error($key) <label class="label p-0 mt-1"><span class="label-text-alt text-error">{{ $message }}</span></label> @enderror
+                        @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror
                     @else
-                        <label class="label p-0 mt-1" x-show="({{ $aE }}['{{ $key }}']||[]).length" x-cloak>
-                            <span class="label-text-alt text-error" x-text="({{ $aE }}['{{ $key }}']||[])[0]"></span>
-                        </label>
+                        <p class="mt-1 text-xs text-error" x-show="({{ $aE }}['{{ $key }}']||[]).length" x-cloak x-text="({{ $aE }}['{{ $key }}']||[])[0]"></p>
                     @endif
                 </div>
             @break
 
             @case('checkbox')
             @case('boolean')
-                <div class="form-control w-full">
+                <div class="w-full">
                     @if($mode==='form') <input type="hidden" name="{{ $key }}" value="0" /> @endif
-                    <label class="label cursor-pointer justify-start gap-3 py-1">
+                    <label class="flex w-full cursor-pointer items-center justify-start gap-3 py-1">
                         <input
                             type="checkbox"
                             @if($mode==='form')
@@ -107,17 +127,21 @@
                             @if($disabled) disabled @endif
                             class="checkbox checkbox-primary"
                         />
-                        <span class="label-text font-medium">{{ $label }}</span>
+                        <span class="text-sm font-medium">{{ $label }}</span>
                     </label>
-                    @if($mode==='form') @error($key) <label class="label p-0 mt-1"><span class="label-text-alt text-error">{{ $message }}</span></label> @enderror @endif
+                    @if($mode==='form') @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror @endif
                 </div>
             @break
 
             @case('toggle')
-                <div class="form-control w-full">
+                <div class="w-full">
                     @if($mode==='form') <input type="hidden" name="{{ $key }}" value="0" /> @endif
-                    <label class="label cursor-pointer justify-between">
-                        <span class="label-text font-medium">{{ $label }}</span>
+                    {{-- `gap-3` + `min-w-0` en el texto + `shrink-0` en el interruptor. Sin esto,
+                         en una columna estrecha una etiqueta larga («Pide nº Seg. Social» en un
+                         col-span-3) empuja contra el interruptor y acaban montados: `justify-between`
+                         reparte el espacio sobrante, pero cuando no sobra ninguno no separa nada. --}}
+                    <label class="flex w-full cursor-pointer items-center justify-between gap-3">
+                        <span class="text-sm font-medium min-w-0">{{ $label }}</span>
                         <input
                             type="checkbox"
                             @if($mode==='form')
@@ -126,20 +150,20 @@
                                 x-model="{{ $aD }}.{{ $key }}"
                             @endif
                             @if($disabled) disabled @endif
-                            class="toggle toggle-primary"
+                            class="toggle toggle-primary shrink-0"
                         />
                     </label>
                 </div>
             @break
 
             @case('radio')
-                <div class="form-control w-full">
+                <div class="w-full">
                     @if($label)
-                        <label class="label"><span class="label-text font-medium">{{ $label }}</span></label>
+                        <label class="mb-1 block text-sm font-medium">{{ $label }}</label>
                     @endif
                     <div class="space-y-1">
                         @foreach($options as $optVal => $optLabel)
-                            <label class="label cursor-pointer justify-start gap-3 py-1">
+                            <label class="flex w-full cursor-pointer items-center justify-start gap-3 py-1">
                                 <input
                                     type="radio"
                                     value="{{ $optVal }}"
@@ -150,11 +174,11 @@
                                     @endif
                                     class="radio radio-primary"
                                 />
-                                <span class="label-text">{{ $optLabel }}</span>
+                                <span class="text-sm">{{ $optLabel }}</span>
                             </label>
                         @endforeach
                     </div>
-                    @if($mode==='form') @error($key) <label class="label p-0 mt-1"><span class="label-text-alt text-error">{{ $message }}</span></label> @enderror @endif
+                    @if($mode==='form') @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror @endif
                 </div>
             @break
 
@@ -162,11 +186,9 @@
             @case('multiselect')
             @case('tags')
             @case('relation')
-                <div class="form-control w-full">
+                <div class="w-full">
                     @if($label)
-                        <label class="label" @if($mode==='form') for="{{ $key }}" @endif>
-                            <span class="label-text font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
-                        </label>
+                        <label class="mb-1 block text-sm font-medium" @if($mode==='form') for="{{ $key }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
                     @endif
                     <select
                         @if($mode==='form')
@@ -197,11 +219,9 @@
                         @endforeach
                     </select>
                     @if($mode==='form')
-                        @error($key) <label class="label p-0 mt-1"><span class="label-text-alt text-error">{{ $message }}</span></label> @enderror
+                        @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror
                     @else
-                        <label class="label p-0 mt-1" x-show="({{ $aE }}['{{ $key }}']||[]).length" x-cloak>
-                            <span class="label-text-alt text-error" x-text="({{ $aE }}['{{ $key }}']||[])[0]"></span>
-                        </label>
+                        <p class="mt-1 text-xs text-error" x-show="({{ $aE }}['{{ $key }}']||[]).length" x-cloak x-text="({{ $aE }}['{{ $key }}']||[])[0]"></p>
                     @endif
                 </div>
             @break
@@ -222,11 +242,9 @@
             @break
 
             @default
-                <div class="form-control w-full">
+                <div class="w-full">
                     @if($label)
-                        <label class="label" @if($mode==='form') for="{{ $key }}" @endif>
-                            <span class="label-text font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
-                        </label>
+                        <label class="mb-1 block text-sm font-medium" @if($mode==='form') for="{{ $key }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
                     @endif
                     <input
                         type="{{ $inputType }}"
@@ -244,11 +262,9 @@
                         class="input w-full @if($mode==='form' && $errors->has($key)) input-error @endif"
                     />
                     @if($mode==='form')
-                        @error($key) <label class="label p-0 mt-1"><span class="label-text-alt text-error">{{ $message }}</span></label> @enderror
+                        @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror
                     @else
-                        <label class="label p-0 mt-1" x-show="({{ $aE }}['{{ $key }}']||[]).length" x-cloak>
-                            <span class="label-text-alt text-error" x-text="({{ $aE }}['{{ $key }}']||[])[0]"></span>
-                        </label>
+                        <p class="mt-1 text-xs text-error" x-show="({{ $aE }}['{{ $key }}']||[]).length" x-cloak x-text="({{ $aE }}['{{ $key }}']||[])[0]"></p>
                     @endif
                 </div>
 

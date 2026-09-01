@@ -11,8 +11,17 @@
     'borderColor' => '',
     'hoverable'   => false,
     'glass'       => false,
-    'class'       => '',
+    'bodyClass'   => '',
 ])
+
+{{-- `class` NO se declara como prop a propósito. Declararlo lo saca de `$attributes` y hay que
+     colocarlo a mano; aquí se colocaba en el `card-body`, así que un `class="mb-6"` —que en
+     cualquier otro componente separa la tarjeta de la siguiente— acababa como margen INTERIOR y
+     por fuera no se movía nada. Los doce usos que hay en el proyecto son todos intención de fuera
+     (`mb-6`, `mt-6 max-w-xl`), o sea que ninguno hacía lo que decía.
+
+     Ahora `class` cae en `$attributes` y Blade lo fusiona en la raíz, como en todos los demás
+     componentes. Para el interior está `bodyClass`. --}}
 
 <div {{ $attributes->merge(['class' => implode(' ', array_filter([
     "card bg-{$background}",
@@ -29,7 +38,7 @@
         </figure>
     @endif
 
-    <div class="card-body {{ $class }}">
+    <div class="card-body {{ $bodyClass }}">
         @if($title)
             <h2 class="card-title">{{ $title }}</h2>
         @endif

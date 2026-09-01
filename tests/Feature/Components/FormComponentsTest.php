@@ -261,3 +261,108 @@ it('auto-form keeps the values it is given', function () {
 
     expect($html)->toContain('ana@example.com');
 });
+
+// ── hidden: ni celda, ni etiqueta, ni caja editable ──────────────────────────
+//
+// Sin soporte propio, `type => 'hidden'` caía al `default => 'text'` del renderizador y una clave
+// ajena (el id de la fila, el del alumno) se pintaba como un input de texto estrecho encajado
+// entre dos etiquetas. Quien lo editara reapuntaría el registro a otro padre.
+
+it('auto-form does not paint a hidden field as an editable box', function () {
+    $html = Blade::render(
+        '<x-dbl::sections.auto-form :fields="$fields" action="/x" />',
+        ['fields' => [
+            'student_id' => ['type' => 'hidden', 'label' => '', 'cols' => 1],
+            'name' => ['type' => 'text', 'label' => 'Nombre'],
+        ]],
+    );
+
+    expect($html)
+        ->not->toContain('x-model="values.student_id"')   // no hay input ligado al campo oculto
+        ->not->toContain('col-span-1')                    // ni celda de rejilla para él
+        ->toContain('x-model="values.name"');             // y el resto del formulario sigue igual
+});
+
+it('repeater does not paint a hidden row key as an editable box', function () {
+    $html = Blade::render(
+        '<x-dbl::form.repeater name="guardians" :fields="$fields" />',
+        ['fields' => [
+            ['key' => 'id', 'type' => 'hidden', 'label' => '', 'cols' => 1],
+            ['key' => 'phone', 'type' => 'text', 'label' => 'Teléfono'],
+        ]],
+    );
+
+    // Lo que no puede haber es un control EDITABLE ligado al id. Un <input type="hidden"> con ese
+    // valor sí es correcto en modo form: es como viaja la clave al servidor.
+    expect($html)
+        ->not->toContain("x-model=\"row['id']\"")
+        ->toContain("x-model=\"row['phone']\"");
+});
+
+it('a hidden field still travels in form mode, where the HTML is what gets posted', function () {
+    $html = Blade::render(
+        '<x-dbl::sections.auto-form :fields="$fields" :values="$values" action="/x" mode="form" />',
+        [
+            'fields' => ['student_id' => ['type' => 'hidden', 'label' => '']],
+            'values' => ['student_id' => 1448],
+        ],
+    );
+
+    expect($html)->toContain('type="hidden"')->toContain('1448');
+});
+
+it('toggle keeps its label from colliding with the switch in a narrow column', function () {
+    // `justify-between` reparte el espacio SOBRANTE; en una columna estrecha con una etiqueta
+    // larga no sobra ninguno y texto e interruptor acaban montados.
+    $html = Blade::render(
+        '<x-dbl::sections.auto-form :fields="$fields" action="/x" />',
+        ['fields' => ['requires_ssn' => ['type' => 'toggle', 'label' => 'Pide nº Seg. Social', 'cols' => 3]]],
+    );
+
+    expect($html)
+        ->toContain('justify-between gap-3')
+        ->toContain('min-w-0')
+        ->toContain('toggle toggle-primary shrink-0');
+});
+
+it('writes column classes in full so Tailwind can find them', function () {
+    // Tailwind genera solo lo que encuentra literal al escanear los ficheros. Una clase construida
+    // en ejecución ('col-span-'.$n) no llega al CSS: el ancho no se aplica y todos los campos caen
+    // en la misma fila.
+    $fuente = file_get_contents(__DIR__.'/../../../resources/views/daisyblade/form/fields.blade.php')
+        .file_get_contents(__DIR__.'/../../../resources/views/daisyblade/form/repeater.blade.php');
+
+    expect($fuente)->not->toContain("'col-span-' . ");
+
+    foreach (range(1, 12) as $n) {
+        expect($fuente)->toContain("'col-span-{$n}'");
+    }
+});
+
+it('does not use the DaisyUI 4 form classes that v5 removed', function () {
+    // DaisyUI 5 borró `form-control`, `label-text` y `label-text-alt`, y redefinió `.label` como un
+    // inline-flex pensado para ir DENTRO de un `.input`. El idioma de la v4 seguía compilando, pero
+    // la etiqueta dejaba de apilarse encima del campo: se quedaba a su izquierda. Solo se salvaban
+    // los campos con `w-full`, que fuerzan el salto de línea por accidente — así que el fallo se
+    // veía en los sitios que NO lo llevaban (los modales) y pasaba desapercibido en el resto.
+    $muertas = ['form-control', 'label-text', 'input-bordered', 'select-bordered', 'textarea-bordered'];
+
+    $vistas = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator(__DIR__.'/../../../resources/views/daisyblade')
+    );
+
+    foreach ($vistas as $vista) {
+        if ($vista->getExtension() !== 'php') {
+            continue;
+        }
+
+        $fuente = file_get_contents($vista->getPathname());
+
+        foreach ($muertas as $clase) {
+            expect($fuente)->not->toContain($clase, "{$vista->getFilename()} usa `{$clase}`, que no existe en DaisyUI 5");
+        }
+
+        // `class="label"` a secas o con utilidades: solo es válida dentro de un .input/.select.
+        expect($fuente)->not->toMatch('/class="label[ "]/');
+    }
+});
