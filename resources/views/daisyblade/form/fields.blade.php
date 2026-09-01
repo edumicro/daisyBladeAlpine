@@ -23,7 +23,7 @@
         if (is_null($colsRaw)) {
             $typeDefault = match($ft) {
                 'toggle', 'boolean', 'checkbox' => 3,
-                'number', 'money', 'percentage', 'date', 'datetime' => 4,
+                'number', 'money', 'percentage', 'decimal', 'date', 'datetime' => 4,
                 'textarea' => 12,
                 default => 6,
             };
@@ -47,6 +47,13 @@
             'file'     => 'file',
             default    => 'text',
         };
+        $attrs = $field['attrs'] ?? [];
+        // See form/repeater: a localised decimal cannot be <input type="number">, because the
+        // browser blanks the value when the separator is not the one it expects.
+        if ($ft === 'decimal') {
+            $attrs = array_merge(['inputmode' => 'decimal'], $attrs);
+        }
+        $attrs = Edumicro\DaisyBlade\Support\Attrs::render($attrs);
         $aD = $alpineData;
         $aE = $alphaErrors;
     @endphp
@@ -69,10 +76,11 @@
                             :class="{ 'textarea-error': ({{ $aE }}['{{ $key }}']||[]).length }"
                         @endif
                         placeholder="{{ $placeholder }}"
+                        {{ $attrs }}
                         rows="{{ $field['rows'] ?? 4 }}"
                         @if($disabled) disabled @endif
                         @if($required) required @endif
-                        class="textarea textarea-bordered w-full @if($mode==='form' && $errors->has($key)) textarea-error @endif"
+                        class="textarea w-full @if($mode==='form' && $errors->has($key)) textarea-error @endif"
                     >@if($mode==='form'){{ $value }}@endif</textarea>
                     @if($mode==='form')
                         @error($key) <label class="label p-0 mt-1"><span class="label-text-alt text-error">{{ $message }}</span></label> @enderror
@@ -170,7 +178,8 @@
                         @if($multiple) multiple @endif
                         @if($disabled) disabled @endif
                         @if($required) required @endif
-                        class="select select-bordered w-full @if($mode==='form' && $errors->has($key)) select-error @endif"
+                        {{ $attrs }}
+                        class="select w-full @if($mode==='form' && $errors->has($key)) select-error @endif"
                     >
                         @if(!$multiple)
                             <option value="">{{ $placeholder ?: __('Select...') }}</option>
@@ -208,6 +217,7 @@
                     :addLabel="$field['add_label'] ?? null"
                     :min="$field['min'] ?? 0"
                     :max="$field['max'] ?? 0"
+                    :events="$field['events'] ?? []"
                 />
             @break
 
@@ -230,7 +240,8 @@
                         @endif
                         @if($disabled) disabled @endif
                         @if($required) required @endif
-                        class="input input-bordered w-full @if($mode==='form' && $errors->has($key)) input-error @endif"
+                        {{ $attrs }}
+                        class="input w-full @if($mode==='form' && $errors->has($key)) input-error @endif"
                     />
                     @if($mode==='form')
                         @error($key) <label class="label p-0 mt-1"><span class="label-text-alt text-error">{{ $message }}</span></label> @enderror

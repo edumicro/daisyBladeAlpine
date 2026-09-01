@@ -5,12 +5,22 @@
       name      — HTML array name (e.g. 'installments')
       label     — optional section label
       fields    — array of sub-field defs: [['key'=>'x','label'=>'X','type'=>'text','cols'=>4], ...]
+                  'type'  => text | decimal | number | money | percentage | date | datetime |
+                             email | select | textarea | toggle | boolean | checkbox
+                  'attrs' => raw HTML attributes for the input, e.g. ['autocomplete'=>'off']
       value     — initial rows array (for edit forms)
       mode      — 'form' (HTML POST, default) | 'alpine' (syncs into parent scope via alpineData)
       alpineData — parent Alpine data path used in alpine mode (default 'data')
       addLabel  — override the Add button text
       min       — minimum rows (0 = no minimum)
       max       — maximum rows (0 = unlimited)
+      events    — Alpine bindings per target, merged over this component's defaults:
+                  ['root'|'row'|'add'|'remove' => ['keydown' => ['enter' => 'add()']]]
+                  Dotted keys work too: ['root' => ['keydown.enter.prevent' => 'add()']].
+                  In scope: rows, add(), remove(index), notify() — plus index inside a row.
+
+    Dispatches `dbl-repeater-change` ({ name, rows }) whenever the rows change, so a parent can
+    react without reaching into this scope:  <div @dbl-repeater-change.debounce.500ms="save()">
 --}}
 @props([
     'name'       => 'items',
@@ -22,23 +32,36 @@
     'addLabel'   => null,
     'min'        => 0,
     'max'        => 0,
+    'events'     => [],
 ])
 @php
-    $addLabel ??= __('Add row');
-    $rows      = !empty($value) ? array_values($value) : [[]];
-    $emptyRow  = array_fill_keys(array_column($fields, 'key'), '');
+    use Edumicro\DaisyBlade\Support\Attrs;
+    use Edumicro\DaisyBlade\Support\Bindings;
+
+    $addLabel  ??= __('Add row');
     $fieldDefs = array_values($fields);
+
+    // Every new row starts from the field defaults, not from blanks: a select whose default only
+    // applies to the first row is a default the user stops seeing the moment they add a second.
+    $emptyRow = [];
+    foreach ($fieldDefs as $fieldDef) {
+        $emptyRow[$fieldDef['key'] ?? ''] = $fieldDef['default'] ?? '';
+    }
+
+    $rows = !empty($value) ? array_values($value) : [$emptyRow];
+
+    $bind = fn (string $target, array $defaults = []) => Bindings::render($defaults, $events[$target] ?? []);
 @endphp
 
 <div
     x-data="{
         rows: {{ Js::from($rows) }},
-        add()      { this.rows.push({{ Js::from($emptyRow) }}) },
-        remove(i)  { if ({{ (int)$min }} === 0 || this.rows.length > {{ (int)$min }}) this.rows.splice(i, 1) },
-        canRemove  : {{ (int)$min }} === 0 || rows.length > {{ (int)$min }},
-        canAdd     : {{ (int)$max }} === 0 || rows.length < {{ (int)$max }},
+        add()      { this.rows.push({{ Js::from($emptyRow) }}); this.notify() },
+        remove(i)  { if ({{ (int)$min }} === 0 || this.rows.length > {{ (int)$min }}) { this.rows.splice(i, 1); this.notify() } },
+        notify()   { this.$dispatch('dbl-repeater-change', { name: {{ Js::from($name) }}, rows: this.rows }) },
     }"
     @if($mode === 'alpine') x-effect="{{ $alpineData }}.{{ $name }} = rows" @endif
+    {{ $bind('root', ['input' => 'notify()']) }}
     class="space-y-2"
 >
     @if($label)
@@ -48,12 +71,12 @@
     @endif
 
     <template x-for="(row, index) in rows" :key="index">
-        <div class="relative border border-base-300 rounded-lg p-3 bg-base-100/50">
+        <div {{ $bind('row') }} class="relative border border-base-300 rounded-lg p-3 bg-base-100/50">
 
             {{-- Remove button: top-right corner --}}
             <button
                 type="button"
-                @click="remove(index)"
+                {{ $bind('remove', ['click' => 'remove(index)']) }}
                 x-show="{{ (int)$min }} === 0 || rows.length > {{ (int)$min }}"
                 class="absolute top-1.5 right-1.5 btn btn-ghost btn-xs btn-square text-error opacity-50 hover:opacity-100"
                 title="{{ __('Remove row') }}"
@@ -71,6 +94,7 @@
                         $fCols  = is_numeric($fCols) ? 'col-span-' . (int)$fCols : $fCols;
                         $fPh    = $field['placeholder'] ?? '';
                         $fOpts  = $field['options'] ?? [];
+                        $fAttrs = $field['attrs'] ?? [];
                         $inputType = match($fType) {
                             'number', 'money', 'percentage' => 'number',
                             'date'     => 'date',
@@ -78,6 +102,13 @@
                             'email'    => 'email',
                             default    => 'text',
                         };
+                        // A localised decimal cannot be an <input type="number">: where the locale
+                        // separator is not a dot, the browser sanitises the value to '' and the
+                        // digits the user typed never reach the server. Text plus inputmode keeps
+                        // the numeric keypad on mobile and lets the backend parse its own locale.
+                        if ($fType === 'decimal') {
+                            $fAttrs = array_merge(['inputmode' => 'decimal'], $fAttrs);
+                        }
                     @endphp
                     <div class="{{ $fCols }}">
                         <div class="form-control w-full">
@@ -98,6 +129,7 @@
                                     <input
                                         type="checkbox"
                                         x-model="row['{{ $fKey }}']"
+                                        {{ Attrs::render($fAttrs) }}
                                         class="{{ $fType === 'toggle' ? 'toggle toggle-primary toggle-sm' : 'checkbox checkbox-primary checkbox-sm' }}"
                                     />
                                 </label>
@@ -106,7 +138,8 @@
                                 <select
                                     @if($mode === 'form') :name="`{{ $name }}[${index}][{{ $fKey }}]`" @endif
                                     x-model="row['{{ $fKey }}']"
-                                    class="select select-bordered select-sm w-full"
+                                    {{ Attrs::render($fAttrs) }}
+                                    class="select select-sm w-full"
                                 >
                                     <option value="">{{ $fPh ?: '—' }}</option>
                                     @foreach($fOpts as $optVal => $optLabel)
@@ -120,7 +153,8 @@
                                     x-model="row['{{ $fKey }}']"
                                     rows="{{ $field['rows'] ?? 2 }}"
                                     placeholder="{{ $fPh }}"
-                                    class="textarea textarea-bordered textarea-sm w-full"
+                                    {{ Attrs::render($fAttrs) }}
+                                    class="textarea textarea-sm w-full"
                                 ></textarea>
 
                             @else
@@ -132,7 +166,8 @@
                                     @isset($field['step']) step="{{ $field['step'] }}" @endisset
                                     @isset($field['field_min']) min="{{ $field['field_min'] }}" @endisset
                                     @isset($field['field_max']) max="{{ $field['field_max'] }}" @endisset
-                                    class="input input-bordered input-sm w-full"
+                                    {{ Attrs::render($fAttrs) }}
+                                    class="input input-sm w-full"
                                 />
                             @endif
                         </div>
@@ -144,7 +179,7 @@
 
     <button
         type="button"
-        @click="add()"
+        {{ $bind('add', ['click' => 'add()']) }}
         x-show="{{ (int)$max }} === 0 || rows.length < {{ (int)$max }}"
         class="btn btn-ghost btn-sm gap-1.5 text-primary"
     >

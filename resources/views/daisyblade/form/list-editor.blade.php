@@ -20,7 +20,7 @@
 
     {{-- Chip container + text input --}}
     <div
-        class="input input-bordered flex flex-wrap gap-1.5 items-center min-h-10 h-auto py-1.5 px-2 cursor-text"
+        class="input flex flex-wrap gap-1.5 items-center min-h-10 h-auto py-1.5 px-2 cursor-text"
         @click="$refs.draft.focus()"
     >
         <template x-for="(item, i) in items" :key="i">

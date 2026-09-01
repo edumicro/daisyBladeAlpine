@@ -257,6 +257,39 @@ Event badge colours: `end` → green, `abort` → amber, `fail` → red, no term
 />
 ```
 
+#### Toolbar links — export, print, anything
+
+The `toolbar` prop adds header links that carry the table's **current** state (page, search,
+sort, active filters) to a URL of your choosing:
+
+```blade
+<x-dbl::display.data-table
+    :load-url="route('products.data')"
+    :columns="$columns"
+    :toolbar="[
+        ['label' => 'Excel', 'url' => route('products.export'), 'icon' => 'heroicon-o-arrow-down-tray'],
+        ['label' => 'CSV',   'url' => route('products.export.csv')],
+    ]"
+/>
+```
+
+The component is deliberately **format agnostic** — it knows nothing about spreadsheets, CSV or
+PDF. It hands the state over and the URL decides what to build, so a second format is a second
+array entry, not a change here. Each item takes `label`, `url`, an optional `icon` (a full
+blade-heroicons component name) and an optional `download` (defaults to `true`; set it to
+`false` for a link meant to open in the page, like a printable view).
+
+Your endpoint receives the same query params as `load-url`, so build the query in **one** place
+and let both the JSON endpoint and the export use it — otherwise the file people download stops
+matching what they were looking at.
+
+```php
+public function export(Request $request)
+{
+    return Excel::download(new ProductsExport($request), 'products.xlsx');
+}
+```
+
 ```php
 // In your controller
 public function index()
@@ -321,20 +354,97 @@ public function store(Request $request)
 
 ### Repeater field (Type 2)
 
+Each field definition is keyed by `key` (not `name`):
+
 ```blade
 <x-dbl::form.repeater
-    name="events"
-    label="Events"
+    name="installments"
+    label="Installments"
     :fields="[
-        ['name' => 'label', 'type' => 'text',   'label' => 'Label'],
-        ['name' => 'value', 'type' => 'number', 'label' => 'Value'],
+        ['key' => 'label',  'type' => 'text',    'label' => 'Label'],
+        ['key' => 'amount', 'type' => 'decimal', 'label' => 'Amount'],
     ]"
-    :value="old('events', [])"
-    add-label="Add event"
+    :value="old('installments', [])"
+    add-label="Add installment"
     :min="1"
     :max="10"
 />
 ```
+
+The repeater dispatches `dbl-repeater-change` (`{ name, rows }`) whenever the rows change, so a
+parent can react without reaching into its Alpine scope:
+
+```blade
+<div x-data="{ save() { /* … */ } }" @dbl-repeater-change.debounce.500ms="save()">
+    <x-dbl::form.repeater name="installments" :fields="$fields" />
+</div>
+```
+
+#### `decimal` — the field type for localised numbers
+
+`<input type="number">` is the wrong element wherever the decimal separator is not a dot. When the
+browser cannot parse what was typed it sanitises `value` to the empty string, so `0,5` reaches the
+server as nothing at all — and which browsers do this in which locale is inconsistent, which is
+worse than failing outright.
+
+`'type' => 'decimal'` renders `type="text" inputmode="decimal"`: the numeric keypad still comes up
+on mobile, the text arrives intact, and the backend parses it in its own locale.
+
+#### `default` — what a new row starts from
+
+Field definitions take `default`, and it applies to the first row *and* to every row `add()`
+creates. A default that only reaches the first row is a default the user stops seeing the moment
+they add a second one:
+
+```php
+['key' => 'unit', 'type' => 'select', 'options' => $units, 'default' => 'mg/h']
+```
+
+#### `attrs` — raw HTML attributes
+
+Schema-driven components take arrays, so there is no attribute bag to merge into. `attrs` is the
+array equivalent, available on `form.repeater` fields and `form.fields`:
+
+```php
+['key' => 'ref', 'attrs' => ['autocomplete' => 'off', 'maxlength' => 12, 'aria-label' => 'Reference']]
+```
+
+Values are escaped. Attribute names are validated, and `on*` handlers are refused — event handlers
+go through `events`, which is explicit about executing code.
+
+#### `events` — Alpine bindings, per target
+
+`events` maps a target element to Alpine bindings, merged over the component's own defaults. The
+path is the binding spec and the leaf is the expression:
+
+```blade
+<x-dbl::form.repeater
+    name="drugs"
+    :fields="$fields"
+    :events="[
+        'root' => ['keydown' => ['enter' => ['prevent' => 'add()']]],
+    ]"
+/>
+```
+
+Targets are `root`, `row`, `add` and `remove`. In scope: `rows`, `add()`, `remove(index)`,
+`notify()` — plus `index` inside a row.
+
+Dotted keys mean the same thing, so a binding can be pasted straight out of the Alpine docs:
+
+```php
+['root' => ['keydown.enter.prevent' => 'add()']]
+```
+
+The nesting is what makes overriding work. A leaf replaces the branch below it, so passing
+`['keydown' => ['enter' => 'mine()']]` over a default of `keydown.enter.prevent` leaves **one**
+binding — yours. With flat keys the two would be different keys, both would survive, and both would
+fire. Declaring the same binding twice, or a handler and modifiers on the same node, throws.
+
+To extend a default rather than replace it, call it: `['add' => ['click' => 'add(); mine()']]`.
+
+> `events` leaves are executable by design. They are for expressions written by the developer, never
+> for values arriving from outside the application.
 
 ### Key-value editor (Type 2)
 

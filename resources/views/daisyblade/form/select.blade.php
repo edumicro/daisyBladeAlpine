@@ -33,7 +33,7 @@ $sizeClass = match($size) { 'xs'=>'select-xs','sm'=>'select-sm','lg'=>'select-lg
             @if($multiple) multiple @endif
             @if($disabled) disabled @endif
             @if($required) required @endif
-            {{ $attributes->merge(['class' => trim('select select-bordered w-full ' . $sizeClass . ' ' . $class)]) }}
+            {{ $attributes->merge(['class' => trim('select w-full ' . $sizeClass . ' ' . $class)]) }}
         >
             @if($placeholder) <option value="">{{ $placeholder }}</option> @endif
             <template x-for="opt in options" :key="opt.value">
@@ -90,7 +90,7 @@ $sizeClass = match($size) { 'xs'=>'select-xs','sm'=>'select-sm','lg'=>'select-lg
                     x-model="search"
                     @focus="open = true"
                     placeholder="{{ $placeholder ?: __('Search...') }}"
-                    class="input input-bordered w-full {{ $sizeClass }}"
+                    class="input w-full {{ $sizeClass }}"
                 />
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/40">
                     <x-heroicon-o-chevron-down class="w-4 h-4" />
@@ -132,7 +132,7 @@ $sizeClass = match($size) { 'xs'=>'select-xs','sm'=>'select-sm','lg'=>'select-lg
             @if($multiple) multiple @endif
             @if($disabled) disabled @endif
             @if($required) required @endif
-            {{ $attributes->merge(['class' => trim('select select-bordered w-full ' . $sizeClass . ' '
+            {{ $attributes->merge(['class' => trim('select w-full ' . $sizeClass . ' '
                 . ($name && isset($errors) && $errors->has($name) ? 'select-error ' : '')
                 . $class)]) }}
         >

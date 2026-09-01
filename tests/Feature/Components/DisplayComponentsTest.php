@@ -145,9 +145,11 @@ it('card with shadow=false has no shadow class', function () {
     expect($html)->not->toContain('shadow');
 });
 
-it('card with compact=true contains card-compact', function () {
+it('card with compact=true uses the daisyUI 5 name for the compact size', function () {
     $html = Blade::render('<x-dbl::display.card title="T" :compact="true" />');
-    expect($html)->toContain('card-compact');
+
+    // daisyUI 5 renamed card-compact to card-sm. The old name generates nothing at all.
+    expect($html)->toContain('card-sm')->not->toContain('card-compact');
 });
 
 // ── display/table ─────────────────────────────────────────────────────────────
@@ -195,6 +197,39 @@ it('data-table renders column header', function () {
 it('data-table serializes per-page in x-data', function () {
     $html = Blade::render('<x-dbl::display.data-table load-url="/api/x" :columns="[]" :per-page="25" />');
     expect($html)->toContain('25');
+});
+
+it('data-table renders no toolbar links by default', function () {
+    $html = Blade::render('<x-dbl::display.data-table load-url="/api/x" :columns="[]" />');
+
+    expect($html)->not->toContain('stateUrl(');
+});
+
+it('data-table toolbar links carry the current table state', function () {
+    // Format agnostic on purpose: the component hands its state to a URL and that URL decides
+    // what to build. Nothing here knows what a spreadsheet is.
+    $html = Blade::render(
+        '<x-dbl::display.data-table load-url="/api/x" :columns="[]" :toolbar="$toolbar" />',
+        ['toolbar' => [
+            ['label' => 'Excel', 'url' => '/students/export', 'icon' => 'heroicon-o-arrow-down-tray'],
+            ['label' => 'CSV', 'url' => '/students/export.csv'],
+        ]]
+    );
+
+    expect($html)
+        ->toContain("stateUrl('\/students\/export')")
+        ->toContain('Excel')
+        ->toContain('CSV')
+        ->toContain('download');
+});
+
+it('data-table exposes params in the Alpine scope so the filter bar can reach them', function () {
+    // Regression: the filters-updated listener does Object.assign(params, ...). With params
+    // living only in the closed-over config, that threw a ReferenceError and filtering did
+    // nothing at all.
+    $html = Blade::render('<x-dbl::display.data-table load-url="/api/x" :columns="[]" />');
+
+    expect($html)->toContain('Object.assign(params');
 });
 
 it('data-table has skeleton loading element', function () {

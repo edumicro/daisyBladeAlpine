@@ -32,7 +32,7 @@
         @if($readonly) readonly @endif
         @if($required) required @endif
         @if($maxLength > 0) maxlength="{{ $maxLength }}" @endif
-        {{ $attributes->merge(['class' => trim('textarea textarea-bordered w-full '
+        {{ $attributes->merge(['class' => trim('textarea w-full '
             . ($name && isset($errors) && $errors->has($name) ? 'textarea-error ' : '')
             . $class)]) }}
     ></textarea>

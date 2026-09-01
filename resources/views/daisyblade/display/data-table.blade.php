@@ -9,6 +9,14 @@
     @prop searchable — show global search input
     @prop perPage   — default page size
     @prop actions   — slot for per-row action buttons (receives $row via Alpine :data-row)
+    @prop toolbar   — header links that carry the table's CURRENT state (page, search, sort,
+                      filters) as query params:
+                        [ ['label'=>'Excel', 'url'=>'/students/export', 'icon'=>'heroicon-o-arrow-down-tray'] ]
+                      `download` defaults to true; set it to false for a link that should open
+                      in the page (a printable view, say) rather than be saved.
+                      Format agnostic on purpose: this component knows nothing about
+                      spreadsheets, CSV or PDF. It hands the state to a URL and that URL decides
+                      what to build. Add a second entry for a second format.
 
     Usage:
       <x-dbl::display.data-table
@@ -32,6 +40,7 @@
     'emptyText'      => '',
     'class'          => '',
     'containerClass' => '',
+    'toolbar'        => [],
 ])
 
 <div
@@ -59,7 +68,7 @@
                         x-model="search"
                         @input.debounce.400="page = 1; load()"
                         placeholder="{{ __('Search...') }}"
-                        class="input input-bordered input-sm pl-9 w-48 focus:w-64 transition-all"
+                        class="input input-sm pl-9 w-48 focus:w-64 transition-all"
                     />
                 </div>
             @endif
@@ -67,6 +76,24 @@
             @if(!empty($filters))
                 <x-dbl::display.filters :filters="$filters" />
             @endif
+
+            {{-- Toolbar links: same state the user is looking at, handed to whatever URL. --}}
+            @foreach($toolbar as $item)
+                <a
+                    :href="stateUrl(@js($item['url']))"
+                    class="btn btn-ghost btn-sm gap-2"
+                    @if($item['download'] ?? true) download @endif
+                    title="{{ $item['label'] ?? '' }}"
+                >
+                    @isset($item['icon'])
+                        {{-- Full blade-heroicons component name, e.g. heroicon-o-arrow-down-tray --}}
+                        <x-dynamic-component :component="$item['icon']" class="w-4 h-4" />
+                    @endisset
+                    @if($item['label'] ?? false)
+                        <span class="hidden sm:inline">{{ $item['label'] }}</span>
+                    @endif
+                </a>
+            @endforeach
 
             {{-- Reload button --}}
             <button type="button" @click="load()" :class="loading ? 'loading' : ''" class="btn btn-ghost btn-sm btn-circle" title="{{ __('Refresh') }}">

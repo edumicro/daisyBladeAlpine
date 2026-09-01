@@ -152,15 +152,35 @@ const dbSpreadsheetImport = (config = {}) => ({
 const dbDataTable = (config = {}) => ({
     rows: [], meta: {}, loading: true,
     page: 1, search: '', sort: null, direction: 'asc',
+    // Reactive state, not just the closed-over config: the filters-updated / filters-cleared
+    // listeners in the Blade template do Object.assign(params, ...), which needs `params` to
+    // exist in the Alpine data scope. Reading config.params directly meant those handlers
+    // threw a ReferenceError and the filter bar silently did nothing.
+    params: { ...(config.params ?? {}) },
     async init() { await this.load() },
     async load() {
         this.loading = true
         const { data } = await axios.get(config.loadUrl, {
-            params: { page: this.page, search: this.search, sort: this.sort, direction: this.direction, ...config.params },
+            params: this.queryState(),
         })
         this.rows      = data.data ?? []
         this.meta      = data.meta ?? {}
         this.loading   = false
+    },
+    // Everything the table is currently showing: page, search, sort and any filters. The one
+    // place that decides what "current state" means, shared by load() and stateUrl().
+    queryState() {
+        return { page: this.page, search: this.search, sort: this.sort, direction: this.direction, ...this.params }
+    },
+    // Same state as a query string on top of `base`, for toolbar links. Deliberately format
+    // agnostic: this component knows nothing about spreadsheets, CSV or PDF — it hands the
+    // current state to a URL and that URL decides what to produce.
+    stateUrl(base) {
+        const query = new URLSearchParams()
+        Object.entries(this.queryState()).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== '') query.append(key, value)
+        })
+        return `${base}${base.includes('?') ? '&' : '?'}${query.toString()}`
     },
     sortBy(col) {
         if (this.sort === col) this.direction = this.direction === 'asc' ? 'desc' : 'asc'

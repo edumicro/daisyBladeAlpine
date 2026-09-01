@@ -193,3 +193,45 @@ it('filter renders field labels and apply-url', function () {
     );
     expect($html)->toContain('Estado')->toContain('/products');
 });
+
+// ── form/fields: decimal + attrs (schema-driven, same contract as the repeater) ─
+
+it('fields renders a decimal as text with a numeric keypad', function () {
+    $html = Blade::render(
+        '<x-dbl::sections.auto-form :fields="$fields" action="/x" />',
+        ['fields' => ['dose' => ['type' => 'decimal', 'label' => 'Dosis']]]
+    );
+
+    expect($html)->toContain('inputmode="decimal"')->toContain('type="text"');
+});
+
+it('fields renders raw attrs on an input', function () {
+    $html = Blade::render(
+        '<x-dbl::sections.auto-form :fields="$fields" action="/x" />',
+        ['fields' => ['ref' => ['attrs' => ['autocomplete' => 'off']]]]
+    );
+
+    expect($html)->toContain('autocomplete="off"');
+});
+
+it('fields renders raw attrs on a select', function () {
+    $html = Blade::render(
+        '<x-dbl::sections.auto-form :fields="$fields" action="/x" />',
+        ['fields' => ['u' => ['type' => 'select', 'options' => ['mg' => 'mg'], 'attrs' => ['aria-label' => 'Unidad']]]]
+    );
+
+    expect($html)->toContain('aria-label="Unidad"');
+});
+
+it('fields passes events down to a nested repeater', function () {
+    $html = Blade::render(
+        '<x-dbl::sections.auto-form :fields="$fields" action="/x" />',
+        ['fields' => ['items' => [
+            'type'   => 'repeater',
+            'fields' => [['key' => 'a']],
+            'events' => ['root' => ['keydown.enter' => 'add()']],
+        ]]]
+    );
+
+    expect($html)->toContain('x-on:keydown.enter="add()"');
+});
