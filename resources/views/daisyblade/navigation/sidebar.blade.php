@@ -10,14 +10,20 @@
     for nothing. Same behaviour at every size, one thing to reason about.
 
     Props:
-      collapsible — false pins it open and hides both toggles
-      class       — extra classes for the <aside>
+      collapsible    — false pins it open and hides both toggles
+      floatingToggle — false drops the floating button. For hosts that put their own toggle in
+                       the navbar: closing at the top and reopening at the bottom makes the
+                       control jump across the screen, and two toggles in two corners is worse
+                       than one where the user looks. The host then needs its own way back in —
+                       dispatch `sidebar-toggle` on window.
+      class          — extra classes for the <aside>
 
     `dbSidebar()` starts it open from 1024px up and remembers the last choice in localStorage.
 --}}
 @props([
-    'collapsible' => true,
-    'class'       => '',
+    'collapsible'    => true,
+    'floatingToggle' => true,
+    'class'          => '',
 ])
 
 {{-- `sidebar-toggle` en window: la barra y la navbar viven en slots distintos del layout, asi
@@ -33,7 +39,7 @@
      el escuchador permitiria cerrarla desde fuera, que es justo lo que esa opcion promete evitar. --}}
 <div x-data="dbSidebar()" x-init="init()" @if($collapsible) @sidebar-toggle.window="toggle()" @endif>
 
-    @if($collapsible)
+    @if($collapsible && $floatingToggle)
         {{-- The way back in once it is closed.
 
              Bottom left, not top left: the top left corner is where page titles start, and a fixed

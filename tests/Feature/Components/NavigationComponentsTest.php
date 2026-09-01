@@ -155,3 +155,13 @@ it('sidebar can be reopened from anywhere via a window event', function () {
 
     expect($html)->toContain('sidebar-toggle.window');
 });
+
+it('sidebar can drop the floating toggle for hosts that provide their own', function () {
+    // Cerrar arriba y reabrir abajo hace saltar el control de punta a punta de la pantalla: quien
+    // pone su propio boton en la navbar quiere UNO, y donde se mira.
+    $html = Blade::render('<x-dbl::navigation.sidebar :floating-toggle="false">menu</x-dbl::navigation.sidebar>');
+
+    expect($html)
+        ->not->toContain('bottom-4')
+        ->toContain('sidebar-toggle.window');   // sigue siendo recuperable desde fuera
+});
