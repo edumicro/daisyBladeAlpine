@@ -7,6 +7,23 @@ y su fecha, y se etiqueta.
 
 _(nada todavía)_
 
+## v2.0.1 — 2026-09-29
+
+Dos fallos que hacían que los componentes se vieran mal en cualquier proyecto con DaisyUI 5,
+encontrados al abrir un panel en el navegador (ninguno de los dos salía en los tests).
+
+- **`actions/modal`: el contenido del modal era invisible.** DaisyUI 5 mantiene `.modal-box` a
+  opacidad 0 salvo que su contenedor sea un `.modal` con `.modal-open`, y el componente usaba una
+  estructura propia (`fixed inset-0 flex` con `x-show`). El HTML estaba en la página —los tests
+  lo encontraban— pero el usuario no veía nada. Ahora usa la estructura de DaisyUI: contenedor
+  `.modal` con `:class="open && 'modal-open'"`, panel `.modal-box` y `.modal-backdrop` para
+  cerrar al hacer clic fuera. Las transiciones las hace DaisyUI, así que desaparecen las de Alpine.
+- **Las traducciones no se aplicaban nunca.** Los componentes usan claves JSON (`__('Search...')`)
+  pero el paquete solo registraba `loadTranslationsFrom()`, que es para ficheros PHP con espacio
+  de nombres. Se añade `loadJsonTranslationsFrom()` y se completan `es.json` y `en.json` con las
+  50 cadenas que usan hoy los componentes; antes había 20 y algunas ni coincidían (`Search` frente
+  a `Search...`). Un test comprueba que no falte ninguna.
+
 ## v2.0.0 — 2026-09-01
 
 **Sube a mayor porque rompe compatibilidad en dos sitios**, los dos marcados abajo: `display/card`

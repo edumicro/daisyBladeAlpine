@@ -10,6 +10,9 @@ class DaisyBladeServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadViewsFrom(__DIR__.'/../resources/views/daisyblade', 'daisyblade');
+        // Los componentes usan claves JSON — __('Search...') —, así que hacen falta las
+        // traducciones JSON. Con loadTranslationsFrom() a secas, es.json no se aplicaba nunca.
+        $this->loadJsonTranslationsFrom(__DIR__.'/../resources/lang');
         $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'daisyblade');
 
         $this->callAfterResolving(BladeCompiler::class, function (BladeCompiler $blade) {

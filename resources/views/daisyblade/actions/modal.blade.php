@@ -15,6 +15,9 @@ $sizeClass = match($size) {
 };
 @endphp
 
+{{-- Estructura de DaisyUI: el .modal-box solo se ve cuando su contenedor tiene .modal
+     y .modal-open. Con una estructura propia (fixed + flex + x-show), DaisyUI 5 deja la
+     caja a opacidad 0 y el contenido queda invisible aunque esté en la página. --}}
 <div
     @if($id) id="{{ $id }}" @endif
     x-data="dbModal()"
@@ -22,34 +25,12 @@ $sizeClass = match($size) {
         @open-modal.window="if ($event.detail.id === '{{ $id }}') show()"
         @close-modal.window="if ($event.detail.id === '{{ $id }}') hide()"
     @endif
-    x-show="open"
-    x-cloak
-    class="fixed inset-0 z-50 flex items-center justify-center p-4"
+    class="modal"
+    :class="open && 'modal-open'"
     @keydown.escape.window="hide()"
 >
-    {{-- Backdrop --}}
-    <div
-        class="fixed inset-0 bg-black/50"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-        @click="hide()"
-    ></div>
-
     {{-- Panel --}}
-    <div
-        class="modal-box relative {{ $sizeClass }} w-full"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0 scale-95"
-        x-transition:enter-end="opacity-100 scale-100"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100 scale-100"
-        x-transition:leave-end="opacity-0 scale-95"
-        @click.stop
-    >
+    <div class="modal-box relative {{ $sizeClass }} w-11/12">
         @if($closable)
             <button
                 type="button"
@@ -64,4 +45,7 @@ $sizeClass = match($size) {
 
         {{ $slot }}
     </div>
+
+    {{-- Clic fuera para cerrar --}}
+    <div class="modal-backdrop" @click="hide()"></div>
 </div>
