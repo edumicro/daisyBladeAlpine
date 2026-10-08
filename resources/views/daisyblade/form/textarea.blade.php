@@ -10,6 +10,7 @@
     'description'    => '',
     'class'          => '',
     'containerClass' => '',
+    'value'          => null,
 ])
 
 <div class="w-full {{ $containerClass }}">
@@ -38,12 +39,12 @@
         {{ $attributes->merge(['class' => trim('textarea w-full '
             . ($name && isset($errors) && $errors->has($name) ? 'textarea-error ' : '')
             . $class)]) }}
-    ></textarea>
+    >{{ $value }}</textarea>
 
     @if($name && isset($errors))
         @error($name)
             <div class="mt-1">
-                <span class="text-xs text-error font-semibold">{{ $message }}</div>
+                <span class="text-xs text-error font-semibold">{{ $message }}</span>
         @enderror
     @endif
 </div>

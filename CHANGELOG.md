@@ -3,6 +3,11 @@
 Formato: lo que está sin publicar arriba. Al sacar versión, esa sección pasa a llevar su número
 y su fecha, y se etiqueta.
 
+## [2.1.1] — 2026-10-08
+
+### Corregido
+- `form.textarea`: nueva prop `value`, que se pinta como contenido del `<textarea>` (antes no había forma de darle un valor inicial). El mensaje de error cerraba un `<span>` con `</div>`.
+
 ## [2.1.0] — 2026-10-08
 
 ### Añadido

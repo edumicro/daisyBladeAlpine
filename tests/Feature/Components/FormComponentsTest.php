@@ -403,3 +403,8 @@ it('rich-text javascript is syntactically valid', function () {
     exec('node --check '.escapeshellarg(__DIR__.'/../../../resources/js/components/rich-text.js').' 2>&1', $out, $code);
     expect($code)->toBe(0, implode("\n", $out));
 });
+
+it('renders the textarea value as its content and escapes it', function () {
+    $this->blade('<x-dbl::form.textarea name="bio" value="Hola <b>mundo</b>" />')
+        ->assertSee('>Hola &lt;b&gt;mundo&lt;/b&gt;</textarea>', false);
+});
