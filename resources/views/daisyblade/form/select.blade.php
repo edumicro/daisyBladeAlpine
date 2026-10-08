@@ -11,10 +11,22 @@
     'size'           => 'md',
     'class'          => '',
     'containerClass' => '',
+    'value'          => null,
 ])
 
 @php
 $sizeClass = match($size) { 'xs'=>'select-xs','sm'=>'select-sm','lg'=>'select-lg', default=>'' };
+// Valor(es) seleccionados como texto, para comparar con las claves de `options` sea cual sea su tipo.
+$selected = $value === null ? [] : array_map('strval', (array) $value);
+$isSelected = fn ($key) => in_array((string) $key, $selected, true);
+$selectedLabel = '';
+foreach ($options as $optVal => $optLabel) {
+    foreach (is_array($optLabel) ? $optLabel : [$optVal => $optLabel] as $key => $label) {
+        if ($selectedLabel === '' && $isSelected($key)) {
+            $selectedLabel = (string) $label;
+        }
+    }
+}
 @endphp
 
 <div class="w-full {{ $containerClass }}">
@@ -41,7 +53,7 @@ $sizeClass = match($size) { 'xs'=>'select-xs','sm'=>'select-sm','lg'=>'select-lg
     @elseif($searchable)
         {{-- Alpine searchable combobox — soporta flat {k:v} y grouped {group:{k:v}} --}}
         <div x-data="{
-            search: '',
+            search: @js($selectedLabel),
             open: false,
             options: @js($options),
             get isGrouped() {
@@ -120,7 +132,7 @@ $sizeClass = match($size) { 'xs'=>'select-xs','sm'=>'select-sm','lg'=>'select-lg
             </div>
 
             @if($name)
-                <input type="hidden" name="{{ $name }}" {{ $attributes->only(['value', 'x-model']) }} />
+                <input type="hidden" name="{{ $name }}" value="{{ $selected[0] ?? '' }}" {{ $attributes->only(['x-model']) }} />
             @endif
         </div>
     @else
@@ -142,11 +154,11 @@ $sizeClass = match($size) { 'xs'=>'select-xs','sm'=>'select-sm','lg'=>'select-lg
                 @if(is_array($optLabel))
                     <optgroup label="{{ $optVal }}">
                         @foreach($optLabel as $gVal => $gLabel)
-                            <option value="{{ $gVal }}">{{ $gLabel }}</option>
+                            <option value="{{ $gVal }}" @selected($isSelected($gVal))>{{ $gLabel }}</option>
                         @endforeach
                     </optgroup>
                 @else
-                    <option value="{{ $optVal }}">{{ $optLabel }}</option>
+                    <option value="{{ $optVal }}" @selected($isSelected($optVal))>{{ $optLabel }}</option>
                 @endif
             @endforeach
         </select>

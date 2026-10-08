@@ -408,3 +408,22 @@ it('renders the textarea value as its content and escapes it', function () {
     $this->blade('<x-dbl::form.textarea name="bio" value="Hola <b>mundo</b>" />')
         ->assertSee('>Hola &lt;b&gt;mundo&lt;/b&gt;</textarea>', false);
 });
+
+it('marks the selected option of a native select', function () {
+    $this->blade('<x-dbl::form.select name="status" :options="[\'draft\' => \'Borrador\', \'published\' => \'Publicado\']" value="published" />')
+        ->assertSee('<option value="published" selected>Publicado</option>', false)
+        ->assertDontSee('<option value="draft" selected>', false);
+});
+
+it('marks several options of a multiple select and works with integer keys', function () {
+    $this->blade('<x-dbl::form.select name="days" multiple :options="[1 => \'Lunes\', 2 => \'Martes\', 3 => \'Miércoles\']" :value="[1, 3]" />')
+        ->assertSee('<option value="1" selected>Lunes</option>', false)
+        ->assertSee('<option value="3" selected>Miércoles</option>', false)
+        ->assertDontSee('<option value="2" selected>', false);
+});
+
+it('fills the searchable select with the selected label and value', function () {
+    $this->blade('<x-dbl::form.select name="person" searchable :options="[\'a1\' => \'Ana López\', \'b2\' => \'Pau Ferrer\']" value="b2" />')
+        ->assertSee('value="b2"', false)
+        ->assertSee('Pau Ferrer', false);
+});
