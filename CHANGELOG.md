@@ -3,6 +3,17 @@
 Formato: lo que está sin publicar arriba. Al sacar versión, esa sección pasa a llevar su número
 y su fecha, y se etiqueta.
 
+## [Unreleased] — 2.1.0
+
+### Añadido
+- `display.map`: mapa con drivers MapLibre y Google (Strategy), bases OSM, IGN Base y PNOA, capas GeoJSON con agrupación, filtros y modo selector. Geocodificador PHP (`GeocoderManager`: CartoCiudad, Nominatim, Google) con el cliente HTTP y la caché inyectados. Doc: `docs/components/map.md`.
+- `form.upload`: subida de ficheros con progreso, cancelar, reintentar, reordenar y cámara del móvil. Doc: `docs/components/upload.md`.
+- `form.rich-text`: editor Tiptap 3. Doc: `docs/components/rich-text.md`.
+- `form.signature`: firma en pantalla con signature_pad 5. Doc: `docs/components/signature.md`.
+- `display.calendar`: calendario de mes y de lista sin dependencias. Doc: `docs/components/calendar.md`.
+
+Los componentes nuevos son **opcionales**: su JS vive en `resources/js/components/*.js` y no está en `daisyblade.js`. Cada uno exporta `register<Nombre>(Alpine, deps)` y **recibe sus librerías inyectadas** (maplibre-gl, @tiptap/*, signature_pad, axios), así que solo instala esas dependencias quien use el componente.
+
 ## Sin publicar
 
 _(nada todavía)_

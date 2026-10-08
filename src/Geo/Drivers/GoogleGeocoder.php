@@ -6,13 +6,14 @@ namespace Edumicro\DaisyBlade\Geo\Drivers;
 
 use Edumicro\DaisyBlade\Geo\GeoResult;
 use Edumicro\DaisyBlade\Geo\Geocoder;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\Factory as HttpClient;
 use InvalidArgumentException;
 
 /** Google Geocoding API (de pago pasado el cupo gratuito). Requiere una clave de servidor. */
 final class GoogleGeocoder implements Geocoder
 {
     public function __construct(
+        private readonly HttpClient $http,
         private readonly string $key,
         private readonly string $baseUrl = 'https://maps.googleapis.com/maps/api/geocode/json',
         private readonly int $timeout = 5,
@@ -38,7 +39,7 @@ final class GoogleGeocoder implements Geocoder
      */
     private function get(array $params): array
     {
-        $json = Http::timeout($this->timeout)->acceptJson()
+        $json = $this->http->timeout($this->timeout)->acceptJson()
             ->get($this->baseUrl, $params + ['key' => $this->key])->throw()->json();
 
         if (($json['status'] ?? '') !== 'OK') {

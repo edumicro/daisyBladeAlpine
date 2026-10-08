@@ -6,7 +6,7 @@ namespace Edumicro\DaisyBlade\Geo\Drivers;
 
 use Edumicro\DaisyBlade\Geo\GeoResult;
 use Edumicro\DaisyBlade\Geo\Geocoder;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\Factory as HttpClient;
 
 /**
  * CartoCiudad (IGN / Correos). Gratuito y sin clave, solo España.
@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Http;
 final class CartoCiudadGeocoder implements Geocoder
 {
     public function __construct(
+        private readonly HttpClient $http,
         private readonly string $baseUrl = 'https://www.cartociudad.es/geocoder/api/geocoder',
         private readonly int $timeout = 5,
     ) {}
@@ -74,7 +75,7 @@ final class CartoCiudadGeocoder implements Geocoder
     /** @param  array<string, mixed>  $params */
     private function get(string $endpoint, array $params): mixed
     {
-        $body = Http::timeout($this->timeout)->acceptJson()
+        $body = $this->http->timeout($this->timeout)->acceptJson()
             ->get(rtrim($this->baseUrl, '/').'/'.$endpoint, $params)
             ->throw()->body();
 

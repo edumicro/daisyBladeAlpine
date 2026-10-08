@@ -6,8 +6,8 @@ namespace Edumicro\DaisyBlade\Geo\Drivers;
 
 use Edumicro\DaisyBlade\Geo\GeoResult;
 use Edumicro\DaisyBlade\Geo\Geocoder;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Contracts\Cache\Repository as Cache;
+use Illuminate\Http\Client\Factory as HttpClient;
 
 /**
  * Nominatim (OpenStreetMap). La política de uso del servidor público exige un User-Agent que
@@ -19,6 +19,8 @@ final class NominatimGeocoder implements Geocoder
     private const LAST_CALL_KEY = 'daisyblade.geo.nominatim.last';
 
     public function __construct(
+        private readonly HttpClient $http,
+        private readonly Cache $cache,
         private readonly string $userAgent,
         private readonly string $baseUrl = 'https://nominatim.openstreetmap.org',
         private readonly float $minInterval = 1.0,
@@ -49,7 +51,7 @@ final class NominatimGeocoder implements Geocoder
     {
         $this->throttle();
 
-        return Http::withUserAgent($this->userAgent)->timeout($this->timeout)->acceptJson()
+        return $this->http->withUserAgent($this->userAgent)->timeout($this->timeout)->acceptJson()
             ->get(rtrim($this->baseUrl, '/').'/'.$endpoint, $params)
             ->throw()->json();
     }
@@ -60,10 +62,10 @@ final class NominatimGeocoder implements Geocoder
             return;
         }
 
-        $wait = (float) Cache::get(self::LAST_CALL_KEY, 0) + $this->minInterval - microtime(true);
+        $wait = (float) $this->cache->get(self::LAST_CALL_KEY, 0) + $this->minInterval - microtime(true);
         if ($wait > 0) {
             usleep((int) ($wait * 1_000_000));
         }
-        Cache::put(self::LAST_CALL_KEY, microtime(true), 60);
+        $this->cache->put(self::LAST_CALL_KEY, microtime(true), 60);
     }
 }
