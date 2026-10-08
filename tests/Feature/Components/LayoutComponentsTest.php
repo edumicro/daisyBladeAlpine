@@ -59,3 +59,14 @@ it('app layout with title shows title in head', function () {
     $html = Blade::render('<x-dbl::layout.app title="Panel de control" />');
     expect($html)->toContain('Panel de control');
 });
+
+it('app layout uses the app locale for lang by default and has no class on html', function () {
+    app()->setLocale('en');
+    $html = Blade::render('<x-dbl::layout.app />');
+    expect($html)->toContain('lang="en"')->and($html)->not->toMatch('/<html[^>]*class=/');
+});
+
+it('app layout accepts lang and htmlClass props', function () {
+    $html = Blade::render('<x-dbl::layout.app lang="ca-ES-valencia" htmlClass="large-text" />');
+    expect($html)->toContain('lang="ca-ES-valencia"')->and($html)->toMatch('/<html[^>]*class="large-text"/');
+});
