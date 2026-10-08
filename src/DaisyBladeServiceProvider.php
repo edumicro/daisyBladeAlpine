@@ -2,6 +2,8 @@
 
 namespace Edumicro\DaisyBlade;
 
+use Edumicro\DaisyBlade\Geo\Geocoder;
+use Edumicro\DaisyBlade\Geo\GeocoderManager;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\Compilers\BladeCompiler;
 
@@ -47,5 +49,8 @@ class DaisyBladeServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/daisyblade.php', 'daisyblade');
+
+        $this->app->singleton(GeocoderManager::class);
+        $this->app->bind(Geocoder::class, GeocoderManager::class);
     }
 }
