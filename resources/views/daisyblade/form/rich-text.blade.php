@@ -68,7 +68,7 @@
     <input type="hidden" x-ref="input" @if($name) name="{{ $name }}" @endif value="{{ $value }}">
 
     <div class="rounded-box border border-base-300 bg-base-100 focus-within:border-primary">
-        <div role="toolbar" aria-label="{{ trans('daisyblade::rich-text.toolbar') }}"
+        <div role="toolbar" aria-label="{{ __('daisyblade::rich-text.toolbar') }}"
              class="flex flex-wrap gap-1 border-b border-base-300 p-1">
             <template x-for="button in buttons" x-bind:key="button.id">
                 <button type="button" class="btn btn-ghost btn-sm min-w-8 px-2"
@@ -80,7 +80,7 @@
                         x-text="button.text"></button>
             </template>
             <span x-show="uploading" x-cloak class="loading loading-spinner loading-sm self-center"
-                  role="status" aria-label="{{ trans('daisyblade::rich-text.uploading') }}"></span>
+                  role="status" aria-label="{{ __('daisyblade::rich-text.uploading') }}"></span>
         </div>
 
         <div x-ref="editor" @if($name) id="{{ $name }}-editor" @endif></div>

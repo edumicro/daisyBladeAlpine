@@ -49,9 +49,9 @@
         'geocodeUrl'  => (string) $geocodeUrl,
         'googleKey'   => (string) $googleKey,
         'labels'      => [
-            'search_failed' => trans('daisyblade::map.search_failed'),
-            'layer_failed'  => trans('daisyblade::map.layer_failed'),
-            'open'          => trans('daisyblade::map.open'),
+            'search_failed' => __('daisyblade::map.search_failed'),
+            'layer_failed'  => __('daisyblade::map.layer_failed'),
+            'open'          => __('daisyblade::map.open'),
         ],
     ];
 @endphp
@@ -63,9 +63,9 @@
     @if($config['picker'] && $config['geocodeUrl'])
         <form class="join w-full" role="search" x-on:submit.prevent="search()">
             <input type="search" class="input input-bordered join-item w-full" x-model="query"
-                   placeholder="{{ trans('daisyblade::map.search_placeholder') }}"
-                   aria-label="{{ trans('daisyblade::map.search') }}">
-            <button type="submit" class="btn btn-primary join-item" aria-label="{{ trans('daisyblade::map.search') }}">
+                   placeholder="{{ __('daisyblade::map.search_placeholder') }}"
+                   aria-label="{{ __('daisyblade::map.search') }}">
+            <button type="submit" class="btn btn-primary join-item" aria-label="{{ __('daisyblade::map.search') }}">
                 <x-heroicon-o-magnifying-glass class="size-5" />
             </button>
         </form>
@@ -74,17 +74,17 @@
                 <li><button type="button" x-on:click="pick(r)" x-text="r.label"></button></li>
             </template>
         </ul>
-        <p class="text-sm" x-show="results.length === 0 && searched" x-cloak>{{ trans('daisyblade::map.no_results') }}</p>
+        <p class="text-sm" x-show="results.length === 0 && searched" x-cloak>{{ __('daisyblade::map.no_results') }}</p>
     @endif
 
     @if($config['filters']['layers'] || $config['filters']['categories'])
         <details class="collapse collapse-arrow border border-base-300 bg-base-100"
                  x-show="layerState.length > 1 || categories.length" x-cloak>
-            <summary class="collapse-title text-sm font-medium">{{ trans('daisyblade::map.filters') }}</summary>
+            <summary class="collapse-title text-sm font-medium">{{ __('daisyblade::map.filters') }}</summary>
             <div class="collapse-content flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 @if($config['filters']['layers'])
                     <fieldset class="flex flex-wrap gap-x-4 gap-y-2" x-show="layerState.length > 1">
-                        <legend class="sr-only">{{ trans('daisyblade::map.layers') }}</legend>
+                        <legend class="sr-only">{{ __('daisyblade::map.layers') }}</legend>
                         <template x-for="l in layerState" :key="l.id">
                             <label class="flex cursor-pointer items-center gap-2 text-sm">
                                 <input type="checkbox" class="checkbox checkbox-sm" x-model="l.visible"
@@ -98,7 +98,7 @@
                 @endif
                 @if($config['filters']['categories'])
                     <fieldset class="flex flex-wrap gap-x-4 gap-y-2" x-show="categories.length" x-cloak>
-                        <legend class="sr-only">{{ trans('daisyblade::map.categories') }}</legend>
+                        <legend class="sr-only">{{ __('daisyblade::map.categories') }}</legend>
                         <template x-for="c in categories" :key="c.value">
                             <label class="flex cursor-pointer items-center gap-2 text-sm">
                                 <input type="checkbox" class="checkbox checkbox-sm" x-model="c.checked"
@@ -112,13 +112,13 @@
         </details>
     @endif
 
-    <div x-ref="canvas" role="region" aria-label="{{ trans('daisyblade::map.map') }}"
+    <div x-ref="canvas" role="region" aria-label="{{ __('daisyblade::map.map') }}"
          class="w-full overflow-hidden rounded-box border border-base-300 bg-base-200"
          style="height: {{ $height }}"></div>
 
     @if($config['picker'])
         <p class="text-sm text-base-content/70">
-            {{ trans('daisyblade::map.picker_hint') }}
+            {{ __('daisyblade::map.picker_hint') }}
             <span x-show="lat !== null" x-cloak class="font-mono">
                 (<span x-text="lat"></span>, <span x-text="lng"></span>)
             </span>
@@ -130,7 +130,7 @@
     <p class="text-sm text-error" role="alert" x-show="error" x-text="error" x-cloak></p>
 
     {{-- Alternativa para lectores de pantalla: los puntos visibles como lista de enlaces. --}}
-    <ul class="sr-only" aria-label="{{ trans('daisyblade::map.points_list') }}">
+    <ul class="sr-only" aria-label="{{ __('daisyblade::map.points_list') }}">
         <template x-for="p in pointList" :key="p.key">
             <li>
                 <a x-show="p.url" :href="p.url" x-text="p.title"></a>

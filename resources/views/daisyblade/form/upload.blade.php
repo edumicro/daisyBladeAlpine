@@ -28,7 +28,6 @@
 ])
 
 @php
-    // Comillas dobles a propósito: son claves de fichero de idioma, no de es.json.
     $t = fn (string $key) => __("daisyblade::upload.$key");
     $keys = ['drop', 'too_many', 'too_big', 'bad_type', 'uploaded', 'cancelled', 'failed', 'confirm_delete',
              'delete_failed', 'removed', 'moved', 'reorder_failed'];

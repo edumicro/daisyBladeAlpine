@@ -21,16 +21,16 @@ $config = [
     {{-- Barra: navegación + cambio de vista --}}
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div class="join">
-            <button type="button" class="btn btn-sm join-item" x-on:click="prev()" aria-label="{{ trans('daisyblade::calendar.previous') }}">&lsaquo;</button>
-            <button type="button" class="btn btn-sm join-item" x-on:click="goToday()">{{ trans('daisyblade::calendar.today') }}</button>
-            <button type="button" class="btn btn-sm join-item" x-on:click="next()" aria-label="{{ trans('daisyblade::calendar.next') }}">&rsaquo;</button>
+            <button type="button" class="btn btn-sm join-item" x-on:click="prev()" aria-label="{{ __('daisyblade::calendar.previous') }}">&lsaquo;</button>
+            <button type="button" class="btn btn-sm join-item" x-on:click="goToday()">{{ __('daisyblade::calendar.today') }}</button>
+            <button type="button" class="btn btn-sm join-item" x-on:click="next()" aria-label="{{ __('daisyblade::calendar.next') }}">&rsaquo;</button>
         </div>
 
         <h2 class="text-lg font-bold capitalize" aria-live="polite" x-text="title"></h2>
 
         <div class="join">
-            <button type="button" class="btn btn-sm join-item" x-bind:class="view === 'month' && 'btn-active'" x-on:click="setView('month')">{{ trans('daisyblade::calendar.month') }}</button>
-            <button type="button" class="btn btn-sm join-item" x-bind:class="view === 'list' && 'btn-active'" x-on:click="setView('list')">{{ trans('daisyblade::calendar.list') }}</button>
+            <button type="button" class="btn btn-sm join-item" x-bind:class="view === 'month' && 'btn-active'" x-on:click="setView('month')">{{ __('daisyblade::calendar.month') }}</button>
+            <button type="button" class="btn btn-sm join-item" x-bind:class="view === 'list' && 'btn-active'" x-on:click="setView('list')">{{ __('daisyblade::calendar.list') }}</button>
         </div>
     </div>
 
@@ -43,8 +43,8 @@ $config = [
         {{-- Error con reintento --}}
         <div x-show="error && !loading" x-cloak>
             <div role="alert" class="alert alert-error">
-                <span>{{ trans('daisyblade::calendar.error') }}</span>
-                <button type="button" class="btn btn-sm" x-on:click="load()">{{ trans('daisyblade::calendar.retry') }}</button>
+                <span>{{ __('daisyblade::calendar.error') }}</span>
+                <button type="button" class="btn btn-sm" x-on:click="load()">{{ __('daisyblade::calendar.retry') }}</button>
             </div>
         </div>
 
@@ -84,7 +84,7 @@ $config = [
                         <button type="button" class="link text-xs mt-0.5"
                                 x-show="dayEvents(cell.date).length > 3"
                                 x-on:click="selectDay(cell.date)"
-                                x-text="@js(trans('daisyblade::calendar.more')).replace(':n', dayEvents(cell.date).length - 3)"></button>
+                                x-text="@js(__('daisyblade::calendar.more')).replace(':n', dayEvents(cell.date).length - 3)"></button>
                     </div>
                 </template>
             </div>
@@ -93,7 +93,7 @@ $config = [
             <div class="mt-4 card bg-base-200 card-border" x-show="selectedDay" x-cloak>
                 <div class="card-body p-4">
                     <h3 class="font-bold capitalize" x-text="selectedDay && dayLabel(selectedDay)"></h3>
-                    <p class="text-sm text-base-content/60" x-show="selectedDay && !dayEvents(selectedDay).length">{{ trans('daisyblade::calendar.empty') }}</p>
+                    <p class="text-sm text-base-content/60" x-show="selectedDay && !dayEvents(selectedDay).length">{{ __('daisyblade::calendar.empty') }}</p>
                     <ul class="space-y-1">
                         <template x-for="ev in dayEvents(selectedDay)" :key="ev.id">
                             <li>
@@ -120,7 +120,7 @@ $config = [
                             <li class="flex gap-3 border-l-4 border-primary pl-3"
                                 x-bind:style="ev.color && `border-left-color: ${ev.color}`">
                                 <span class="w-14 shrink-0 text-sm text-base-content/70"
-                                      x-text="timeLabel(ev) || @js(trans('daisyblade::calendar.all_day'))"></span>
+                                      x-text="timeLabel(ev) || @js(__('daisyblade::calendar.all_day'))"></span>
                                 <div class="min-w-0">
                                     <a class="link font-medium" x-show="ev.url" x-bind:href="ev.url" x-on:click="emit(ev)" x-text="ev.title"></a>
                                     <span class="font-medium" x-show="!ev.url" x-text="ev.title"></span>
@@ -134,6 +134,6 @@ $config = [
         </div>
 
         {{-- Vacío --}}
-        <p class="text-center py-8 text-base-content/50" x-show="isEmpty" x-cloak>{{ trans('daisyblade::calendar.empty') }}</p>
+        <p class="text-center py-8 text-base-content/50" x-show="isEmpty" x-cloak>{{ __('daisyblade::calendar.empty') }}</p>
     </div>
 </div>
