@@ -3,9 +3,10 @@
 Formato: lo que está sin publicar arriba. Al sacar versión, esa sección pasa a llevar su número
 y su fecha, y se etiqueta.
 
-## [Unreleased] — 2.1.0
+## [2.1.0] — 2026-10-08
 
 ### Añadido
+- `layout.app`: props `lang` y `htmlClass` (opcionales, compatibles con lo anterior).
 - `display.map`: mapa con drivers MapLibre y Google (Strategy), bases OSM, IGN Base y PNOA, capas GeoJSON con agrupación, filtros y modo selector. Geocodificador PHP (`GeocoderManager`: CartoCiudad, Nominatim, Google) con el cliente HTTP y la caché inyectados. Doc: `docs/components/map.md`.
 - `form.upload`: subida de ficheros con progreso, cancelar, reintentar, reordenar y cámara del móvil. Doc: `docs/components/upload.md`.
 - `form.rich-text`: editor Tiptap 3. Doc: `docs/components/rich-text.md`.

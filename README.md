@@ -28,7 +28,7 @@ Every server interaction is a plain Laravel controller returning JSON. No protoc
 | Dependency | Version |
 |---|---|
 | PHP | ^8.2 |
-| Laravel | ^11.0 \| ^12.0 |
+| Laravel | ^11.0 \| ^12.0 \| ^13.0 |
 | Alpine.js | ^3.0 |
 | DaisyUI | ^5.0 |
 | blade-heroicons | ^2.4 |
