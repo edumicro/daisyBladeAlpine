@@ -26,7 +26,7 @@ $config = [
             <button type="button" class="btn btn-sm join-item" x-on:click="next()" aria-label="{{ __('daisyblade::calendar.next') }}">&rsaquo;</button>
         </div>
 
-        <h2 class="text-lg font-bold capitalize" aria-live="polite" x-text="title"></h2>
+        <h2 class="text-lg font-bold first-letter:uppercase" aria-live="polite" x-text="title"></h2>
 
         <div class="join">
             <button type="button" class="btn btn-sm join-item" x-bind:class="view === 'month' && 'btn-active'" x-on:click="setView('month')">{{ __('daisyblade::calendar.month') }}</button>
@@ -52,7 +52,7 @@ $config = [
         <div x-show="view === 'month' && !error" x-cloak>
             <div class="grid grid-cols-7 text-center text-xs font-semibold text-base-content/60 mb-1">
                 <template x-for="name in weekdays" :key="name">
-                    <div class="py-1 capitalize" x-text="name"></div>
+                    <div class="py-1 first-letter:uppercase" x-text="name"></div>
                 </template>
             </div>
 
@@ -92,7 +92,7 @@ $config = [
             {{-- Lista del día elegido ("+n más" o Enter sobre un día) --}}
             <div class="mt-4 card bg-base-200 card-border" x-show="selectedDay" x-cloak>
                 <div class="card-body p-4">
-                    <h3 class="font-bold capitalize" x-text="selectedDay && dayLabel(selectedDay)"></h3>
+                    <h3 class="font-bold first-letter:uppercase" x-text="selectedDay && dayLabel(selectedDay)"></h3>
                     <p class="text-sm text-base-content/60" x-show="selectedDay && !dayEvents(selectedDay).length">{{ __('daisyblade::calendar.empty') }}</p>
                     <ul class="space-y-1">
                         <template x-for="ev in dayEvents(selectedDay)" :key="ev.id">
@@ -113,7 +113,7 @@ $config = [
         <div x-show="view === 'list' && !error && !loading" x-cloak class="space-y-4">
             <template x-for="day in listDays" :key="day">
                 <section>
-                    <h3 class="font-bold capitalize border-b border-base-300 pb-1 mb-2"
+                    <h3 class="font-bold first-letter:uppercase border-b border-base-300 pb-1 mb-2"
                          x-bind:class="day === today && 'text-primary'" x-text="dayLabel(day)"></h3>
                     <ul class="space-y-2">
                         <template x-for="ev in dayEvents(day)" :key="ev.id">

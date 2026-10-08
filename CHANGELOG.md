@@ -3,6 +3,11 @@
 Formato: lo que está sin publicar arriba. Al sacar versión, esa sección pasa a llevar su número
 y su fecha, y se etiqueta.
 
+## [2.1.2] — 2026-10-08
+
+### Corregido
+- `display.calendar`: los títulos ponían en mayúscula cada palabra («Octubre De 2026»). Ahora solo la primera letra («Octubre de 2026»), con `first-letter:uppercase`.
+
 ## [2.1.1] — 2026-10-08
 
 ### Corregido
