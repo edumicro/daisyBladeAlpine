@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'choose' => 'Tria fitxers',
+    'drop' => 'Deixa ací els fitxers',
+    'hint_drag' => 'o arrossega\'ls fins ací',
+    'take_photo' => 'Fer una foto',
+    'max_size' => 'Màxim :max MB per fitxer',
+    'max_files' => 'Fins a :max fitxers',
+    'too_many' => 'S\'admeten com a màxim :max fitxers.',
+    'too_big' => '":name" supera la mida màxima de :max MB.',
+    'bad_type' => '":name" no és d\'un tipus permés.',
+    'uploaded' => '":name" pujat.',
+    'cancelled' => 'Pujada cancel·lada.',
+    'failed' => 'No s\'ha pogut pujar el fitxer.',
+    'confirm_delete' => 'Vols esborrar ":name"?',
+    'delete_failed' => 'No s\'ha pogut esborrar el fitxer.',
+    'removed' => '":name" esborrat.',
+    'moved' => '":name" mogut a la posició :position.',
+    'reorder_failed' => 'No s\'ha pogut guardar l\'ordre.',
+    'cancel' => 'Cancel·lar',
+    'retry' => 'Reintentar',
+    'delete' => 'Esborrar',
+    'move_up' => 'Pujar',
+    'move_down' => 'Baixar',
+    'files' => 'Fitxers',
+];

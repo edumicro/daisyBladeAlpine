@@ -568,3 +568,25 @@ vendor/bin/pest
 ## License
 
 MIT — [Eduardo de Vicente](https://github.com/edumicro) / Microvalencia Soluciones Informáticas S.L.
+
+
+---
+
+## Componentes opcionales (2.1)
+
+Tienen dependencias propias, así que no se cargan con `daisyblade.js`. Se registran uno a uno pasando sus librerías:
+
+```js
+import maplibregl from 'maplibre-gl'
+import { registerMap } from '../../vendor/edumicro/daisyblade/resources/js/components/map.js'
+
+registerMap(Alpine, { maplibregl, axios })
+```
+
+| Componente | Registro | Dependencias npm | Doc |
+|---|---|---|---|
+| `<x-dbl::display.map>` | `registerMap` | `maplibre-gl` (o Google: `@googlemaps/js-api-loader`, `@googlemaps/markerclusterer`) | `docs/components/map.md` |
+| `<x-dbl::form.upload>` | `registerUpload` | — (axios) | `docs/components/upload.md` |
+| `<x-dbl::form.rich-text>` | `registerRichText` | `@tiptap/core`, `@tiptap/pm`, `@tiptap/starter-kit` | `docs/components/rich-text.md` |
+| `<x-dbl::form.signature>` | `registerSignature` | `signature_pad` | `docs/components/signature.md` |
+| `<x-dbl::display.calendar>` | `registerCalendar` | — | `docs/components/calendar.md` |

@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'choose' => 'Elegir ficheros',
+    'drop' => 'Suelta aquí los ficheros',
+    'hint_drag' => 'o arrástralos hasta aquí',
+    'take_photo' => 'Hacer una foto',
+    'max_size' => 'Máximo :max MB por fichero',
+    'max_files' => 'Hasta :max ficheros',
+    'too_many' => 'Se admiten como máximo :max ficheros.',
+    'too_big' => '":name" supera el tamaño máximo de :max MB.',
+    'bad_type' => '":name" no es de un tipo permitido.',
+    'uploaded' => '":name" subido.',
+    'cancelled' => 'Subida cancelada.',
+    'failed' => 'No se ha podido subir el fichero.',
+    'confirm_delete' => '¿Borrar ":name"?',
+    'delete_failed' => 'No se ha podido borrar el fichero.',
+    'removed' => '":name" borrado.',
+    'moved' => '":name" movido a la posición :position.',
+    'reorder_failed' => 'No se ha podido guardar el orden.',
+    'cancel' => 'Cancelar',
+    'retry' => 'Reintentar',
+    'delete' => 'Borrar',
+    'move_up' => 'Subir',
+    'move_down' => 'Bajar',
+    'files' => 'Ficheros',
+];

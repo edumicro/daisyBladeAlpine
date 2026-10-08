@@ -366,3 +366,40 @@ it('does not use the DaisyUI 4 form classes that v5 removed', function () {
         expect($fuente)->not->toMatch('/class="label[ "]/');
     }
 });
+
+// ── form/rich-text ────────────────────────────────────────────────────────────
+
+it('rich-text writes the initial HTML into the hidden input', function () {
+    $html = Blade::render('<x-dbl::form.rich-text name="body" value="<p>Hola <b>mundo</b></p>" />');
+    expect($html)
+        ->toContain('type="hidden"')
+        ->toContain('name="body"')
+        ->toContain('value="&lt;p&gt;Hola &lt;b&gt;mundo&lt;/b&gt;&lt;/p&gt;"')
+        ->toContain('x-data="dbRichText(');
+});
+
+it('rich-text passes its props as editor configuration', function () {
+    $html = Blade::render('<x-dbl::form.rich-text name="b" label="Cuerpo" placeholder="Escribe" upload-url="/up" :max-length="500" :minimal="true" />');
+    expect($html)
+        ->toContain('Cuerpo')
+        ->toContain('0/500')
+        ->toContain('\\u0022uploadUrl\\u0022:\\u0022\\\\\\/up\\u0022')
+        ->toContain('\\u0022maxLength\\u0022:500')
+        ->toContain('\\u0022minimal\\u0022:true')
+        ->toContain('\\u0022placeholder\\u0022:\\u0022Escribe\\u0022');
+});
+
+it('rich-text without max-length shows no counter and marks required', function () {
+    $html = Blade::render('<x-dbl::form.rich-text name="b" label="Cuerpo" :required="true" />');
+    expect($html)->not->toContain('overLimit')->toContain('text-error');
+});
+
+it('rich-text translates toolbar labels', function () {
+    app()->setLocale('es');
+    expect(Blade::render('<x-dbl::form.rich-text name="b" />'))->toContain('Negrita');
+});
+
+it('rich-text javascript is syntactically valid', function () {
+    exec('node --check '.escapeshellarg(__DIR__.'/../../../resources/js/components/rich-text.js').' 2>&1', $out, $code);
+    expect($code)->toBe(0, implode("\n", $out));
+});

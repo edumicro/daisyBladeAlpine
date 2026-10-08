@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'choose' => 'Choose files',
+    'drop' => 'Drop files here',
+    'hint_drag' => 'or drag them here',
+    'take_photo' => 'Take a photo',
+    'max_size' => 'Max :max MB per file',
+    'max_files' => 'Up to :max files',
+    'too_many' => 'At most :max files are allowed.',
+    'too_big' => '":name" exceeds the :max MB size limit.',
+    'bad_type' => '":name" is not an allowed file type.',
+    'uploaded' => '":name" uploaded.',
+    'cancelled' => 'Upload cancelled.',
+    'failed' => 'The file could not be uploaded.',
+    'confirm_delete' => 'Delete ":name"?',
+    'delete_failed' => 'The file could not be deleted.',
+    'removed' => '":name" deleted.',
+    'moved' => '":name" moved to position :position.',
+    'reorder_failed' => 'The order could not be saved.',
+    'cancel' => 'Cancel',
+    'retry' => 'Retry',
+    'delete' => 'Delete',
+    'move_up' => 'Move up',
+    'move_down' => 'Move down',
+    'files' => 'Files',
+];
