@@ -427,3 +427,9 @@ it('fills the searchable select with the selected label and value', function () 
         ->assertSee('value="b2"', false)
         ->assertSee('Pau Ferrer', false);
 });
+
+it('select does not leak an option text into its label', function () {
+    $html = \Illuminate\Support\Facades\Blade::render('<x-dbl::form.select name="locale" :options="[\'es\' => \'Español\', \'en\' => \'English\']" value="es" />');
+
+    expect($html)->not->toContain('<label');
+});

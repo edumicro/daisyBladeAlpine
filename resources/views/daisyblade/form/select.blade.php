@@ -21,9 +21,9 @@ $selected = $value === null ? [] : array_map('strval', (array) $value);
 $isSelected = fn ($key) => in_array((string) $key, $selected, true);
 $selectedLabel = '';
 foreach ($options as $optVal => $optLabel) {
-    foreach (is_array($optLabel) ? $optLabel : [$optVal => $optLabel] as $key => $label) {
+    foreach (is_array($optLabel) ? $optLabel : [$optVal => $optLabel] as $key => $text) {
         if ($selectedLabel === '' && $isSelected($key)) {
-            $selectedLabel = (string) $label;
+            $selectedLabel = (string) $text;
         }
     }
 }
