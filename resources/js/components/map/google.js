@@ -1,5 +1,6 @@
 import { resolveBase, plainAttribution } from './bases.js'
 import { buildPopup } from './popup.js'
+import { isPoint, pointColor, formatNumber } from './features.js'
 
 /** Adaptador Google Maps. Misma interfaz que el de MapLibre. Requiere deps.loadGoogleMaps. */
 export function createGoogleAdapter({ loadGoogleMaps, MarkerClusterer }, { googleKey, labels = {} } = {}) {
@@ -8,17 +9,19 @@ export function createGoogleAdapter({ loadGoogleMaps, MarkerClusterer }, { googl
     let info = null
     let marker = null
     let clickListener = null
-    let groups = new Map()   // id -> { markers, clusterer, cluster }
+    let groups = new Map()   // id -> { markers (agrupables), loose (con número), byFeature, clusterer }
 
     function clear() {
         for (const g of groups.values()) {
             g.clusterer?.clearMarkers()
             g.markers.forEach((m) => m.setMap(null))
+            g.loose.forEach((m) => m.setMap(null))
         }
         groups = new Map()
     }
 
     function show(g, visible) {
+        g.loose.forEach((m) => m.setMap(visible ? map : null))
         if (g.clusterer) {
             g.clusterer.clearMarkers()
             if (visible) g.clusterer.addMarkers(g.markers)
@@ -29,17 +32,19 @@ export function createGoogleAdapter({ loadGoogleMaps, MarkerClusterer }, { googl
 
     function makeMarker(l, f) {
         const [lng, lat] = f.geometry.coordinates
+        const number = formatNumber(f.properties?.number)
+        const text = number ?? (l.icon ? String(l.icon) : null)
         const m = new gm.Marker({
             position: { lat, lng },
             title: f.properties?.title ?? '',
-            label: l.icon ? { text: String(l.icon), color: '#fff', fontSize: '11px' } : undefined,
-            icon: { path: gm.SymbolPath.CIRCLE, scale: 11, fillColor: l.color, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 },
+            label: text ? { text, color: '#fff', fontSize: '11px', fontWeight: number ? '600' : undefined } : undefined,
+            icon: { path: gm.SymbolPath.CIRCLE, scale: 11, fillColor: pointColor(f.properties, l.color), fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 },
         })
         m.addListener('click', () => {
             info.setContent(buildPopup(f.properties, labels.open))
             info.open({ map, anchor: m })
         })
-        return m
+        return { m, numbered: number !== null }
     }
 
     return {
@@ -75,10 +80,15 @@ export function createGoogleAdapter({ loadGoogleMaps, MarkerClusterer }, { googl
         setLayers(layers) {
             clear()
             for (const l of layers) {
-                const markers = l.data.features
-                    .filter((f) => f.geometry?.type === 'Point')
-                    .map((f) => makeMarker(l, f))
-                const g = { markers, clusterer: l.cluster && MarkerClusterer ? new MarkerClusterer({ map }) : null }
+                const markers = []
+                const loose = []   // con número: nunca entran en el clusterer
+                const byFeature = new Map()
+                for (const f of l.data.features.filter(isPoint)) {
+                    const { m, numbered } = makeMarker(l, f)
+                    ;(numbered ? loose : markers).push(m)
+                    byFeature.set(f, m)
+                }
+                const g = { markers, loose, byFeature, clusterer: l.cluster && MarkerClusterer ? new MarkerClusterer({ map }) : null }
                 groups.set(l.id, g)
                 show(g, l.visible)
             }
@@ -87,6 +97,17 @@ export function createGoogleAdapter({ loadGoogleMaps, MarkerClusterer }, { googl
         toggleLayer(id, visible) {
             const g = groups.get(id)
             if (g) show(g, visible)
+        },
+
+        /** Centra el mapa en la feature y abre su popup. */
+        focus(layerId, feature, zoom = 16) {
+            const [lng, lat] = feature.geometry.coordinates
+            const m = groups.get(layerId)?.byFeature.get(feature)
+            map.panTo({ lat, lng })
+            map.setZoom(zoom)
+            info.setContent(buildPopup(feature.properties, labels.open))
+            if (m && m.getMap()) info.open({ map, anchor: m })
+            else { info.setPosition({ lat, lng }); info.open({ map }) }
         },
 
         setPicker(enabled, onPick, position = null) {

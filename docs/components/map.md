@@ -54,6 +54,7 @@ registerMap(Alpine, { maplibregl, loadGoogleMaps, MarkerClusterer })
 | `picker-name` | `location` | Prefijo de los inputs ocultos `<name>_lat` y `<name>_lng` |
 | `picker-value` | `null` | `[lat, lng]` inicial (edición) |
 | `geocode-url` | `''` | Endpoint del buscador (solo con `picker`) |
+| `name` | `''` | Identificador del mapa para el evento `dbl-map-focus` |
 | `google-key` | `config('daisyblade.map.google_key')` | Clave de navegador de Google Maps |
 
 Los valores por defecto salen de `daisyblade.map`.
@@ -62,8 +63,43 @@ Los valores por defecto salen de `daisyblade.map`.
 
 Se construyen con DOM y `textContent` (nada de HTML inyectado) a partir de `properties.title`, `subtitle`, `category`, `image` y `url`. `image` y `url` solo admiten `http(s)` o rutas relativas.
 
+### Color y número por punto
+
+Cada feature puede traer, en `properties`:
+
+- `color`: hex válido (`#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`). Sustituye al color de la capa en ese marcador; si el formato no es válido se usa el de la capa.
+- `number`: entero o texto de 1 a 3 caracteres (`7`, `12`, `A3`). Se pinta dentro del marcador. Un entero de más de 3 cifras se ignora.
+
+```json
+{"type":"Feature","id":42,"geometry":{"type":"Point","coordinates":[-0.37,39.47]},
+ "properties":{"title":"Sede","color":"#dc2626","number":3}}
+```
+
+En MapLibre los puntos con número son marcadores DOM (el número va en `textContent`), no una capa `symbol`, para no depender de glyphs remotos. En Google es el `label` del marker. **Decisión:** los puntos con número no se agrupan en clústeres (el número perdería su sentido dentro de un grupo); siguen respondiendo al filtro de capas y categorías.
+
+### Abrir una ficha desde fuera
+
+Cada feature se identifica por `id` o `properties.id`. Desde dentro del componente Alpine:
+
+```blade
+<div x-data="{ map: null }">
+    <x-dbl::display.map name="portal" :layers="[...]" x-init="map = $data" />
+    <button x-on:click="map.focus('ent', 42)">Ver</button>
+</div>
+```
+
+
+Desde cualquier sitio de la página, p. ej. una lista lateral, por evento (recomendado):
+
+```blade
+<li x-data x-on:click="window.dispatchEvent(new CustomEvent('dbl-map-focus', { detail: { map: 'portal', layer: 'ent', id: 42 } }))">
+```
+
+`focus(layerId, featureId)` espera a que las capas estén cargadas, centra el mapa (zoom 16), abre el popup y devuelve `true` si encontró el punto. Si el evento no trae `map`, lo atienden los mapas que tengan esa capa.
+
 ## Eventos
 
+- `dbl-map-focus` (entrada, en `window`) — `detail: {map, layer, id}`; ver arriba.
 - `map-picked` — `detail: {lat, lng}` al colocar o arrastrar el marcador (y al elegir un resultado del buscador). Burbujea desde el elemento raíz: `x-on:map-picked="..."`.
 
 ## Ejemplo
@@ -90,7 +126,7 @@ Se construyen con DOM y `textContent` (nada de HTML inyectado) a partir de `prop
 ## Notas
 
 - El número de los clusters de MapLibre usa fuentes (glifos) del servidor de demostración `demotiles.maplibre.org`. Para producción, aloja las tuyas y cambia `GLYPHS` en `resources/js/components/map/maplibre.js`.
-- Los adaptadores (`map/maplibre.js`, `map/google.js`) comparten interfaz: `init`, `setLayers`, `toggleLayer`, `setPicker`, `flyTo`, `destroy`.
+- Los adaptadores (`map/maplibre.js`, `map/google.js`) comparten interfaz: `init`, `setLayers`, `toggleLayer`, `setPicker`, `flyTo`, `focus`, `destroy`.
 - Accesibilidad: controles con `aria-label` y lista de puntos visibles (`sr-only`) para lectores de pantalla.
 
 ## Geocodificador (PHP)

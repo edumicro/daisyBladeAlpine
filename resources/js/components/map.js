@@ -9,6 +9,7 @@
 
 import { createMapLibreAdapter } from './map/maplibre.js'
 import { createGoogleAdapter } from './map/google.js'
+import { findFeature } from './map/features.js'
 
 let deps = {}
 
@@ -19,6 +20,8 @@ export const dbMap = (config = {}) => {
     // (envolver objetos de MapLibre/Google en un Proxy los rompe).
     let adapter = null
     let raw = {}   // id -> FeatureCollection completa
+    let resolveReady
+    const ready = new Promise((r) => { resolveReady = r })   // capas cargadas (o fallo de init)
 
     return {
         layerState: [],
@@ -47,10 +50,31 @@ export const dbMap = (config = {}) => {
                 }
             } catch (e) {
                 this.error = e.message
+                resolveReady(false)
                 return
             }
             await Promise.all(this.layerState.map((l) => this.load(l)))
             this.applyFilters()
+            resolveReady(true)
+        },
+
+        /**
+         * Centra el mapa en un punto y abre su popup. La feature lleva `id` o `properties.id`.
+         * Devuelve true si la encontró.
+         */
+        async focus(layerId, featureId) {
+            if (!(await ready) || !adapter) return false
+            const feature = findFeature(raw[layerId], featureId)
+            if (!feature) return false
+            await adapter.focus(layerId, feature)
+            return true
+        },
+
+        /** Manejador del evento de ventana `dbl-map-focus`: { map, layer, id }. */
+        onFocusEvent(detail = {}) {
+            if (detail.map && detail.map !== config.name) return
+            if (!detail.map && !raw[detail.layer] && !this.layerState.some((l) => l.id === detail.layer)) return
+            this.focus(detail.layer, detail.id)
         },
 
         makeAdapter() {

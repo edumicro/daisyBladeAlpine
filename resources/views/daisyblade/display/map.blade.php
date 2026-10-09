@@ -13,9 +13,11 @@
     @prop pickerName  — prefijo de los inputs ocultos
     @prop pickerValue — [lat, lng] inicial del marcador (edición)
     @prop geocodeUrl  — endpoint del buscador de direcciones (devuelve {data:[{label,lat,lng}]})
+    @prop name        — identificador opcional del mapa, para el evento `dbl-map-focus`
     @prop googleKey   — clave de navegador de Google Maps (driver=google)
 
     Evento: `map-picked` (detail: {lat, lng}) al colocar o arrastrar el marcador.
+    Escucha: `dbl-map-focus` en window (detail: {map, layer, id}); método Alpine `focus(layer, id)`.
 --}}
 @props([
     'driver'      => config('daisyblade.map.driver', 'maplibre'),
@@ -30,6 +32,7 @@
     'pickerValue' => null,
     'geocodeUrl'  => '',
     'googleKey'   => config('daisyblade.map.google_key', ''),
+    'name'        => '',
 ])
 
 @php
@@ -48,6 +51,7 @@
         'pickerValue' => $hasValue ? [(float) $pickerValue[0], (float) $pickerValue[1]] : null,
         'geocodeUrl'  => (string) $geocodeUrl,
         'googleKey'   => (string) $googleKey,
+        'name'        => (string) $name,
         'labels'      => [
             'search_failed' => __('daisyblade::map.search_failed'),
             'layer_failed'  => __('daisyblade::map.layer_failed'),
@@ -58,6 +62,7 @@
 
 <div {{ $attributes->merge(['class' => 'w-full space-y-2']) }}
      x-data="dbMap(JSON.parse($el.dataset.config))"
+     x-on:dbl-map-focus.window="onFocusEvent($event.detail)"
      data-config="{{ json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) }}">
 
     @if($config['picker'] && $config['geocodeUrl'])

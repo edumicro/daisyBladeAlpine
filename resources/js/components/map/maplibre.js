@@ -1,5 +1,6 @@
 import { resolveBase } from './bases.js'
 import { buildPopup } from './popup.js'
+import { splitFeatures } from './features.js'
 
 // Fuente de glifos para el número de los clusters. Es el servidor de demostración de MapLibre:
 // en producción conviene alojar las fuentes propias (ver docs/components/map.md).
@@ -13,20 +14,53 @@ export function createMapLibreAdapter({ maplibregl }, { labels = {} } = {}) {
     let onPick = null
     let clickHandler = null
     let known = []      // ids de capas añadidas
+    let numbered = new Map()  // id de capa -> [maplibregl.Marker] (puntos con número, DOM)
     let ready = null
 
     const sid = (id) => `db-${id}`
     const layerIds = (id) => [`${sid(id)}-clusters`, `${sid(id)}-count`, `${sid(id)}-points`, `${sid(id)}-icon`]
 
+    function openPopup(coordinates, properties) {
+        return new maplibregl.Popup({ closeButton: true, offset: 12 })
+            .setLngLat(coordinates.slice())
+            .setDOMContent(buildPopup(properties, labels.open))
+            .addTo(map)
+    }
+
+    // Los puntos con número son marcadores DOM (el número va en textContent): así no dependen
+    // de los glyphs remotos de las capas symbol, y no se agrupan en clústeres.
+    function dropNumbered(id) {
+        (numbered.get(id) ?? []).forEach((m) => m.remove())
+        numbered.delete(id)
+    }
+
+    function addNumbered(l, items) {
+        dropNumbered(l.id)
+        numbered.set(l.id, items.map(({ feature, label, color }) => {
+            const el = document.createElement('button')
+            el.type = 'button'
+            el.className = 'flex size-6 items-center justify-center rounded-full border-2 border-white text-[11px] font-semibold leading-none text-white shadow'
+            el.style.background = color ?? l.color
+            el.style.display = l.visible ? '' : 'none'
+            el.textContent = label
+            el.setAttribute('aria-label', feature.properties?.title ? `${label}: ${feature.properties.title}` : label)
+            el.addEventListener('click', (e) => { e.stopPropagation(); openPopup(feature.geometry.coordinates, feature.properties) })
+            return new maplibregl.Marker({ element: el }).setLngLat(feature.geometry.coordinates).addTo(map)
+        }))
+    }
+
     function drop(id) {
+        dropNumbered(id)
         layerIds(id).forEach((l) => map.getLayer(l) && map.removeLayer(l))
         if (map.getSource(sid(id))) map.removeSource(sid(id))
     }
 
     function add(l) {
         const s = sid(l.id)
+        const { plain, numbered: withNumber } = splitFeatures(l.data.features)
+        addNumbered(l, withNumber)
         map.addSource(s, {
-            type: 'geojson', data: l.data,
+            type: 'geojson', data: { type: 'FeatureCollection', features: plain },
             cluster: !!l.cluster, clusterRadius: 50, clusterMaxZoom: 14,
         })
         const vis = l.visible ? 'visible' : 'none'
@@ -51,7 +85,7 @@ export function createMapLibreAdapter({ maplibregl }, { labels = {} } = {}) {
         map.addLayer({
             id: `${s}-points`, type: 'circle', source: s, filter: filterPoint,
             layout: { visibility: vis },
-            paint: { 'circle-color': l.color, 'circle-radius': 9, 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' },
+            paint: { 'circle-color': ['coalesce', ['get', 'color'], l.color], 'circle-radius': 9, 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' },
         })
         if (l.icon) {
             map.addLayer({
@@ -67,10 +101,7 @@ export function createMapLibreAdapter({ maplibregl }, { labels = {} } = {}) {
         const points = `${sid(id)}-points`
         map.on('click', points, (e) => {
             const f = e.features[0]
-            new maplibregl.Popup({ closeButton: true, offset: 12 })
-                .setLngLat(f.geometry.coordinates.slice())
-                .setDOMContent(buildPopup(f.properties, labels.open))
-                .addTo(map)
+            openPopup(f.geometry.coordinates, f.properties)
         })
         const clusters = `${sid(id)}-clusters`
         if (map.getLayer(clusters)) {
@@ -126,7 +157,12 @@ export function createMapLibreAdapter({ maplibregl }, { labels = {} } = {}) {
                 known = known.filter((id) => ids.includes(id))
                 for (const l of layers) {
                     const src = map.getSource(sid(l.id))
-                    if (src) { src.setData(l.data); continue }
+                    if (src) {
+                        const { plain, numbered: withNumber } = splitFeatures(l.data.features)
+                        src.setData({ type: 'FeatureCollection', features: plain })
+                        addNumbered(l, withNumber)
+                        continue
+                    }
                     add(l)
                     bindInteractions(l.id)
                 }
@@ -134,8 +170,20 @@ export function createMapLibreAdapter({ maplibregl }, { labels = {} } = {}) {
         },
 
         toggleLayer(id, visible) {
-            return whenReady(() => layerIds(id).forEach((l) =>
-                map.getLayer(l) && map.setLayoutProperty(l, 'visibility', visible ? 'visible' : 'none')))
+            return whenReady(() => {
+                layerIds(id).forEach((l) =>
+                    map.getLayer(l) && map.setLayoutProperty(l, 'visibility', visible ? 'visible' : 'none'))
+                ;(numbered.get(id) ?? []).forEach((m) => { m.getElement().style.display = visible ? '' : 'none' })
+            })
+        },
+
+        /** Centra el mapa en la feature y abre su popup. */
+        focus(layerId, feature, zoom = 16) {
+            return whenReady(() => {
+                const [lng, lat] = feature.geometry.coordinates
+                map.flyTo({ center: [lng, lat], zoom })
+                openPopup(feature.geometry.coordinates, feature.properties)
+            })
         },
 
         /** Activa/desactiva el modo selector. position: [lat, lng] | null. */
@@ -161,6 +209,6 @@ export function createMapLibreAdapter({ maplibregl }, { labels = {} } = {}) {
             return whenReady(() => map.flyTo({ center: [lng, lat], zoom }))
         },
 
-        destroy() { map?.remove(); map = marker = null },
+        destroy() { [...numbered.keys()].forEach(dropNumbered); map?.remove(); map = marker = null },
     }
 }

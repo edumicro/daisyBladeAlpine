@@ -61,3 +61,23 @@ it('map uses translated texts and aria-labels', function () {
 
     expect($html)->toContain('aria-label="Buscar dirección"')->toContain('aria-label="Mapa"');
 });
+
+it('map exposes the optional name and listens for the focus event', function () {
+    $named = Blade::render('<x-dbl::display.map name="portal" />');
+    $anon = Blade::render('<x-dbl::display.map />');
+
+    expect(mapConfig($named)['name'])->toBe('portal')
+        ->and(mapConfig($anon)['name'])->toBe('')
+        ->and($named)->toContain('x-on:dbl-map-focus.window="onFocusEvent($event.detail)"')
+        ->and($named)->not->toContain(' @dbl');
+});
+
+it('map keeps layers with per-point color and number untouched in the config', function () {
+    $html = Blade::render(<<<'BLADE'
+        <x-dbl::display.map name="m" :layers="[['id' => 'a', 'label' => 'A', 'url' => '/a.geojson', 'cluster' => true, 'color' => '#2563eb']]" />
+    BLADE);
+    $c = mapConfig($html);
+
+    expect($c['layers'][0])->toMatchArray(['id' => 'a', 'cluster' => true, 'color' => '#2563eb'])
+        ->and($c['driver'])->toBe('maplibre');
+});
