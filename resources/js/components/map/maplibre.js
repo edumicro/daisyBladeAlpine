@@ -205,6 +205,11 @@ export function createMapLibreAdapter({ maplibregl }, { labels = {} } = {}) {
             })
         },
 
+        /** Encuadra la caja { west, south, east, north } con margen y sin acercarse más de maxZoom. */
+        fit(b, maxZoom = 17) {
+            return whenReady(() => map.fitBounds([[b.west, b.south], [b.east, b.north]], { padding: 40, maxZoom, animate: false }))
+        },
+
         flyTo(lat, lng, zoom = 16) {
             return whenReady(() => map.flyTo({ center: [lng, lat], zoom }))
         },

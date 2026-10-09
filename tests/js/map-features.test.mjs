@@ -59,3 +59,13 @@ test('splitFeatures separa los numerados y limpia el color inválido', () => {
     assert.equal('number' in plain[0].properties, false)
     assert.equal(plain[1].properties.color, '#0f0')
 })
+
+test('boundsOf envuelve los puntos e ignora lo que no es punto', async () => {
+    const { boundsOf } = await import('../../resources/js/components/map/features.js')
+    const p = (lng, lat) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [lng, lat] } })
+    assert.deepEqual(boundsOf([p(-0.4, 39.4), p(-0.3, 39.6), { geometry: { type: 'LineString', coordinates: [] } }]),
+        { west: -0.4, south: 39.4, east: -0.3, north: 39.6 })
+    assert.deepEqual(boundsOf([p(1, 2)]), { west: 1, south: 2, east: 1, north: 2 })
+    assert.equal(boundsOf([]), null)
+    assert.equal(boundsOf(undefined), null)
+})

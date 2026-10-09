@@ -9,7 +9,7 @@
 
 import { createMapLibreAdapter } from './map/maplibre.js'
 import { createGoogleAdapter } from './map/google.js'
-import { findFeature } from './map/features.js'
+import { findFeature, boundsOf } from './map/features.js'
 
 let deps = {}
 
@@ -55,6 +55,7 @@ export const dbMap = (config = {}) => {
             }
             await Promise.all(this.layerState.map((l) => this.load(l)))
             this.applyFilters()
+            if (config.fit) this.fitOnce()
             resolveReady(true)
         },
 
@@ -68,6 +69,13 @@ export const dbMap = (config = {}) => {
             if (!feature) return false
             await adapter.focus(layerId, feature)
             return true
+        },
+
+        /** Encuadra una sola vez los puntos de las capas visibles; sin puntos conserva center/zoom. */
+        fitOnce() {
+            const visible = this.layerState.filter((l) => l.visible).flatMap((l) => raw[l.id]?.features ?? [])
+            const bounds = boundsOf(visible)
+            if (bounds) adapter?.fit(bounds, 17)
         },
 
         /** Manejador del evento de ventana `dbl-map-focus`: { map, layer, id }. */

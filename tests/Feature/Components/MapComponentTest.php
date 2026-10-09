@@ -81,3 +81,8 @@ it('map keeps layers with per-point color and number untouched in the config', f
     expect($c['layers'][0])->toMatchArray(['id' => 'a', 'cluster' => true, 'color' => '#2563eb'])
         ->and($c['driver'])->toBe('maplibre');
 });
+
+it('map exposes the fit prop, off by default', function () {
+    expect(mapConfig(Blade::render('<x-dbl::display.map />'))['fit'])->toBeFalse()
+        ->and(mapConfig(Blade::render('<x-dbl::display.map fit />'))['fit'])->toBeTrue();
+});

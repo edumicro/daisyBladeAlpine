@@ -63,3 +63,21 @@ export function splitFeatures(features) {
     }
     return { plain, numbered }
 }
+
+/**
+ * Caja que envuelve todos los puntos: { west, south, east, north } (grados), o null si no hay
+ * ninguno. Con un solo punto la caja es degenerada (west === east); el adaptador limita el zoom.
+ */
+export function boundsOf(features) {
+    let b = null
+    for (const f of features ?? []) {
+        if (!isPoint(f)) continue
+        const [lng, lat] = f.geometry.coordinates
+        if (!b) b = { west: lng, south: lat, east: lng, north: lat }
+        else {
+            b.west = Math.min(b.west, lng); b.east = Math.max(b.east, lng)
+            b.south = Math.min(b.south, lat); b.north = Math.max(b.north, lat)
+        }
+    }
+    return b
+}

@@ -54,6 +54,7 @@ registerMap(Alpine, { maplibregl, loadGoogleMaps, MarkerClusterer })
 | `picker-name` | `location` | Prefijo de los inputs ocultos `<name>_lat` y `<name>_lng` |
 | `picker-value` | `null` | `[lat, lng]` inicial (edición) |
 | `geocode-url` | `''` | Endpoint del buscador (solo con `picker`) |
+| `fit` | `false` | Al cargar por primera vez las capas visibles, encuadra todos sus puntos (margen de 40 px y `maxZoom` 17, para no acercarse demasiado con un solo punto). Sin puntos se queda en `center`/`zoom`. No vuelve a encuadrar al activar/desactivar capas ni con `focus()` |
 | `name` | `''` | Identificador del mapa para el evento `dbl-map-focus` |
 | `google-key` | `config('daisyblade.map.google_key')` | Clave de navegador de Google Maps |
 
@@ -126,7 +127,7 @@ Desde cualquier sitio de la página, p. ej. una lista lateral, por evento (recom
 ## Notas
 
 - El número de los clusters de MapLibre usa fuentes (glifos) del servidor de demostración `demotiles.maplibre.org`. Para producción, aloja las tuyas y cambia `GLYPHS` en `resources/js/components/map/maplibre.js`.
-- Los adaptadores (`map/maplibre.js`, `map/google.js`) comparten interfaz: `init`, `setLayers`, `toggleLayer`, `setPicker`, `flyTo`, `focus`, `destroy`.
+- Los adaptadores (`map/maplibre.js`, `map/google.js`) comparten interfaz: `init`, `setLayers`, `toggleLayer`, `setPicker`, `flyTo`, `focus`, `fit`, `destroy`.
 - Accesibilidad: controles con `aria-label` y lista de puntos visibles (`sr-only`) para lectores de pantalla.
 
 ## Geocodificador (PHP)

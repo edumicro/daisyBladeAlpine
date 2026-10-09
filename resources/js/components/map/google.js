@@ -132,6 +132,12 @@ export function createGoogleAdapter({ loadGoogleMaps, MarkerClusterer }, { googl
             if (position) place(position[0], position[1])
         },
 
+        /** Encuadra la caja { west, south, east, north } con margen y sin acercarse más de maxZoom. */
+        fit(b, maxZoom = 17) {
+            map.fitBounds(new gm.LatLngBounds({ lat: b.south, lng: b.west }, { lat: b.north, lng: b.east }), 40)
+            gm.event.addListenerOnce(map, 'idle', () => { if (map && map.getZoom() > maxZoom) map.setZoom(maxZoom) })
+        },
+
         flyTo(lat, lng, zoom = 16) {
             map.panTo({ lat, lng })
             map.setZoom(zoom)

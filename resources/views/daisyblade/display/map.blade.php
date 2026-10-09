@@ -13,6 +13,7 @@
     @prop pickerName  — prefijo de los inputs ocultos
     @prop pickerValue — [lat, lng] inicial del marcador (edición)
     @prop geocodeUrl  — endpoint del buscador de direcciones (devuelve {data:[{label,lat,lng}]})
+    @prop fit         — true: al cargar las capas visibles, encuadra todos sus puntos (una sola vez; maxZoom 17)
     @prop name        — identificador opcional del mapa, para el evento `dbl-map-focus`
     @prop googleKey   — clave de navegador de Google Maps (driver=google)
 
@@ -33,6 +34,7 @@
     'geocodeUrl'  => '',
     'googleKey'   => config('daisyblade.map.google_key', ''),
     'name'        => '',
+    'fit'         => false,
 ])
 
 @php
@@ -52,6 +54,7 @@
         'geocodeUrl'  => (string) $geocodeUrl,
         'googleKey'   => (string) $googleKey,
         'name'        => (string) $name,
+        'fit'         => (bool) $fit,
         'labels'      => [
             'search_failed' => __('daisyblade::map.search_failed'),
             'layer_failed'  => __('daisyblade::map.layer_failed'),
