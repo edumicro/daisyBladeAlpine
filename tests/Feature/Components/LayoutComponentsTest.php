@@ -70,3 +70,13 @@ it('app layout accepts lang and htmlClass props', function () {
     $html = Blade::render('<x-dbl::layout.app lang="ca-ES-valencia" htmlClass="large-text" />');
     expect($html)->toContain('lang="ca-ES-valencia"')->and($html)->toMatch('/<html[^>]*class="large-text"/');
 });
+
+// ── [x-cloak] ─────────────────────────────────────────────────────────────────
+
+it('layouts define [x-cloak], which the components use to hide things until Alpine starts', function (string $layout) {
+    $html = Blade::render("<x-dbl::layout.{$layout} />");
+
+    // In the <head>, before any content, so nothing flashes.
+    expect($html)->toContain('<style>[x-cloak] { display: none !important; }</style>');
+    expect(strpos($html, '[x-cloak]'))->toBeLessThan(strpos($html, '<body'));
+})->with(['app', 'auth']);

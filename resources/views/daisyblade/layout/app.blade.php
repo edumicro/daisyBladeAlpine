@@ -12,6 +12,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     <title>{{ $title ?? config('app.name') }}</title>
+    {{-- Alpine removes x-cloak once it has started. Until then the elements marked with it (46 places in the
+         components) must stay hidden, and the package does not ship a stylesheet to say so. --}}
+    <style>[x-cloak] { display: none !important; }</style>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
