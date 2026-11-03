@@ -10,6 +10,7 @@ return [
     'search_failed'      => 'The address search failed.',
     'no_results'         => 'No results.',
     'layer_failed'       => 'Could not load layer',
+    'init_failed'        => 'The map could not be loaded.',
     'picker_hint'        => 'Click the map or drag the marker to choose the location.',
     'points_list'        => 'Map points',
     'open'               => 'View more',

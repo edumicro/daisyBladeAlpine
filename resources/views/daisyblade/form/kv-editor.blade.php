@@ -34,9 +34,9 @@ $initialRows = collect($value)->map(function ($v, $k) {
 
     {{-- Column headers --}}
     <div class="flex gap-2 mb-1.5 px-0.5 text-xs text-base-content/40 select-none">
-        <span class="flex-1">clave</span>
-        <span class="flex-1">valor</span>
-        <span class="w-16 shrink-0 text-center">tipo</span>
+        <span class="flex-1">{{ __('Key') }}</span>
+        <span class="flex-1">{{ __('Value') }}</span>
+        <span class="w-16 shrink-0 text-center">{{ __('Type') }}</span>
         <span class="w-8 shrink-0"></span>
     </div>
 
@@ -49,7 +49,7 @@ $initialRows = collect($value)->map(function ($v, $k) {
                 <input
                     type="text"
                     x-model="row.key"
-                    placeholder="campo"
+                    placeholder="{{ __('Field') }}"
                     class="input input-sm flex-1 font-mono text-sm min-w-0"
                 />
 
@@ -97,7 +97,8 @@ $initialRows = collect($value)->map(function ($v, $k) {
                     type="button"
                     @click="rows.splice(i, 1)"
                     class="btn btn-ghost btn-sm btn-square shrink-0 self-start text-base-content/30 hover:text-error"
-                    title="Eliminar"
+                    title="{{ __('Remove') }}"
+                    aria-label="{{ __('Remove') }}"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -115,7 +116,7 @@ $initialRows = collect($value)->map(function ($v, $k) {
         <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
         </svg>
-        Añadir campo
+        {{ __('Add field') }}
     </button>
 
     @if($hint)

@@ -3,9 +3,13 @@
     'value'       => [],
     'label'       => null,
     'hint'        => null,
-    'placeholder' => 'Escribe y pulsa Enter o coma…',
+    'placeholder' => '',   // empty: the translated default
     'class'       => '',
 ])
+
+@php
+$placeholder = $placeholder !== '' ? $placeholder : __('Type and press Enter or comma…');
+@endphp
 
 <div x-data="dbListEditor({ items: {{ \Illuminate\Support\Js::from(array_values((array) $value)) }} })" class="{{ $class }}">
 

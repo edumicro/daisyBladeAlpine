@@ -50,7 +50,9 @@ export const dbMap = (config = {}) => {
                     await adapter.setPicker(true, (lat, lng) => this.setPicked(lat, lng), config.pickerValue)
                 }
             } catch (e) {
-                this.error = e.message
+                // The user gets a translated message; what went wrong (a missing library or key, for the developer) goes to the console.
+                console.error('dbMap: could not start the map', e)
+                this.error = config.labels?.init_failed ?? 'The map could not be loaded.'
                 resolveReady(false)
                 return
             }

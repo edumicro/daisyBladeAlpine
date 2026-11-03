@@ -48,7 +48,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
     $children = $byParent->get($node['id'], collect())->all();
     $hasKids  = !empty($children);
     $indent   = $depth > 0 ? 'ml-8 pl-4 border-l-2 border-base-300' : '';
-    $label    = htmlspecialchars($node['label'] ?? ('Node ' . $node['id']), ENT_QUOTES, 'UTF-8');
+    $label    = htmlspecialchars($node['label'] ?? (__('Node') . ' ' . $node['id']), ENT_QUOTES, 'UTF-8');
     $status   = $node['status'] ?? null;
     $statusCls = match($status) {
         'completed' => 'badge-success',
@@ -88,7 +88,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
            . $dotDragAttrs
            . " @click=\"\$dispatch('node-click', { id: JSON.parse(\$el.dataset.nodeId), flat: JSON.parse(\$el.dataset.flat) })\""
            . " class=\"w-5 h-5 rounded-full {$dotCls} ring-4 ring-base-100 hover:scale-110 transition-transform {$dotCursor} shrink-0\""
-           . " title=\"{$label}" . ($editable ? " — arrastra para enlazar" : "") . "\"></button>";
+           . " title=\"{$label}" . ($editable ? ' — ' . e(__('drag to link')) : '') . "\"></button>";
     if ($hasKids) {
         $html .= "<div class=\"w-0.5 bg-base-300 grow mt-1 min-h-8\"></div>";
     }
@@ -100,7 +100,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
     // Header row: label + status + edit-mode controls
     $html .= "<div class=\"flex flex-wrap items-center gap-1.5 mb-2\">";
     $html .= "<span class=\"font-semibold text-sm\">{$label}</span>";
-    $html .= "<span class=\"badge badge-xs {$ringCls}\">" . ($isRoot ? 'root' : 'child') . "</span>";
+    $html .= "<span class=\"badge badge-xs {$ringCls}\">" . e($isRoot ? __('root') : __('child')) . "</span>";
     if ($status) {
         $html .= "<span class=\"badge badge-xs {$statusCls}\">{$status}</span>";
     }
@@ -111,7 +111,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
                . " data-node-id=\"{$nodeId}\""
                . " @click.stop=\"\$dispatch('node-create', { parentId: JSON.parse(\$el.dataset.nodeId) })\""
                . " class=\"btn btn-xs btn-ghost px-1 opacity-50 hover:opacity-100\""
-               . " title=\"Añadir hijo\">+</button>";
+               . " title=\"" . e(__('Add child')) . "\">+</button>";
         // Delete node (not root)
         if (!$isRoot) {
             $html .= "<button"
@@ -120,7 +120,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
                    . " data-flat=\"{$nodeFlat}\""
                    . " @click.stop=\"\$dispatch('node-delete', { id: JSON.parse(\$el.dataset.nodeId), flat: JSON.parse(\$el.dataset.flat) })\""
                    . " class=\"btn btn-xs btn-ghost px-1 opacity-50 hover:opacity-100 text-error\""
-                   . " title=\"Eliminar nodo\">×</button>";
+                   . " title=\"" . e(__('Remove node')) . "\">×</button>";
         }
     }
     $html .= "</div>";
@@ -150,7 +150,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
                        . " data-flat=\"{$badgeFlat}\""
                        . " @click.stop=\"\$dispatch('badge-delete', { nodeId: JSON.parse(\$el.dataset.nodeId), badgeFlat: JSON.parse(\$el.dataset.flat) })\""
                        . " class=\"opacity-50 hover:opacity-100 leading-none\""
-                       . " title=\"Eliminar badge\">×</button>";
+                       . " title=\"" . e(__('Remove badge')) . "\">×</button>";
             }
             $html .= "</span>";
         }
@@ -160,7 +160,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
                    . " data-node-id=\"{$nodeId}\""
                    . " @click.stop=\"\$dispatch('badge-create', { nodeId: JSON.parse(\$el.dataset.nodeId) })\""
                    . " class=\"badge badge-sm badge-ghost gap-1 cursor-pointer opacity-50 hover:opacity-100\""
-                   . " title=\"Añadir badge\">+ badge</button>";
+                   . " title=\"" . e(__('Add badge')) . "\">+ badge</button>";
         }
         $html .= "</div>";
     }
@@ -192,7 +192,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
         @forelse($roots as $root)
             {!! $renderNode($root) !!}
         @empty
-            <div class="text-center py-8 text-base-content/40 text-sm">Sin nodos</div>
+            <div class="text-center py-8 text-base-content/40 text-sm">{{ __('No nodes') }}</div>
         @endforelse
     </div>
 </div>

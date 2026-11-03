@@ -58,6 +58,7 @@
         'labels'      => [
             'search_failed' => __('daisyblade::map.search_failed'),
             'layer_failed'  => __('daisyblade::map.layer_failed'),
+            'init_failed'   => __('daisyblade::map.init_failed'),
             'open'          => __('daisyblade::map.open'),
         ],
     ];

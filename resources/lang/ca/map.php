@@ -10,6 +10,7 @@ return [
     'search_failed'      => 'No s\'ha pogut cercar l\'adreça.',
     'no_results'         => 'Sense resultats.',
     'layer_failed'       => 'No s\'ha pogut carregar la capa',
+    'init_failed'        => 'No s\'ha pogut carregar el mapa.',
     'picker_hint'        => 'Prem al mapa o arrossega el marcador per triar la ubicació.',
     'points_list'        => 'Punts del mapa',
     'open'               => 'Veure més',
