@@ -157,6 +157,7 @@ UI state managed by Alpine. No Axios.
 | `display.carousel` | Image/content carousel |
 | `display.filters` | Filter bar with Alpine state |
 | `display.node-graph` | Tree graph with event timeline + detail modal |
+| `display.flowchart` | Free flowchart (boxes and arrows) with drag and drop; emits events, the parent decides |
 | `display.text-rotate` | Animated rotating text |
 | `feedback.toast` | Toast notification |
 | `form.kv-editor` | Key-value editor with auto-inferring type selector |
@@ -598,3 +599,4 @@ registerMap(Alpine, { maplibregl, axios })
 | `<x-dbl::form.rich-text>` | `registerRichText` | `@tiptap/core`, `@tiptap/pm`, `@tiptap/starter-kit` | `docs/components/rich-text.md` |
 | `<x-dbl::form.signature>` | `registerSignature` | `signature_pad` | `docs/components/signature.md` |
 | `<x-dbl::display.calendar>` | `registerCalendar` | — | `docs/components/calendar.md` |
+| `<x-dbl::display.flowchart>` | `registerFlowchart` | — | `docs/components/flowchart.md` |
