@@ -104,10 +104,12 @@ Ejemplo: al unir dos pasos, preguntar con un diálogo propio la condición y ace
     x-on:node-move="
         $event.preventDefault()
         const ev = $event.detail
-        fetch('/pasos/' + ev.id, { method: 'PATCH', body: JSON.stringify({ x: ev.x, y: ev.y }) })
-            .then(r => r.ok ? ev.accept() : ev.reject('No se ha podido guardar la posición'))
+        axios.patch('/pasos/' + ev.id, { x: ev.x, y: ev.y })
+            .then(() => ev.accept(), () => ev.reject('No se ha podido guardar la posición'))
     " />
 ```
+
+(`axios` de Laravel ya envía el token CSRF y `X-Requested-With`. Con un `fetch` a pelo hay que añadir la cabecera `X-CSRF-TOKEN`, o el `PATCH` devuelve 419.)
 
 ## Desde fuera
 

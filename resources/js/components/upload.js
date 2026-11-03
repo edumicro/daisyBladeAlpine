@@ -1,3 +1,5 @@
+import { request, isCanceled } from '../http.js'
+
 /**
  * dbUpload — subida de ficheros para <x-dbl::form.upload>.
  *
@@ -10,9 +12,6 @@ export const dbUpload = (config = {}, deps = {}) => ({
     dragging: false,
     status: '',          // texto para el aria-live
     seq: 0,
-
-    // axios se inyecta; si no, el global de la página.
-    get http() { return deps.axios ?? window.axios },
 
     init() {
         this.items = (config.existing ?? []).map(f => this.makeItem({ ...f, status: 'done' }))
@@ -88,18 +87,22 @@ export const dbUpload = (config = {}, deps = {}) => ({
         const controller = new AbortController()
         Object.assign(item, { status: 'uploading', progress: 0, error: '', cancel: () => controller.abort() })
         try {
-            const { data } = await this.http.post(config.action, body, {
+            // Escalera de http.js: axios inyectado, `window.axios` o, si no hay, XMLHttpRequest (fetch no da el progreso).
+            const { data } = await request({
+                method: 'post',
+                url: config.action,
+                data: body,
                 signal: controller.signal,
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: e => { item.progress = e.total ? Math.round(e.loaded * 100 / e.total) : 50 },
-            })
+            }, deps)
             Object.assign(item, { id: data.id, name: data.name ?? item.name, url: data.url,
                                   thumb: data.thumb ?? null, size: data.size ?? item.size,
                                   status: 'done', progress: 100, file: null, cancel: null })
             this.announce(this.t('uploaded', { name: item.name }))
             this.$dispatch('uploaded', { id: item.id, name: item.name, url: item.url, file: data })
         } catch (e) {
-            if (this.http.isCancel?.(e) || e.code === 'ERR_CANCELED') {
+            if (isCanceled(e, deps.axios ?? globalThis.window?.axios)) {
                 item.error = this.t('cancelled')
             } else {
                 // 422 de Laravel: { message, errors: { file: ['...'] } }
@@ -127,7 +130,7 @@ export const dbUpload = (config = {}, deps = {}) => ({
         if (item.id === null) return this.discard(item)
         if (!window.confirm(this.t('confirm_delete', { name: item.name }))) return
         if (config.deleteUrl) {
-            try { await this.http.delete(config.deleteUrl.replace('{id}', encodeURIComponent(item.id))) }
+            try { await request({ method: 'delete', url: config.deleteUrl.replace('{id}', encodeURIComponent(item.id)) }, deps) }
             catch (e) { item.error = e.response?.data?.message || this.t('delete_failed'); this.announce(item.error); return }
         }
         this.discard(item)
@@ -141,7 +144,7 @@ export const dbUpload = (config = {}, deps = {}) => ({
         this.items.splice(to, 0, this.items.splice(from, 1)[0])
         this.announce(this.t('moved', { name: item.name, position: to + 1 }))
         if (!config.reorderUrl) return
-        try { await this.http.post(config.reorderUrl, { ids: this.ids }) }
+        try { await request({ method: 'post', url: config.reorderUrl, data: { ids: this.ids } }, deps) }
         catch (e) { this.announce(this.t('reorder_failed')) }
     },
 

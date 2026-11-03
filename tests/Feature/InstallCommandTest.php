@@ -43,12 +43,15 @@ it('installs with --vite flag', function () {
     $this->artisan('daisyblade:install', ['--vite' => true])
          ->assertSuccessful();
 
-    expect(file_exists(resource_path('js/daisyblade.js')))->toBeTrue();
+    // daisyblade.js imports ./http.js: without it beside it, the published copy cannot even load.
+    expect(file_exists(resource_path('js/daisyblade.js')))->toBeTrue()
+        ->and(file_exists(resource_path('js/http.js')))->toBeTrue();
 });
 
 it('installs with --public flag', function () {
     $this->artisan('daisyblade:install', ['--public' => true])
          ->assertSuccessful();
 
-    expect(file_exists(public_path('vendor/daisyblade/daisyblade.js')))->toBeTrue();
+    expect(file_exists(public_path('vendor/daisyblade/daisyblade.js')))->toBeTrue()
+        ->and(file_exists(public_path('vendor/daisyblade/http.js')))->toBeTrue();
 });

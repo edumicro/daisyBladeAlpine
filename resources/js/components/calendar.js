@@ -1,5 +1,7 @@
 'use strict'
 
+import { request as sendRequest } from '../http.js'
+
 // ── Fechas: funciones puras (se prueban con `node --test`) ─────────────────
 // Los días se manejan como cadenas 'YYYY-MM-DD'. Así no hay zonas horarias de por medio.
 
@@ -148,14 +150,9 @@ export const dbCalendar = (config = {}, deps = {}) => ({
         const g = this.grid
         return `${g[0].date}|${g[g.length - 1].date}`
     },
+    // Pide los eventos con la escalera de http.js: axios inyectado, `window.axios` o `fetch`.
     async request(url, params) {
-        const client = deps.axios ?? (typeof window !== 'undefined' ? window.axios : null)
-        if (client) return (await client.get(url, { params })).data
-        const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}${new URLSearchParams(params)}`, {
-            headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
+        return (await sendRequest({ url, params }, deps)).data
     },
 
     // ── Navegación ──

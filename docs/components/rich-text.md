@@ -58,7 +58,7 @@ window.Alpine = Alpine
 
 registerRichText(Alpine, {
     Editor, StarterKit, Link, Image, Table, TableRow, TableHeader, TableCell, Placeholder,
-    // axios,   // opcional: si no se pasa, se usa window.axios
+    // axios,   // opcional: si no se pasa, se usa window.axios y, si no hay, fetch
 })
 
 Alpine.start()   // registerRichText ANTES de start()

@@ -34,7 +34,7 @@ Responde un array (o `{ "data": [...] }`):
 - Un `start` sin hora (`YYYY-MM-DD`) o `all_day: true` se muestra sin hora.
 - Un evento de varios días aparece en cada día de `start` a `end`, ambos inclusive.
 - Las respuestas se guardan en caché por rango: volver a un mes ya visto no repite la petición.
-- Cliente HTTP: `axios` inyectado en `registerCalendar(Alpine, { axios })`, o `window.axios`, o `fetch`.
+- Cliente HTTP: `axios` inyectado en `registerCalendar(Alpine, { axios })`, o `window.axios`, o `fetch` (una URL de otro dominio va siempre por `fetch`). Con `fetch` en el mismo dominio se envían `X-Requested-With` y el token CSRF, y un 4xx o 5xx falla con `error.response.status`, como en axios.
 
 ## Comportamiento
 

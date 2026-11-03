@@ -1,5 +1,12 @@
 'use strict'
 
+import { request, joinUrl } from './http.js'
+
+// Every server call of this file goes through request() (see http.js): the client injected with
+// registerDaisyBlade(), else window.axios, else fetch.
+let injectedDeps = {}
+const http = options => request(options, injectedDeps)
+
 // ── Tipo 2: local Alpine state, no server calls ────────────────────────────
 
 const dbModal = (config = {}) => ({
@@ -121,7 +128,7 @@ const dbSelectRemote = (config = {}) => ({
         try {
             const params = { ...(q ? { search: q } : {}), ...(config.params ?? {}), ...dependencyParams(config.dependsOn, this.dependencyValue()) }
             // `url` is what the Blade passes; `optionsUrl` is the old name.
-            const { data } = this.waiting ? { data: [] } : await axios.get(config.url ?? config.optionsUrl, { params })
+            const { data } = this.waiting ? { data: [] } : await http({ url: config.url ?? config.optionsUrl, params })
             if (request !== this.lastRequest) return false
             this.options = Array.isArray(data) ? data : (data.data ?? [])
         } catch (error) {
@@ -154,7 +161,7 @@ const dbResourceDetails = (config = {}) => ({
     async load() {
         this.loading = true; this.error = null
         try {
-            const { data } = await axios.get(config.loadUrl)
+            const { data } = await http({ url: config.loadUrl })
             this.resource = data.data ?? data
         } catch (e) {
             this.error = e.response?.data?.message ?? 'Error loading resource'
@@ -176,7 +183,7 @@ const dbTabsLazy = (config = {}) => ({
     async _load(index) {
         this.loading = { ...this.loading, [index]: true }
         try {
-            const { data } = await axios.get(this.tabs[index].url)
+            const { data } = await http({ url: this.tabs[index].url })
             this.contents = { ...this.contents, [index]: typeof data === 'string' ? data : JSON.stringify(data) }
         } finally {
             this.loading = { ...this.loading, [index]: false }
@@ -202,7 +209,10 @@ const dbSpreadsheetImport = (config = {}) => ({
         form.append('file', this.file)
         if (config.chunkSize) form.append('chunk_size', config.chunkSize)
         try {
-            const { data } = await axios.post(config.uploadUrl, form, {
+            const { data } = await http({
+                method: 'post',
+                url: config.uploadUrl,
+                data: form,
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: e => { this.progress = e.total ? Math.round(e.loaded * 100 / e.total) : 50 },
             })
@@ -224,9 +234,7 @@ const dbDataTable = (config = {}) => ({
     async init() { await this.load() },
     async load() {
         this.loading = true
-        const { data } = await axios.get(config.loadUrl, {
-            params: this.queryState(),
-        })
+        const { data } = await http({ url: config.loadUrl, params: this.queryState() })
         this.rows      = data.data ?? []
         this.meta      = data.meta ?? {}
         this.loading   = false
@@ -240,11 +248,9 @@ const dbDataTable = (config = {}) => ({
     // agnostic: this component knows nothing about spreadsheets, CSV or PDF — it hands the
     // current state to a URL and that URL decides what to produce.
     stateUrl(base) {
-        const query = new URLSearchParams()
-        Object.entries(this.queryState()).forEach(([key, value]) => {
-            if (value !== null && value !== undefined && value !== '') query.append(key, value)
-        })
-        return `${base}${base.includes('?') ? '&' : '?'}${query.toString()}`
+        const filled = Object.entries(this.queryState()).filter(([, value]) => value !== null && value !== undefined && value !== '')
+        // Same joiner and same list format as the request of load(), so the export gets what the table asked for.
+        return joinUrl(base, Object.fromEntries(filled))
     },
     sortBy(col) {
         if (this.sort === col) this.direction = this.direction === 'asc' ? 'desc' : 'asc'
@@ -263,7 +269,7 @@ const dbAutoForm = (config = {}) => ({
     async submit() {
         this.loading = true; this.errors = {}; this.globalError = ''; this.success = false
         try {
-            const { data } = await axios({ method: config.method ?? 'POST', url: config.action, data: this.values })
+            const { data } = await http({ method: config.method ?? 'POST', url: config.action, data: this.values })
             this.success = true
             if (data.redirect) window.location.href = data.redirect
             else if (config.onSuccess) config.onSuccess(data)
@@ -295,7 +301,7 @@ const dbWizard = (config = {}) => {
         async submit() {
             this.loading = true; this.errors = {}; this.globalError = ''
             try {
-                const { data } = await axios({ method: config.method ?? 'POST', url: config.action, data: this.data })
+                const { data } = await http({ method: config.method ?? 'POST', url: config.action, data: this.data })
                 this.clear()
                 if (data.redirect) window.location.href = data.redirect
                 else if (config.onSuccess) config.onSuccess(data)
@@ -390,6 +396,16 @@ function _register(Alpine) {
     for (const [name, fn] of Object.entries(_all)) Alpine.data(name, fn)
 }
 
+/**
+ * Optional: hand the components the HTTP client of the app, before `Alpine.start()`.
+ *     registerDaisyBlade(Alpine, { axios })
+ * Without it they use `window.axios` and, if there is none, `fetch`.
+ */
+function registerDaisyBlade(Alpine, deps = {}) {
+    injectedDeps = deps
+    _register(Alpine)
+}
+
 if (typeof window !== 'undefined') {
     Object.assign(window, _all)
 
@@ -402,6 +418,7 @@ if (typeof window !== 'undefined') {
 
 // ESM export for Vite / import
 export {
+    registerDaisyBlade,
     dbModal, dbToast, dbTabs, dbNavbar, dbSidebar, dbSidebarTree,
     dbDataTable, dbAutoForm, dbWizard,
     dbSelectRemote, dbResourceDetails, dbTabsLazy, dbSpreadsheetImport,

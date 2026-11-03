@@ -10,6 +10,7 @@
 import { createMapLibreAdapter } from './map/maplibre.js'
 import { createGoogleAdapter } from './map/google.js'
 import { findFeature, boundsOf } from './map/features.js'
+import { request } from '../http.js'
 
 let deps = {}
 
@@ -94,9 +95,10 @@ export const dbMap = (config = {}) => {
 
         async load(l) {
             try {
-                const res = await fetch(l.url, { headers: { Accept: 'application/geo+json, application/json' }, credentials: 'same-origin' })
-                if (!res.ok) throw new Error(res.status)
-                raw[l.id] = await res.json()
+                // Una capa propia usa la escalera de http.js (axios inyectado, window.axios o fetch);
+                // una capa de otro dominio va siempre por fetch y sin cabeceras de Laravel.
+                const { data } = await request({ url: l.url, headers: { Accept: 'application/geo+json, application/json' } }, deps)
+                raw[l.id] = data
             } catch {
                 raw[l.id] = emptyCollection
                 this.error = `${config.labels.layer_failed}: ${l.label}`
@@ -145,10 +147,8 @@ export const dbMap = (config = {}) => {
             if (q.length < 2) return
             this.error = ''
             try {
-                const res = await fetch(`${config.geocodeUrl}${config.geocodeUrl.includes('?') ? '&' : '?'}q=${encodeURIComponent(q)}`,
-                    { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
-                if (!res.ok) throw new Error(res.status)
-                this.results = (await res.json()).data ?? []
+                const { data } = await request({ url: config.geocodeUrl, params: { q } }, deps)
+                this.results = data.data ?? []
             } catch {
                 this.results = []
                 this.error = config.labels.search_failed

@@ -21,11 +21,16 @@ class InstallCommand extends Command
         $this->callSilent('vendor:publish', ['--tag' => 'daisyblade-config']);
         $this->info('  ✓ Views and config published.');
 
-        $jsSource = realpath(__DIR__.'/../../../resources/js/daisyblade.js');
+        // daisyblade.js imports ./http.js (the one function every component uses to call the server),
+        // so both files are published together, side by side.
+        $jsSources = [
+            realpath(__DIR__.'/../../../resources/js/daisyblade.js'),
+            realpath(__DIR__.'/../../../resources/js/http.js'),
+        ];
 
         match ($this->resolveJsTarget()) {
-            'vite'   => $this->publishVite($jsSource),
-            'public' => $this->publishPublic($jsSource),
+            'vite'   => $this->publishVite($jsSources),
+            'public' => $this->publishPublic($jsSources),
         };
 
         $this->newLine();
@@ -49,21 +54,29 @@ class InstallCommand extends Command
         );
     }
 
-    protected function publishVite(string $source): void
+    /** @param string[] $sources  daisyblade.js and http.js */
+    protected function publishVite(array $sources): void
     {
-        $dest = resource_path('js/daisyblade.js');
-        File::ensureDirectoryExists(dirname($dest));
-        File::copy($source, $dest);
-        $this->info('  ✓ JS → resources/js/daisyblade.js');
+        $this->copyAll($sources, resource_path('js'));
+        $this->info('  ✓ JS → resources/js/daisyblade.js and resources/js/http.js');
         $this->line("    Add to app.js: <fg=gray>import './daisyblade.js'</>");
     }
 
-    protected function publishPublic(string $source): void
+    /** @param string[] $sources  daisyblade.js and http.js */
+    protected function publishPublic(array $sources): void
     {
-        $dest = public_path('vendor/daisyblade/daisyblade.js');
-        File::ensureDirectoryExists(dirname($dest));
-        File::copy($source, $dest);
-        $this->info('  ✓ JS → public/vendor/daisyblade/daisyblade.js');
-        $this->line("    Add to layout: <fg=gray><script src=\"{{ asset('vendor/daisyblade/daisyblade.js') }}\"></script></>");
+        $this->copyAll($sources, public_path('vendor/daisyblade'));
+        $this->info('  ✓ JS → public/vendor/daisyblade/daisyblade.js and http.js');
+        // type="module": daisyblade.js is an ES module (it imports ./http.js and exports its functions).
+        $this->line("    Add to layout: <fg=gray><script type=\"module\" src=\"{{ asset('vendor/daisyblade/daisyblade.js') }}\"></script></>");
+    }
+
+    /** Copy each file into `$directory`, keeping its name. */
+    protected function copyAll(array $sources, string $directory): void
+    {
+        File::ensureDirectoryExists($directory);
+        foreach ($sources as $source) {
+            File::copy($source, $directory.'/'.basename($source));
+        }
     }
 }

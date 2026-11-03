@@ -39,6 +39,11 @@ registerMap(Alpine, { maplibregl, loadGoogleMaps, MarkerClusterer })
 
 (`registerMap` no es parte de `daisyblade.js`: se llama aparte, antes de `Alpine.start()`.)
 
+**Peticiones.** Las capas (`url`) y el buscador (`geocode-url`) usan el cliente HTTP del paquete: el `axios` que pases
+(`registerMap(Alpine, { maplibregl, axios })`), si no `window.axios`, y si no `fetch`. Una URL de **otro dominio** (una capa
+GeoJSON pública, por ejemplo) va siempre por `fetch` y sin cabeceras de Laravel (`X-Requested-With`, CSRF), que los servidores
+ajenos suelen rechazar en el preflight de CORS.
+
 ## Props
 
 | Prop | Por defecto | Descripción |

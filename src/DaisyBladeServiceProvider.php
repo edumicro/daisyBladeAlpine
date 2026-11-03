@@ -35,8 +35,10 @@ class DaisyBladeServiceProvider extends ServiceProvider
                 __DIR__.'/../config/daisyblade.php' => config_path('daisyblade.php'),
             ], 'daisyblade-config');
 
+            // daisyblade.js imports ./http.js: they travel together.
             $this->publishes([
                 __DIR__.'/../resources/js/daisyblade.js' => public_path('vendor/daisyblade/daisyblade.js'),
+                __DIR__.'/../resources/js/http.js'       => public_path('vendor/daisyblade/http.js'),
             ], 'daisyblade-assets');
 
             $this->commands([

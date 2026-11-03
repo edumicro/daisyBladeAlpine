@@ -79,6 +79,11 @@ import { registerUpload } from './components/upload.js'
 registerUpload(Alpine, { axios })   // sin deps, usa window.axios
 ```
 
+Sin axios (ni inyectado ni `window.axios`) la subida usa `XMLHttpRequest`, porque `fetch` no informa del progreso de
+subida; envía las mismas cabeceras (`X-Requested-With`, CSRF) y falla con la misma forma de error que axios
+(`error.response.status` y `error.response.data`, p. ej. un 422 con `errors.file`). Una URL de `action` de **otro dominio**
+va siempre por `fetch`, sin cabeceras de Laravel y sin barra de progreso.
+
 ## Accesibilidad
 
 El input de fichero está asociado a su `label`; el estado (subido, error, movido…) se anuncia en una región `aria-live="polite"`; reordenar y borrar son botones con `aria-label`, operables con teclado. Los textos están en `resources/lang/{es,ca,en}/upload.php`.

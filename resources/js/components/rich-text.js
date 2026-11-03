@@ -11,6 +11,8 @@
  *            Placeholder?, axios? }
  */
 
+import { request } from '../http.js'
+
 // Solo se aceptan enlaces http(s) y mailto. El servidor debe volver a comprobarlo al sanear.
 const SAFE_URL = /^(https?:\/\/|mailto:)/i
 
@@ -19,7 +21,6 @@ export const dbRichText = (config = {}, deps = {}) => {
     // y Tiptap dejaría de funcionar bien.
     let editor = null
     const labels = config.labels ?? {}
-    const http = () => deps.axios ?? window.axios
 
     return {
         buttons: [],      // se construye una vez en init(), cuando el editor ya existe
@@ -132,7 +133,8 @@ export const dbRichText = (config = {}, deps = {}) => {
             this.uploading = true
             this.error = ''
             try {
-                const { data } = await http().post(config.uploadUrl, form)
+                // Escalera de http.js: axios inyectado, `window.axios` o `fetch`.
+                const { data } = await request({ method: 'post', url: config.uploadUrl, data: form }, deps)
                 editor.chain().focus().setImage({ src: data.url, alt: file.name }).run()
             } catch (e) {
                 this.error = labels.uploadFailed ?? ''

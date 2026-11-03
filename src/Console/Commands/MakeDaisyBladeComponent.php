@@ -62,7 +62,7 @@ class MakeDaisyBladeComponent extends Command
             ])
 
             <div x-data="{ loading: true, rows: [] }" x-init="
-                axios.get(loadUrl).then(r => { rows = r.data.data; loading = false })
+                axios.get(@js(\$loadUrl)).then(r => { rows = r.data.data; loading = false })
             ">
                 <template x-if="loading"><x-dbl::feedback.loading /></template>
                 <template x-if="!loading">
