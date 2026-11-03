@@ -40,7 +40,7 @@ $edges = [
 | `name` | `''` | Identifica el diagrama para el evento de ventana `dbl-flowchart`. |
 | `height` | `28rem` | Altura CSS del lienzo (`px`, `rem`, `em`, `vh` o `%`); el contenido hace scroll dentro. |
 | `grid` | `0` | Paso de ajuste (px) al soltar una caja; `0` = sin ajuste. |
-| `fit` | `false` | Como en `display.map`: al cargar, encuadra todo el dibujo en el lienzo (una sola vez, escala máxima 1: no agranda). A 390 px se ve entero, aunque pequeño. |
+| `fit` | `false` | Como en `display.map`: al cargar, encuadra todo el dibujo en el lienzo (escala máxima 1: no agranda) y lo deja **centrado** en el eje en que sobra sitio. A 390 px se ve entero, aunque pequeño. El botón de encuadrar y el zoom también lo centran mientras el dibujo cabe en la vista. |
 | `show-muted` | `false` | Pinta también los `muted`, en discontinua. Sin él hay un interruptor visible (solo si hay algo oculto). |
 | `label`, `class`, `container-class` | | Título, clases del lienzo y clases del contenedor. |
 

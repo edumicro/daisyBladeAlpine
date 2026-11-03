@@ -134,9 +134,10 @@
 
     <div x-ref="viewport" class="overflow-auto rounded-box border border-base-300 bg-base-100 {{ $class }}"
          style="height: {{ $height }}; max-width: 100%">
-        <div class="relative" x-bind:style="`width:${size.w * scale}px;height:${size.h * scale}px;min-width:100%;min-height:100%`">
+        <div class="relative" x-bind:style="`width:${size.w * scale + offset.x}px;height:${size.h * scale + offset.y}px;min-width:100%;min-height:100%`">
+        {{-- translate(offset) centers the drawing after fit/zoom when it is smaller than the view; it is 0 until then --}}
         <div x-ref="canvas" class="relative"
-             x-bind:style="`width:${size.w}px;height:${size.h}px;transform:scale(${scale});transform-origin:0 0`">
+             x-bind:style="`width:${size.w}px;height:${size.h}px;transform:translate(${offset.x}px,${offset.y}px) scale(${scale});transform-origin:0 0`">
 
             {{-- Bandas de los grupos (al fondo) --}}
             <template x-for="b in bands" x-bind:key="b.name">

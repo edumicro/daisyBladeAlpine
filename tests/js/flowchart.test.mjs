@@ -5,7 +5,7 @@ import {
     labelWidth, drawingBounds, draftLine, clampPos, sizeOf, shapePath, MARGIN, groupBands, normalizeShape, SHAPES,
 } from '../../resources/js/components/flowchart/geometry.js'
 import { responder, provisionalEdge, finalizeEdge, samePos } from '../../resources/js/components/flowchart/protocol.js'
-import { fitScale } from '../../resources/js/components/flowchart.js'
+import { fitScale, centerOffset } from '../../resources/js/components/flowchart.js'
 import { normalize, visible, variantColor, fmt, dbFlowchart } from '../../resources/js/components/flowchart.js'
 
 const box = (x, y) => ({ x, y, w: NODE_W, h: NODE_H })
@@ -686,4 +686,49 @@ test('con zoom, el puntero y el arrastre se miden en píxeles del dibujo', () =>
     c.linkDown(pe(100 + 200 * 0.5, 50 + 68 * 0.5), c.vNodes[0])
     c.linkMove(pe(100 + 450 * 0.5, 50 + 60 * 0.5))
     assert.equal(c.linking.over, 'b')
+})
+
+// ── Encuadrar deja el dibujo centrado ──────────────────────────────────────
+
+test('centerOffset: la mitad del hueco que sobra en cada eje, y 0 si el dibujo llena la vista', () => {
+    assert.deepEqual(centerOffset({ w: 200, h: 1000 }, { w: 400, h: 400 }, 0.384), { x: 162, y: 8 })   // manda el alto: sobra a los lados
+    assert.deepEqual(centerOffset({ w: 100, h: 100 }, { w: 400, h: 300 }, 1), { x: 150, y: 100 })      // pequeño: centrado en los dos ejes
+    assert.deepEqual(centerOffset({ w: 1000, h: 500 }, { w: 400, h: 400 }, 1), { x: 0, y: 0 })         // más grande que la vista: hace scroll
+})
+
+test('al encuadrar, el dibujo queda centrado en el eje que sobra; antes de encuadrar no hay desplazamiento', () => {
+    const { c } = make({ ...base(), fit: true }, () => {})
+    assert.deepEqual(c.offset, { x: 0, y: 0 })
+
+    // Una vista ancha y baja (la mitad del alto del dibujo): el alto manda la escala y sobra sitio a los lados.
+    c.$refs.viewport = { clientWidth: 1200, clientHeight: Math.round(c.size.h / 2), scrollLeft: 7, scrollTop: 7 }
+    c.fit()
+
+    const drawnWidth = c.size.w * c.scale
+    assert.ok(c.scale < 1)
+    assert.equal(c.offset.x, Math.round((1200 - drawnWidth) / 2))
+    assert.ok(c.offset.x > 0)
+    // Centrado de verdad: el hueco de la izquierda y el de la derecha son iguales (±1 px de redondeo).
+    assert.ok(Math.abs(c.offset.x - (1200 - drawnWidth - c.offset.x)) <= 1)
+    assert.equal(c.$refs.viewport.scrollLeft, 0)
+})
+
+test('el zoom conserva el centro de la vista y recoloca el dibujo si cabe', () => {
+    // El dibujo mide 600 x 136. En una vista de 500 x 800 se encuadra a 0,807 y sobra sitio arriba y abajo.
+    const { c } = make({ ...base(), fit: true }, () => {})
+    c.$refs.viewport = { clientWidth: 500, clientHeight: 800, scrollLeft: 0, scrollTop: 0 }
+    c.fit()
+    assert.deepEqual(c.size, { w: 600, h: 136 })
+    assert.ok(c.offset.x > 0 && c.offset.y > 300)
+
+    // Acercar a 2: a lo ancho ya no cabe (sin desplazamiento y con scroll), a lo alto sí (centrado).
+    c.zoomTo(2)
+    assert.deepEqual(c.offset, { x: 0, y: Math.round((800 - 136 * 2) / 2) })
+    // El centro del dibujo (x = 300) sigue en el centro de la vista (250 px): 300 * 2 - 250 = 350.
+    assert.ok(Math.abs(c.$refs.viewport.scrollLeft - 350) <= 1)
+
+    // Alejar hasta que cabe por completo: centrado en los dos ejes.
+    c.zoomTo(0.5)
+    assert.deepEqual(c.offset, centerOffset(c.size, { w: 500, h: 800 }, 0.5))
+    assert.ok(c.offset.x > 0)
 })

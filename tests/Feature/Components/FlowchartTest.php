@@ -157,3 +157,9 @@ it('gives every rendered chart its own help id', function () use ($nodes, $edges
 
     expect($ids[0])->not->toBe($ids[1]);
 });
+
+it('flowchart moves the canvas by the centering offset before scaling it', function () {
+    $html = Blade::render('<x-dbl::display.flowchart :nodes="[[\'id\' => 1]]" fit />');
+
+    expect($html)->toContain('translate(${offset.x}px,${offset.y}px) scale(${scale})');
+});

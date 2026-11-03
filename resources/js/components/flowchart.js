@@ -76,6 +76,17 @@ export function fitScale(size, view, pad = 8) {
     return Math.max(MIN_SCALE, Number.isFinite(s) && s > 0 ? Math.round(s * 1000) / 1000 : 1)
 }
 
+/**
+ * Cuánto hay que correr el dibujo para dejarlo centrado en la vista: la mitad del hueco que sobra en
+ * cada eje (a esa escala), o 0 si en ese eje el dibujo ocupa todo el ancho o el alto (entonces se desplaza con el scroll).
+ */
+export function centerOffset(size, view, scale) {
+    return {
+        x: Math.max(0, Math.round((view.w - size.w * scale) / 2)),
+        y: Math.max(0, Math.round((view.h - size.h * scale) / 2)),
+    }
+}
+
 // ── Componente Alpine ──────────────────────────────────────────────────────
 
 const DRAG_THRESHOLD = 4   // px que hay que mover antes de que un clic sea un arrastre
@@ -90,6 +101,7 @@ export const dbFlowchart = (config = {}) => ({
     fitOnLoad: !!config.fit,
     zoomed: false,                 // la persona ya tocó el zoom: no se reencuadra sola
     scale: 1,                      // zoom: el lienzo se pinta con `transform: scale()`
+    offset: { x: 0, y: 0 },        // px que se corre el dibujo para centrarlo tras encuadrar o hacer zoom (0 al cargar)
     direction: config.direction === 'horizontal' ? 'horizontal' : 'vertical',
     icons: config.icons ?? {},     // nombre de icono -> SVG ya pintado por el servidor (x-html)
     labels: config.labels ?? {},
@@ -360,22 +372,27 @@ export const dbFlowchart = (config = {}) => ({
         const vp = this.$refs.viewport
         const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next))
         if (!vp) { this.scale = scale; return }
-        const cx = (vp.scrollLeft + vp.clientWidth / 2) / this.scale
-        const cy = (vp.scrollTop + vp.clientHeight / 2) / this.scale
+        // Punto del dibujo que está en el centro de la vista (descontando el desplazamiento de centrado).
+        const cx = (vp.scrollLeft + vp.clientWidth / 2 - this.offset.x) / this.scale
+        const cy = (vp.scrollTop + vp.clientHeight / 2 - this.offset.y) / this.scale
         this.scale = scale
+        // Si a la nueva escala el dibujo cabe en la vista, queda centrado; si no, se desplaza con el scroll.
+        this.offset = centerOffset(this.size, { w: vp.clientWidth, h: vp.clientHeight }, scale)
         this.$nextTick(() => {
-            vp.scrollLeft = cx * scale - vp.clientWidth / 2
-            vp.scrollTop = cy * scale - vp.clientHeight / 2
+            vp.scrollLeft = cx * scale + this.offset.x - vp.clientWidth / 2
+            vp.scrollTop = cy * scale + this.offset.y - vp.clientHeight / 2
         })
     },
     zoomIn() { this.zoomTo(this.scale * ZOOM_STEP) },
     zoomOut() { this.zoomTo(this.scale / ZOOM_STEP) },
-    /** Encuadra todo el dibujo en el lienzo (escala máxima 1: no agranda). */
+    /** Encuadra todo el dibujo en el lienzo (escala máxima 1: no agranda) y lo deja centrado en el eje que sobra. */
     fit(manual = false) {
         if (manual) this.zoomed = false
         const vp = this.$refs.viewport
         if (!vp || !this.size.w || !this.size.h) return
-        this.scale = fitScale(this.size, { w: vp.clientWidth, h: vp.clientHeight })
+        const view = { w: vp.clientWidth, h: vp.clientHeight }
+        this.scale = fitScale(this.size, view)
+        this.offset = centerOffset(this.size, view, this.scale)
         this.$nextTick(() => { vp.scrollLeft = 0; vp.scrollTop = 0 })
     },
 
@@ -402,8 +419,8 @@ export const dbFlowchart = (config = {}) => ({
             const p = this.pos[key]
             if (vp && p) {
                 vp.scrollTo({
-                    left: Math.max(0, (p.x + node.w / 2) * this.scale - vp.clientWidth / 2),
-                    top: Math.max(0, (p.y + node.h / 2) * this.scale - vp.clientHeight / 2),
+                    left: Math.max(0, (p.x + node.w / 2) * this.scale + this.offset.x - vp.clientWidth / 2),
+                    top: Math.max(0, (p.y + node.h / 2) * this.scale + this.offset.y - vp.clientHeight / 2),
                     behavior: 'smooth',
                 })
             }
