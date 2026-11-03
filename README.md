@@ -16,7 +16,7 @@ DaisyBlade is the evolution of [edumicro/daisylw4](https://github.com/edumicro/d
 
 - **Blade** renders structure
 - **Alpine.js** manages local UI state
-- **Axios** handles explicit server calls
+- **Axios** (or plain `fetch`, if the page has no axios) handles explicit server calls
 - **DaisyUI 5** provides the design system
 
 Every server interaction is a plain Laravel controller returning JSON. No protocol overhead, no wire attributes, no object inspector surprises. If something breaks, you know exactly where to look.
@@ -42,10 +42,10 @@ composer require edumicro/daisyblade
 php artisan daisyblade:install
 ```
 
-The install command will ask whether to publish assets for **Vite** (recommended) or as a **public script tag**:
+The install command will ask whether to publish assets for **Vite** (recommended) or as a **public script tag**. Either way it copies two files side by side, `daisyblade.js` and `http.js` (the one function every component uses to call the server):
 
 ```bash
-# Vite — assets published to resources/js/daisyblade.js
+# Vite — assets published to resources/js/daisyblade.js and resources/js/http.js
 php artisan daisyblade:install --vite
 
 # Script tag — assets published to public/vendor/daisyblade/
@@ -74,10 +74,40 @@ Alpine.start()
 
 ### Script tag setup
 
+`daisyblade.js` is an **ES module** (it imports `./http.js` and exports its factories), so it needs `type="module"`. A plain `<script src>` fails with `Unexpected token 'export'`. A module script is deferred, like Alpine's `defer`, and both run in page order: keep DaisyBlade before Alpine.
+
 ```html
-<script src="/vendor/daisyblade/daisyblade.js"></script>
+<script type="module" src="/vendor/daisyblade/daisyblade.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
 ```
+
+The optional components (map, upload, rich text, signature, calendar, flowchart; see the last section) are ES modules too and are registered from your own module script.
+
+### Tailwind and `[x-cloak]`
+
+- **Tailwind has to scan the package views** to generate the classes the components use (every class name is written out in full inside the views). In `app.css`: `@source "../../vendor/edumicro/daisyblade/resources/views";`.
+- **`[x-cloak]`**: the components hide things until Alpine starts with `x-cloak`, which needs `[x-cloak] { display: none !important; }`. `layout.app` and `layout.auth` already put that rule in the `<head>`. If you use your own layout, add it there.
+
+---
+
+## HTTP client
+
+Every server call of every component (`daisyblade.js` and the optional `components/*.js`) goes through one function, `request()` in `http.js`. It picks the client in this order:
+
+1. the client injected by the app: `registerCalendar(Alpine, { axios })`, `registerMap(Alpine, { maplibregl, axios })`, `registerUpload(Alpine, { axios })`, `registerRichText(Alpine, { …, axios })` and, for `daisyblade.js`, `registerDaisyBlade(Alpine, { axios })` (optional, before `Alpine.start()`);
+2. `window.axios` (what Laravel's `bootstrap.js` sets up);
+3. `fetch`.
+
+A URL on **another domain** always goes through `fetch` and carries none of Laravel's headers (`X-Requested-With`, CSRF), because servers that are not yours usually reject them in the CORS preflight.
+
+With `fetch` on the **same domain**, the fallback does what axios + Laravel do for you:
+
+- sends `X-Requested-With` and `credentials: 'same-origin'`;
+- on anything that is not a GET, sends the CSRF token, taken from `<meta name="csrf-token">` or else from the `XSRF-TOKEN` cookie;
+- reads the JSON by itself;
+- turns a 4xx or 5xx into an error shaped like axios' (`error.response.status`, `error.response.data`), so code that looks for a 422 or for `data.message` works with either client.
+
+`fetch` cannot report upload progress. When a component needs it (`form.upload`, `import.spreadsheet`) and there is no axios, it uses `XMLHttpRequest` with the same headers and the same error shape. Uploads to another domain use `fetch` and show no progress.
 
 ---
 
@@ -115,7 +145,6 @@ No JavaScript. Receive props, render HTML.
 | `display.list` | Styled list component |
 | `display.mask` | DaisyUI mask shapes |
 | `display.radial-progress` | Circular progress indicator |
-| `display.resource-details` | Detail view loaded from URL |
 | `display.stat` | KPI card with value, title, trend |
 | `display.status` | Status dot with label |
 | `display.table` | Static HTML table from array data |
@@ -157,7 +186,6 @@ UI state managed by Alpine. No Axios.
 | `display.carousel` | Image/content carousel |
 | `display.filters` | Filter bar with Alpine state |
 | `display.node-graph` | Tree graph with event timeline + detail modal |
-| `display.flowchart` | Free flowchart (boxes and arrows) with drag and drop; emits events, the parent decides |
 | `display.text-rotate` | Animated rotating text |
 | `feedback.toast` | Toast notification |
 | `form.kv-editor` | Key-value editor with auto-inferring type selector |
@@ -178,7 +206,8 @@ Receive a `load-url` or `action` prop. Call plain Laravel controllers returning 
 
 | Component | Usage |
 |---|---|
-| `display.data-table` | Paginated, sortable, filterable table |
+| `display.data-table` | Paginated, sortable, filterable table (listens to `display.filters` and to `form.filter`) |
+| `display.resource-details` | Detail view loaded from `load-url` |
 | `form.filter` | Filter bar for data-table |
 | `form.select` | Select whose options come from `options-url`; `depends-on="other_field"` asks again when that field changes (`docs/components/select.md`) |
 | `import.spreadsheet` | Excel/CSV chunked import |
@@ -254,9 +283,11 @@ Event badge colours: `end` → green, `abort` → amber, `fail` → red, no term
     :load-url="route('products.data')"
     :columns="$columns"
     :per-page="15"
-    :filters-url="route('products.filters')"
+    :filters="[['key' => 'status', 'type' => 'select', 'label' => 'Status', 'options' => ['active' => 'Active', 'draft' => 'Draft']]]"
 />
 ```
+
+The table asks `load-url` with these query params: `page`, `per_page`, `search`, `sort` (the column key), `direction` (`asc` or `desc`) and one param per active filter. The `filters` prop shows the `display.filters` dropdown; a `form.filter` bar placed anywhere on the page filters the table too (the table listens to the events of both). If the request fails, the table shows a message with a **Retry** button instead of spinning for ever.
 
 #### Toolbar links — export, print, anything
 
@@ -309,7 +340,7 @@ public function data(Request $request)
 {
     $products = Product::query()
         ->when($request->search, fn($q) => $q->where('name', 'like', "%{$request->search}%"))
-        ->orderBy($request->sort_by ?? 'name', $request->sort_dir ?? 'asc')
+        ->orderBy($request->sort ?? 'name', $request->direction === 'desc' ? 'desc' : 'asc')
         ->paginate($request->per_page ?? 15);
 
     return response()->json($products);
@@ -328,17 +359,18 @@ public function data(Request $request)
 
 ```blade
 <x-dbl::sections.auto-form
-    :schema="[
-        ['name' => 'name',        'label' => 'Product name', 'order' => 10],
-        ['name' => 'category_id', 'label' => 'Category',     'type' => 'relation',
-         'options-url' => route('categories.options'),        'order' => 20],
-        ['name' => 'price',       'label' => 'Price',         'type' => 'money', 'order' => 30],
-        ['name' => 'active',      'label' => 'Active',        'type' => 'toggle', 'order' => 40],
+    :fields="[
+        'name'        => ['label' => 'Product name'],
+        'category_id' => ['label' => 'Category', 'type' => 'relation', 'options' => $categories],
+        'price'       => ['label' => 'Price',    'type' => 'money'],
+        'active'      => ['label' => 'Active',   'type' => 'toggle'],
     ]"
     action="{{ route('products.store') }}"
     method="POST"
 />
 ```
+
+`fields` is a map: the key is the field name, the value its definition (`type`, `label`, `options`, `cols`, `required`, …).
 
 ```php
 // Controller — plain Laravel, no Livewire
@@ -353,7 +385,8 @@ public function store(Request $request)
 
     $product = Product::create($validated);
 
-    // DaisyBlade expects: {success, redirect} or {success: false, errors}
+    // DaisyBlade reads `redirect` from the answer; a failed validation is a 422 with `errors`
+    // (Laravel's `validate()` already does that).
     return response()->json([
         'success'  => true,
         'redirect' => route('products.index'),
@@ -542,11 +575,11 @@ All Type 3 components expect controllers to return JSON following this contract:
 // Success with data (for remote selects, resource-details, etc.)
 { "success": true, "data": [...], "meta": { "current_page": 1, "last_page": 5 } }
 
-// Validation failure
-{ "success": false, "errors": { "name": ["The name field is required."] } }
+// Validation failure: HTTP status 422
+{ "message": "The name field is required.", "errors": { "name": ["The name field is required."] } }
 ```
 
-Laravel's `response()->json()` + standard validation exceptions handle this automatically if you let them.
+The components look at the HTTP status (a 422 puts `errors` next to each field) and at `message` for any other failure. Laravel's `response()->json()` + standard validation exceptions give exactly that if you let them.
 
 ---
 
@@ -566,11 +599,12 @@ Published views in `resources/views/vendor/daisyblade/` take precedence over pac
 
 ```bash
 composer test
-# or
+# or, one at a time
 vendor/bin/pest
+node --test tests/js/*.test.mjs
 ```
 
-188 tests, 294 assertions. All green.
+`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 367 Pest tests (1482 assertions) and 123 JavaScript tests, all green.
 
 ---
 
@@ -581,22 +615,26 @@ MIT — [Eduardo de Vicente](https://github.com/edumicro) / Microvalencia Soluci
 
 ---
 
-## Componentes opcionales (2.1)
+## Componentes opcionales
 
-Tienen dependencias propias, así que no se cargan con `daisyblade.js`. Se registran uno a uno pasando sus librerías:
+Tienen dependencias propias, así que no se cargan con `daisyblade.js`. Se registran uno a uno pasando sus librerías, **antes de `Alpine.start()`** (o dentro de un `alpine:init`, que se dispara justo al empezar):
 
 ```js
 import maplibregl from 'maplibre-gl'
 import { registerMap } from '../../vendor/edumicro/daisyblade/resources/js/components/map.js'
 
-registerMap(Alpine, { maplibregl, axios })
+registerMap(Alpine, { maplibregl, axios })   // axios es opcional: ver «HTTP client»
 ```
+
+Son módulos ES: se cargan con `import` desde tu propio JS (Vite) o con `<script type="module">`, nunca con un `<script>` suelto.
 
 | Componente | Registro | Dependencias npm | Doc |
 |---|---|---|---|
 | `<x-dbl::display.map>` | `registerMap` | `maplibre-gl` (o Google: `@googlemaps/js-api-loader`, `@googlemaps/markerclusterer`) | `docs/components/map.md` |
-| `<x-dbl::form.upload>` | `registerUpload` | — (axios) | `docs/components/upload.md` |
+| `<x-dbl::form.upload>` | `registerUpload` | — (axios opcional) | `docs/components/upload.md` |
 | `<x-dbl::form.rich-text>` | `registerRichText` | `@tiptap/core`, `@tiptap/pm`, `@tiptap/starter-kit` | `docs/components/rich-text.md` |
 | `<x-dbl::form.signature>` | `registerSignature` | `signature_pad` | `docs/components/signature.md` |
 | `<x-dbl::display.calendar>` | `registerCalendar` | — | `docs/components/calendar.md` |
 | `<x-dbl::display.flowchart>` | `registerFlowchart` | — | `docs/components/flowchart.md` |
+
+`display.flowchart` es un diagrama libre de cajas y flechas con arrastrar y soltar; no llama al servidor, emite eventos y el padre decide.
