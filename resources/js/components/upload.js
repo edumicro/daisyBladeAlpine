@@ -13,6 +13,11 @@ export const dbUpload = (config = {}, deps = {}) => ({
     status: '',          // texto para el aria-live
     seq: 0,
 
+    // El cliente de axios que se inyectó, o el global (puede ser undefined). El componente ya no lo usa
+    // —sus peticiones van por request(), que añade fetch/XMLHttpRequest si no hay axios—; se conserva el
+    // nombre por si una plantilla de la aplicación lo lee.
+    get http() { return deps.axios ?? globalThis.window?.axios },
+
     init() {
         this.items = (config.existing ?? []).map(f => this.makeItem({ ...f, status: 'done' }))
     },
