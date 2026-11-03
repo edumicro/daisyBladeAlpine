@@ -194,3 +194,53 @@ test('spreadsheet import: a failed upload shows the translated text', async () =
     assert.equal(importer.step, 'error')
     assert.equal(importer.loading, false)
 })
+
+// ── data-table and the filter bars ─────────────────────────────────────────
+
+test('data-table: filters from display.filters replace the previous ones and send the table back to page 1', async () => {
+    const calls = pageWithAxios({ data: [] })
+    const table = dbDataTable({ loadUrl: '/rows', params: { per_page: 15 } })
+    table.page = 4
+
+    await table.applyFilters({ status: 'open', city: 'Valencia' })
+    assert.deepEqual(calls.at(-1).params, { page: 1, search: '', sort: null, direction: 'asc', per_page: 15, status: 'open', city: 'Valencia' })
+
+    // The user picked "All" in the status filter: the bar now only says `city`, and `status` must stop being sent.
+    await table.applyFilters({ city: 'Valencia' })
+    assert.equal('status' in calls.at(-1).params, false)
+    assert.equal(calls.at(-1).params.city, 'Valencia')
+})
+
+test('data-table: clearing the filters removes only what the filters added, and brings back a fixed param they covered', async () => {
+    const calls = pageWithAxios({ data: [] })
+    const table = dbDataTable({ loadUrl: '/rows', params: { per_page: 15, type: 'invoice' } })
+
+    await table.applyFilters({ type: 'quote', status: 'open' })
+    assert.equal(calls.at(-1).params.type, 'quote')
+
+    await table.clearFilters()
+    assert.equal(calls.at(-1).params.type, 'invoice')          // the fixed value is back
+    assert.equal(calls.at(-1).params.per_page, 15)
+    assert.equal('status' in calls.at(-1).params, false)
+})
+
+test('data-table: form.filter sends its values with empty ones and unchecked toggles still in; they are not filters', async () => {
+    const calls = pageWithAxios({ data: [] })
+    const table = dbDataTable({ loadUrl: '/rows' })
+
+    await table.applyFilters({ name: 'Ana', status: '', active: false, born: null, vip: true })
+
+    const { params } = calls.at(-1)
+    assert.equal(params.name, 'Ana')
+    assert.equal(params.vip, true)
+    assert.equal('status' in params, false)
+    assert.equal('active' in params, false)
+    assert.equal('born' in params, false)
+})
+
+test('data-table: `params` lives in the component (reactive), starting from the fixed params of the prop', () => {
+    const table = dbDataTable({ loadUrl: '/rows', params: { per_page: 15 } })
+
+    assert.deepEqual(table.params, { per_page: 15 })
+    assert.notEqual(table.params, undefined)
+})

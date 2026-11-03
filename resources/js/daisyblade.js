@@ -258,11 +258,12 @@ const dbDataTable = (config = {}) => ({
     error: '',          // message when the rows could not be loaded ('' = all fine)
     lastRequest: 0,     // number of the newest load(): an older answer arriving late is ignored
     page: 1, search: '', sort: null, direction: 'asc',
-    // Reactive state, not just the closed-over config: the filters-updated / filters-cleared
-    // listeners in the Blade template do Object.assign(params, ...), which needs `params` to
-    // exist in the Alpine data scope. Reading config.params directly meant those handlers
-    // threw a ReferenceError and the filter bar silently did nothing.
+    // Reactive state, not just the closed-over config: the filter listeners in the Blade template
+    // (applyFilters / clearFilters below) change `params`, which must exist in the Alpine data scope.
+    // Reading config.params directly meant those handlers threw a ReferenceError and the filter
+    // bar silently did nothing.
     params: { ...(config.params ?? {}) },
+    filterKeys: [],     // the params that came from a filter bar, so that changing or clearing the filters removes them
     async init() { await this.load() },
     async load() {
         const request = ++this.lastRequest
@@ -297,6 +298,32 @@ const dbDataTable = (config = {}) => ({
         const filled = Object.entries(this.queryState()).filter(([, value]) => value !== null && value !== undefined && value !== '')
         // Same joiner and same list format as the request of load(), so the export gets what the table asked for.
         return joinUrl(base, Object.fromEntries(filled))
+    },
+    // A filter bar (display.filters or form.filter) says which filters are on: they replace the ones it
+    // sent before, and the table goes back to page 1. '', null and false mean "no filter".
+    applyFilters(filters = {}) {
+        this.dropFilters()
+        const active = Object.entries(filters ?? {}).filter(([, value]) => value !== '' && value !== null && value !== undefined && value !== false)
+        Object.assign(this.params, Object.fromEntries(active))
+        this.filterKeys = active.map(([key]) => key)
+        this.page = 1
+        return this.load()
+    },
+    // The filter bar was cleared.
+    clearFilters() {
+        this.dropFilters()
+        this.page = 1
+        return this.load()
+    },
+    // Remove the params the filters added. If one had the name of a fixed param (the `params` prop),
+    // that fixed value comes back instead of disappearing.
+    dropFilters() {
+        const fixed = config.params ?? {}
+        for (const key of this.filterKeys) {
+            if (key in fixed) this.params[key] = fixed[key]
+            else delete this.params[key]
+        }
+        this.filterKeys = []
     },
     sortBy(col) {
         if (this.sort === col) this.direction = this.direction === 'asc' ? 'desc' : 'asc'

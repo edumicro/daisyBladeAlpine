@@ -223,13 +223,14 @@ it('data-table toolbar links carry the current table state', function () {
         ->toContain('download');
 });
 
-it('data-table exposes params in the Alpine scope so the filter bar can reach them', function () {
-    // Regression: the filters-updated listener does Object.assign(params, ...). With params
+it('data-table hands the filter events to methods of its factory instead of touching params from the template', function () {
+    // Regression: the listeners used to do Object.assign(params, ...) in the template. With params
     // living only in the closed-over config, that threw a ReferenceError and filtering did
-    // nothing at all.
+    // nothing at all. Now the factory owns `params` (tests/js/loading-errors.test.mjs) and the
+    // template only calls applyFilters() / clearFilters().
     $html = Blade::render('<x-dbl::display.data-table load-url="/api/x" :columns="[]" />');
 
-    expect($html)->toContain('Object.assign(params');
+    expect($html)->toContain('applyFilters($event.detail.filters)')->not->toContain('Object.assign(params');
 });
 
 it('data-table has skeleton loading element', function () {

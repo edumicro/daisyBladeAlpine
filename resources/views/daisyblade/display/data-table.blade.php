@@ -49,8 +49,11 @@
         params:  @js(array_merge(['per_page' => $perPage], $params)),
         messages: @js(['loadFailed' => __('Could not load the data')]),
     })"
-    @filters-updated.window="Object.assign(params, $event.detail.filters); page = 1; load()"
-    @filters-cleared.window="Object.keys($event.detail?.filters ?? {}).forEach(k => delete params[k]); page = 1; load()"
+    {{-- display.filters says `filters-updated` / `filters-cleared`; form.filter says `filter-apply` / `filter-clear`. --}}
+    @filters-updated.window="applyFilters($event.detail.filters)"
+    @filters-cleared.window="clearFilters()"
+    @filter-apply.window="applyFilters($event.detail.values)"
+    @filter-clear.window="clearFilters()"
     {{ $attributes->merge(['class' => $containerClass]) }}
 >
     {{-- Header --}}
