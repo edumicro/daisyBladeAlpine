@@ -20,7 +20,6 @@ $tabsJson = json_encode(array_map(fn($t) => ['label' => $t['label'] ?? '', 'url'
 
 <div
     x-data="dbTabsLazy({ active: {{ (int)$active }}, tabs: {{ $tabsJson }} })"
-    x-init="init()"
     {{ $attributes->merge(['class' => "space-y-0 {$containerClass}"]) }}
 >
     {{-- Tab headers --}}

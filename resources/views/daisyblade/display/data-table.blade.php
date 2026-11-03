@@ -48,7 +48,6 @@
         loadUrl: '{{ $loadUrl }}',
         params:  @js(array_merge(['per_page' => $perPage], $params)),
     })"
-    x-init="init()"
     @filters-updated.window="Object.assign(params, $event.detail.filters); page = 1; load()"
     @filters-cleared.window="Object.keys($event.detail?.filters ?? {}).forEach(k => delete params[k]); page = 1; load()"
     {{ $attributes->merge(['class' => $containerClass]) }}

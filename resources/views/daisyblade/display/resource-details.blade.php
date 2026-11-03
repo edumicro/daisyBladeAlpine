@@ -15,7 +15,6 @@
 
 <div
     x-data="dbResourceDetails({ loadUrl: '{{ $loadUrl }}', fields: @js($fields) })"
-    x-init="init()"
     {{ $attributes->merge(['class' => $containerClass]) }}
 >
     @if($label)

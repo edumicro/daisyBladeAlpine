@@ -44,10 +44,8 @@ foreach ($steps as $step) {
         formId:        '{{ $formId }}',
         schemaVersion: {{ $schemaVersion }},
     })"
-    x-init="
-        init();
-        Object.assign(data, @js($initValues));
-    "
+    {{-- Alpine already calls dbWizard's init() (it restores the saved progress) before x-init runs. --}}
+    x-init="Object.assign(data, @js($initValues))"
     {{ $attributes->merge(['class' => "space-y-6 {$containerClass}"]) }}
 >
     {{-- Steps indicator --}}

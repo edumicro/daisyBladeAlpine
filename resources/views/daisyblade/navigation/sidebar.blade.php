@@ -37,7 +37,7 @@
 
      Solo cuando es plegable: con `collapsible => false` la barra esta fija a proposito, y dejarle
      el escuchador permitiria cerrarla desde fuera, que es justo lo que esa opcion promete evitar. --}}
-<div x-data="dbSidebar()" x-init="init()" @if($collapsible) @sidebar-toggle.window="toggle()" @endif>
+<div x-data="dbSidebar()" @if($collapsible) @sidebar-toggle.window="toggle()" @endif>
 
     @if($collapsible && $floatingToggle)
         {{-- The way back in once it is closed.
