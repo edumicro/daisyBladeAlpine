@@ -56,19 +56,83 @@ const dbSidebarTree = (config = {}) => ({
 
 // ── Tipo 3: Alpine + Axios ────────────────────────────────────────────────
 
+// Pure helpers of dbSelectRemote (tested with `node --test tests/js/select-remote.test.mjs`).
+
+/** Whatever we were given (nothing, one value, a list) -> list of texts, without the empty ones. */
+const toTexts = value => [].concat(value ?? []).map(String).filter(text => text !== '')
+
+/** Query-string params that carry the value of the control we depend on, under that control's name. */
+const dependencyParams = (name, value) => (name ? { [name]: value } : {})
+
+/** The selected values that the options still offer. */
+const stillOffered = (selected, options) => selected.filter(text => options.some(option => String(option.value) === text))
+
+/**
+ * Select whose options come from a URL (`<x-dbl::form.select options-url="...">`).
+ * With `dependsOn` (the `name` of another control) it asks again each time that control changes,
+ * sending its value as a param named like the control: `?country_code=ES`.
+ */
 const dbSelectRemote = (config = {}) => ({
     options: [],
     loading: false,
     search: '',
     open: false,
     value: config.value ?? null,
-    async init() { if (config.optionsUrl) await this.fetch('') },
+    selected: toTexts(config.value),    // what is chosen now, as texts
+    disabled: config.disabled ?? false, // the `disabled` prop
+    waiting: false,                     // true while the control we depend on is empty
+    lastRequest: 0,                     // number of the newest request: older answers are ignored
+
+    // Alpine calls init() by itself when the component starts: load the options the first time.
+    async init() { await this.reload() },
+
+    // Value of the control we depend on (null if we depend on none), looked up by name
+    // in our form or, if we are not in a form, in the whole page.
+    dependencyValue() {
+        if (!config.dependsOn) return null
+        return (this.$el.form ?? document).querySelector(`[name="${config.dependsOn}"]`)?.value ?? ''
+    },
+
+    // Every control of the page fires `change`: reload only for the one we depend on.
+    onDependencyChange(event) {
+        if (event.target.name === config.dependsOn && event.target.form === this.$el.form) this.reload()
+    },
+
+    // Remember what the user chose, to know later whether the new options still offer it.
+    remember() { this.selected = toTexts([...this.$el.selectedOptions].map(option => option.value)) },
+
+    // Load the options and drop from the selection whatever they no longer offer.
+    async reload() {
+        this.waiting = this.dependencyValue() === ''   // empty control: ask for nothing
+        if (!await this.fetch('')) return              // a newer request took over
+        const kept = stillOffered(this.selected, this.options)
+        if (kept.length === this.selected.length) return   // everything chosen is still offered
+        this.selected = kept
+        await this.$nextTick()                         // wait until the new options are in the page
+        if (!kept.length) this.$el.value = ''          // nothing chosen: leave the select empty
+        // Tell the others (a third select that depends on this one listens to this event).
+        this.$el.dispatchEvent(new Event('change', { bubbles: true }))
+    },
+
+    // Ask the server for the options. Returns false if there is no usable answer: it failed, or a newer request made it old.
     async fetch(q = '') {
+        const request = ++this.lastRequest
         this.loading = true
         try {
-            const { data } = await axios.get(config.optionsUrl, { params: { search: q, ...(config.params ?? {}) } })
+            const params = { ...(q ? { search: q } : {}), ...(config.params ?? {}), ...dependencyParams(config.dependsOn, this.dependencyValue()) }
+            // `url` is what the Blade passes; `optionsUrl` is the old name.
+            const { data } = this.waiting ? { data: [] } : await axios.get(config.url ?? config.optionsUrl, { params })
+            if (request !== this.lastRequest) return false
             this.options = Array.isArray(data) ? data : (data.data ?? [])
+        } catch (error) {
+            // No answer: show no options (better than the ones of the previous value) and leave what was chosen as it is.
+            if (request === this.lastRequest) this.options = []
+            console.error('dbSelectRemote: could not load the options', error)
+            return false
         } finally { this.loading = false }
+        // The options rendered by the server (the saved value) were only for before the JS: now they come from `options`.
+        this.$el.querySelectorAll('option[data-initial]').forEach(option => option.remove())
+        return true
     },
     filtered() {
         if (!this.search) return this.options
@@ -342,4 +406,5 @@ export {
     dbDataTable, dbAutoForm, dbWizard,
     dbSelectRemote, dbResourceDetails, dbTabsLazy, dbSpreadsheetImport,
     dbKvEditor, dbListEditor,
+    toTexts, dependencyParams, stillOffered,
 }

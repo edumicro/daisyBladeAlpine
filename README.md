@@ -179,7 +179,7 @@ Receive a `load-url` or `action` prop. Call plain Laravel controllers returning 
 |---|---|
 | `display.data-table` | Paginated, sortable, filterable table |
 | `form.filter` | Filter bar for data-table |
-| `form.select` | Select with remote search |
+| `form.select` | Select whose options come from `options-url`; `depends-on="other_field"` asks again when that field changes (`docs/components/select.md`) |
 | `import.spreadsheet` | Excel/CSV chunked import |
 | `sections.auto-form` | Declarative form from schema array |
 | `sections.tabs` | Tabs with lazy-loaded content |
@@ -313,6 +313,14 @@ public function data(Request $request)
 
     return response()->json($products);
 }
+```
+
+### Dependent select (Type 3)
+
+```blade
+<x-dbl::form.select name="country_code" :options="$countries" />
+<x-dbl::form.select name="region_code" options-url="/location/regions" depends-on="country_code" />
+{{-- GET /location/regions?country_code=ES  ->  [{"value": "ES-TF", "label": "Santa Cruz de Tenerife"}, ...] --}}
 ```
 
 ### Declarative form (Type 3)

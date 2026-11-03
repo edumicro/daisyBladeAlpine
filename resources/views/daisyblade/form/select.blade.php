@@ -3,6 +3,7 @@
     'label'          => '',
     'options'        => [],
     'optionsUrl'     => '',
+    'dependsOn'      => '',
     'placeholder'    => '',
     'multiple'       => false,
     'searchable'     => false,
@@ -35,19 +36,27 @@ foreach ($options as $optVal => $optLabel) {
     @endif
 
     @if($optionsUrl)
-        {{-- Remote select via Alpine dbSelectRemote factory --}}
+        {{-- Remote select: Alpine's dbSelectRemote asks `options-url` for the options (again each time `depends-on` changes). --}}
         <select
-            x-data="dbSelectRemote({ url: '{{ $optionsUrl }}', name: '{{ $name }}' })"
-            x-init="init()"
+            x-data="dbSelectRemote(@js(['url' => $optionsUrl, 'value' => $value, 'dependsOn' => $dependsOn, 'disabled' => $disabled]))"
+            x-on:change="remember()"
+            @if($dependsOn) x-on:change.window="onDependencyChange($event)" @endif
+            :disabled="waiting || disabled"
             @if($name) id="{{ $name }}" name="{{ $name }}{{ $multiple ? '[]' : '' }}" @endif
             @if($multiple) multiple @endif
             @if($disabled) disabled @endif
             @if($required) required @endif
-            {{ $attributes->merge(['class' => trim('select w-full ' . $sizeClass . ' ' . $class)]) }}
+            {{ $attributes->merge(['class' => trim('select w-full ' . $sizeClass . ' '
+                . ($name && isset($errors) && $errors->has($name) ? 'select-error ' : '')
+                . $class)]) }}
         >
-            @if($placeholder) <option value="">{{ $placeholder }}</option> @endif
-            <template x-for="opt in options" :key="opt.value">
-                <option :value="opt.value" x-text="opt.label"></option>
+            @if(!$multiple && $placeholder) <option value="">{{ $placeholder }}</option> @endif
+            {{-- What the server already knows (for example the saved value): shown until the JS brings the real options, or if it never does. --}}
+            @foreach($options as $optVal => $optLabel)
+                <option value="{{ $optVal }}" data-initial @selected($isSelected($optVal))>{{ $optLabel }}</option>
+            @endforeach
+            <template x-for="option in options" :key="option.value">
+                <option :value="option.value" :selected="selected.includes(String(option.value))" x-text="option.label"></option>
             </template>
         </select>
     @elseif($searchable)

@@ -66,6 +66,14 @@ it('textarea renders label', function () {
     expect($html)->toContain('Descripción');
 });
 
+/** Config que el Blade pasa a `dbSelectRemote(...)`, leída del HTML renderizado. */
+function remoteSelectConfig(string $html): array
+{
+    preg_match("/dbSelectRemote\\(JSON\\.parse\\('(.*?)'\\)\\)/", $html, $found);
+
+    return json_decode(json_decode('"'.$found[1].'"'), true);
+}
+
 // ── form/select ───────────────────────────────────────────────────────────────
 
 it('select renders select element with options', function () {
@@ -83,7 +91,9 @@ it('select renders placeholder', function () {
 
 it('select with options-url uses Alpine remote factory', function () {
     $html = Blade::render('<x-dbl::form.select name="x" :options="[]" options-url="/api/categories" />');
-    expect($html)->toContain('dbSelectRemote')->toContain('/api/categories')->toContain('x-data');
+    // `@js` escapes the slashes inside the JSON, so the URL is read back from the factory config.
+    expect($html)->toContain('dbSelectRemote')->toContain('x-data')
+        ->and(remoteSelectConfig($html))->toMatchArray(['url' => '/api/categories']);
 });
 
 it('select with multiple=true has multiple attribute', function () {
@@ -432,4 +442,60 @@ it('select does not leak an option text into its label', function () {
     $html = \Illuminate\Support\Facades\Blade::render('<x-dbl::form.select name="locale" :options="[\'es\' => \'Español\', \'en\' => \'English\']" value="es" />');
 
     expect($html)->not->toContain('<label');
+});
+
+// ── form/select con options-url y depends-on ──────────────────────────────────
+
+it('passes the url to the remote factory under the key the factory reads', function () {
+    $html = Blade::render('<x-dbl::form.select name="city" options-url="/cities?x=1&y=2" />');
+
+    expect(remoteSelectConfig($html))->toMatchArray(['url' => '/cities?x=1&y=2'])
+        ->and($html)->not->toContain('x-init');
+});
+
+it('passes the initial value and the disabled prop to the remote factory', function () {
+    $html = Blade::render('<x-dbl::form.select name="city" options-url="/cities" value="ES-TF" disabled />');
+
+    expect(remoteSelectConfig($html))->toMatchArray(['value' => 'ES-TF', 'disabled' => true]);
+});
+
+it('sends the remote select with the form under its name, and as a list when multiple', function () {
+    $single = Blade::render('<x-dbl::form.select name="city" options-url="/cities" />');
+    $multiple = Blade::render('<x-dbl::form.select name="cities" options-url="/cities" multiple placeholder="Elige" />');
+
+    expect($single)->toContain('name="city"')->toContain('id="city"')->not->toContain('multiple')
+        ->and($multiple)->toContain('name="cities[]"')->toContain('multiple')
+        ->and($multiple)->not->toContain('Elige'); // a multiple select has no empty option
+});
+
+it('renders the saved value as a chosen option for when the JavaScript does not run', function () {
+    $html = Blade::render('<x-dbl::form.select name="city" options-url="/cities" placeholder="Ciudad" :options="[\'ES-TF\' => \'ES-TF\']" value="ES-TF" />');
+
+    expect($html)->toContain('<option value="">Ciudad</option>')
+        ->toContain('<option value="ES-TF" data-initial selected>ES-TF</option>');
+});
+
+it('lets the remote select depend on another control', function () {
+    $html = Blade::render('<x-dbl::form.select name="region_code" options-url="/location/regions" depends-on="country_code" />');
+
+    expect(remoteSelectConfig($html))->toMatchArray(['dependsOn' => 'country_code'])
+        ->and($html)->toContain('x-on:change.window="onDependencyChange($event)"')
+        ->and($html)->toContain(':disabled="waiting || disabled"');
+});
+
+it('does not listen to other controls when the remote select depends on none', function () {
+    $html = Blade::render('<x-dbl::form.select name="city" options-url="/cities" />');
+
+    expect($html)->not->toContain('x-on:change.window');
+});
+
+it('ignores depends-on on selects that do not load their options from a url', function () {
+    $html = Blade::render('<x-dbl::form.select name="city" :options="[\'a\' => \'A\']" depends-on="country_code" />');
+
+    expect($html)->not->toContain('dbSelectRemote')->not->toContain('x-on:change.window');
+});
+
+it('remote select javascript is syntactically valid', function () {
+    exec('node --check '.escapeshellarg(__DIR__.'/../../../resources/js/daisyblade.js').' 2>&1', $out, $code);
+    expect($code)->toBe(0, implode("\n", $out));
 });
