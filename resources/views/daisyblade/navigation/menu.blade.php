@@ -12,6 +12,21 @@
 @php
 $sizeClass = match($size) { 'xs'=>'menu-xs','sm'=>'menu-sm','lg'=>'menu-lg','xl'=>'menu-xl', default=>'menu-md' };
 $dirClass  = $direction === 'horizontal' ? 'menu-horizontal' : 'menu-vertical';
+// Class names written out in full, not glued together from a prefix and the value: Tailwind finds classes
+// by scanning the source for complete names, so one built at run time never reaches the CSS.
+// A value that is not listed gets the default look.
+$badgeClass = fn ($color) => match($color) {
+    'neutral' => 'badge-neutral',
+    'primary' => 'badge-primary',
+    'secondary' => 'badge-secondary',
+    'accent' => 'badge-accent',
+    'info' => 'badge-info',
+    'success' => 'badge-success',
+    'warning' => 'badge-warning',
+    'error' => 'badge-error',
+    'ghost' => 'badge-ghost',
+    default => 'badge-primary',
+};
 @endphp
 
 <ul
@@ -36,7 +51,7 @@ $dirClass  = $direction === 'horizontal' ? 'menu-horizontal' : 'menu-vertical';
                             @endif
                             <span>{{ $item['label'] ?? '' }}</span>
                             @if($item['badge'] ?? false)
-                                <span class="badge badge-sm badge-{{ $item['badgeColor'] ?? 'primary' }}">{{ $item['badge'] }}</span>
+                                <span class="badge badge-sm {{ $badgeClass($item['badgeColor'] ?? 'primary') }}">{{ $item['badge'] }}</span>
                             @endif
                         </summary>
                         <ul class="ml-2">
@@ -50,7 +65,7 @@ $dirClass  = $direction === 'horizontal' ? 'menu-horizontal' : 'menu-vertical';
                                                 @endif
                                                 <span>{{ $child['label'] ?? '' }}</span>
                                                 @if($child['badge'] ?? false)
-                                                    <span class="badge badge-sm badge-{{ $child['badgeColor'] ?? 'primary' }}">{{ $child['badge'] }}</span>
+                                                    <span class="badge badge-sm {{ $badgeClass($child['badgeColor'] ?? 'primary') }}">{{ $child['badge'] }}</span>
                                                 @endif
                                             </summary>
                                             <ul class="ml-2">
@@ -60,19 +75,19 @@ $dirClass  = $direction === 'horizontal' ? 'menu-horizontal' : 'menu-vertical';
                                                             <a href="{{ route($nested['route']) }}" class="{{ ($nested['active'] ?? false) ? 'menu-active' : '' }}">
                                                                 @if($showIcons && ($nested['icon'] ?? false)) <x-dynamic-component :component="$nested['icon']" class="w-4 h-4" /> @endif
                                                                 <span>{{ $nested['label'] ?? '' }}</span>
-                                                                @if($nested['badge'] ?? false) <span class="badge badge-sm badge-{{ $nested['badgeColor'] ?? 'primary' }}">{{ $nested['badge'] }}</span> @endif
+                                                                @if($nested['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($nested['badgeColor'] ?? 'primary') }}">{{ $nested['badge'] }}</span> @endif
                                                             </a>
                                                         @elseif($nested['url'] ?? false)
                                                             <a href="{{ $nested['url'] }}" class="{{ ($nested['active'] ?? false) ? 'menu-active' : '' }}">
                                                                 @if($showIcons && ($nested['icon'] ?? false)) <x-dynamic-component :component="$nested['icon']" class="w-4 h-4" /> @endif
                                                                 <span>{{ $nested['label'] ?? '' }}</span>
-                                                                @if($nested['badge'] ?? false) <span class="badge badge-sm badge-{{ $nested['badgeColor'] ?? 'primary' }}">{{ $nested['badge'] }}</span> @endif
+                                                                @if($nested['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($nested['badgeColor'] ?? 'primary') }}">{{ $nested['badge'] }}</span> @endif
                                                             </a>
                                                         @else
                                                             <button type="button" @if($nested['action'] ?? false) @click="$dispatch('{{ $nested['action'] }}')" @endif>
                                                                 @if($showIcons && ($nested['icon'] ?? false)) <x-dynamic-component :component="$nested['icon']" class="w-4 h-4" /> @endif
                                                                 <span>{{ $nested['label'] ?? '' }}</span>
-                                                                @if($nested['badge'] ?? false) <span class="badge badge-sm badge-{{ $nested['badgeColor'] ?? 'primary' }}">{{ $nested['badge'] }}</span> @endif
+                                                                @if($nested['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($nested['badgeColor'] ?? 'primary') }}">{{ $nested['badge'] }}</span> @endif
                                                             </button>
                                                         @endif
                                                     </li>
@@ -83,19 +98,19 @@ $dirClass  = $direction === 'horizontal' ? 'menu-horizontal' : 'menu-vertical';
                                         <a href="{{ route($child['route']) }}" class="{{ ($child['active'] ?? false) ? 'menu-active' : '' }}">
                                             @if($showIcons && ($child['icon'] ?? false)) <x-dynamic-component :component="$child['icon']" class="w-4 h-4" /> @endif
                                             <span>{{ $child['label'] ?? '' }}</span>
-                                            @if($child['badge'] ?? false) <span class="badge badge-sm badge-{{ $child['badgeColor'] ?? 'primary' }}">{{ $child['badge'] }}</span> @endif
+                                            @if($child['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($child['badgeColor'] ?? 'primary') }}">{{ $child['badge'] }}</span> @endif
                                         </a>
                                     @elseif($child['url'] ?? false)
                                         <a href="{{ $child['url'] }}" class="{{ ($child['active'] ?? false) ? 'menu-active' : '' }}">
                                             @if($showIcons && ($child['icon'] ?? false)) <x-dynamic-component :component="$child['icon']" class="w-4 h-4" /> @endif
                                             <span>{{ $child['label'] ?? '' }}</span>
-                                            @if($child['badge'] ?? false) <span class="badge badge-sm badge-{{ $child['badgeColor'] ?? 'primary' }}">{{ $child['badge'] }}</span> @endif
+                                            @if($child['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($child['badgeColor'] ?? 'primary') }}">{{ $child['badge'] }}</span> @endif
                                         </a>
                                     @else
                                         <button type="button" @if($child['action'] ?? false) @click="$dispatch('{{ $child['action'] }}')" @endif>
                                             @if($showIcons && ($child['icon'] ?? false)) <x-dynamic-component :component="$child['icon']" class="w-4 h-4" /> @endif
                                             <span>{{ $child['label'] ?? '' }}</span>
-                                            @if($child['badge'] ?? false) <span class="badge badge-sm badge-{{ $child['badgeColor'] ?? 'primary' }}">{{ $child['badge'] }}</span> @endif
+                                            @if($child['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($child['badgeColor'] ?? 'primary') }}">{{ $child['badge'] }}</span> @endif
                                         </button>
                                     @endif
                                 </li>
@@ -106,19 +121,19 @@ $dirClass  = $direction === 'horizontal' ? 'menu-horizontal' : 'menu-vertical';
                     <a href="{{ route($item['route']) }}" class="{{ ($item['active'] ?? false) ? 'menu-active' : '' }}">
                         @if($showIcons && ($item['icon'] ?? false)) <x-dynamic-component :component="$item['icon']" class="w-4 h-4" /> @endif
                         <span>{{ $item['label'] ?? '' }}</span>
-                        @if($item['badge'] ?? false) <span class="badge badge-sm badge-{{ $item['badgeColor'] ?? 'primary' }}">{{ $item['badge'] }}</span> @endif
+                        @if($item['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($item['badgeColor'] ?? 'primary') }}">{{ $item['badge'] }}</span> @endif
                     </a>
                 @elseif($item['url'] ?? false)
                     <a href="{{ $item['url'] }}" class="{{ ($item['active'] ?? false) ? 'menu-active' : '' }}">
                         @if($showIcons && ($item['icon'] ?? false)) <x-dynamic-component :component="$item['icon']" class="w-4 h-4" /> @endif
                         <span>{{ $item['label'] ?? '' }}</span>
-                        @if($item['badge'] ?? false) <span class="badge badge-sm badge-{{ $item['badgeColor'] ?? 'primary' }}">{{ $item['badge'] }}</span> @endif
+                        @if($item['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($item['badgeColor'] ?? 'primary') }}">{{ $item['badge'] }}</span> @endif
                     </a>
                 @else
                     <button type="button" @if($item['action'] ?? false) @click="$dispatch('{{ $item['action'] }}')" @endif>
                         @if($showIcons && ($item['icon'] ?? false)) <x-dynamic-component :component="$item['icon']" class="w-4 h-4" /> @endif
                         <span>{{ $item['label'] ?? '' }}</span>
-                        @if($item['badge'] ?? false) <span class="badge badge-sm badge-{{ $item['badgeColor'] ?? 'primary' }}">{{ $item['badge'] }}</span> @endif
+                        @if($item['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($item['badgeColor'] ?? 'primary') }}">{{ $item['badge'] }}</span> @endif
                     </button>
                 @endif
             </li>

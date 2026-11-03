@@ -11,6 +11,37 @@
 ])
 
 @php
+// Class names written out in full, not glued together from a prefix and the color: Tailwind finds classes
+// by scanning the source for complete names, so one built at run time never reaches the CSS.
+// A value that is not listed gets the default look.
+$textColorClass = match($color) {
+    'neutral' => 'text-neutral',
+    'primary' => 'text-primary',
+    'secondary' => 'text-secondary',
+    'accent' => 'text-accent',
+    'info' => 'text-info',
+    'success' => 'text-success',
+    'warning' => 'text-warning',
+    'error' => 'text-error',
+    'base-100' => 'text-base-100',
+    'base-200' => 'text-base-200',
+    'base-300' => 'text-base-300',
+    default => 'text-primary',
+};
+$bgColorClass = match($color) {
+    'neutral' => 'bg-neutral',
+    'primary' => 'bg-primary',
+    'secondary' => 'bg-secondary',
+    'accent' => 'bg-accent',
+    'info' => 'bg-info',
+    'success' => 'bg-success',
+    'warning' => 'bg-warning',
+    'error' => 'bg-error',
+    'base-100' => 'bg-base-100',
+    'base-200' => 'bg-base-200',
+    'base-300' => 'bg-base-300',
+    default => 'bg-primary',
+};
 $sizeClass = match($size) { 'xs'=>'text-xs','sm'=>'text-sm','base'=>'text-base','xl'=>'text-xl','2xl'=>'text-2xl','3xl'=>'text-3xl','4xl'=>'text-4xl', default=>'text-lg' };
 @endphp
 
@@ -31,7 +62,7 @@ $sizeClass = match($size) { 'xs'=>'text-xs','sm'=>'text-sm','base'=>'text-base',
                 class="absolute inset-0 flex items-center justify-center transition-opacity duration-500"
                 :class="{ 'opacity-100': i === current, 'opacity-0': i !== current }"
             >
-                <span class="{{ $sizeClass }} {{ $bold ? 'font-bold' : '' }} text-{{ $color }} text-center px-4 {{ $class }}" x-text="text.text ?? text"></span>
+                <span class="{{ $sizeClass }} {{ $bold ? 'font-bold' : '' }} {{ $textColorClass }} text-center px-4 {{ $class }}" x-text="text.text ?? text"></span>
             </div>
         </template>
     </div>
@@ -41,7 +72,7 @@ $sizeClass = match($size) { 'xs'=>'text-xs','sm'=>'text-sm','base'=>'text-base',
             <button
                 type="button"
                 @click="current = i"
-                :class="i === current ? 'bg-{{ $color }} w-8' : 'bg-base-300 w-2'"
+                :class="i === current ? '{{ $bgColorClass }} w-8' : 'bg-base-300 w-2'"
                 class="h-2 rounded-full transition-all duration-300"
             ></button>
         </template>

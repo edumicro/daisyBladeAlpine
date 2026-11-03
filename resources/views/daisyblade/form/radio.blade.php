@@ -11,6 +11,23 @@
     'containerClass' => '',
 ])
 
+@php
+// Class names written out in full, not glued together from a prefix and the color: Tailwind finds classes
+// by scanning the source for complete names, so one built at run time never reaches the CSS.
+// A value that is not listed gets the default look.
+$colorClass = match($color) {
+    'neutral' => 'radio-neutral',
+    'primary' => 'radio-primary',
+    'secondary' => 'radio-secondary',
+    'accent' => 'radio-accent',
+    'info' => 'radio-info',
+    'success' => 'radio-success',
+    'warning' => 'radio-warning',
+    'error' => 'radio-error',
+    default => 'radio-primary',
+};
+@endphp
+
 <div class="w-full {{ $containerClass }}">
     @if($label)
         <label class="mb-1 block text-sm font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
@@ -25,7 +42,7 @@
                     @if($name) name="{{ $name }}" @endif
                     @if($value !== null && (string)$value === (string)$optVal) checked @endif
                     @if($disabled) disabled @endif
-                    {{ $attributes->merge(['class' => trim("radio radio-{$color} " . $class)]) }}
+                    {{ $attributes->merge(['class' => trim("radio {$colorClass} " . $class)]) }}
                 />
                 <span class="text-sm">{{ $optLabel }}</span>
             </label>

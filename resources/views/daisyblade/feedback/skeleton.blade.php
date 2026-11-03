@@ -12,7 +12,8 @@
 @php
 $pulse    = $animated ? 'animate-pulse' : '';
 $sizeH    = match($size) { 'xs'=>'h-2','sm'=>'h-3','lg'=>'h-5','xl'=>'h-6', default=>'h-4' };
-$gridCols = $width < 50 ? 2 : ($width < 75 ? 3 : 4);
+// Written out in full so Tailwind finds the class names (see the note in the other components).
+$gridColsClass = $width < 50 ? 'grid-cols-2' : ($width < 75 ? 'grid-cols-3' : 'grid-cols-4');
 @endphp
 
 <div {{ $attributes->merge(['class' => $containerClass]) }}>
@@ -85,7 +86,7 @@ $gridCols = $width < 50 ? 2 : ($width < 75 ? 3 : 4);
         @break
 
         @case('grid')
-            <div class="grid grid-cols-{{ $gridCols }} gap-4">
+            <div class="grid {{ $gridColsClass }} gap-4">
                 @for($i = 0; $i < $lines; $i++)
                     <div class="space-y-2">
                         <div class="skeleton rounded-lg w-full h-32 {{ $pulse }}"></div>

@@ -11,7 +11,23 @@
 
 @php
 $sizeClass  = match($size) { 'sm'=>'loading-sm','lg'=>'loading-lg', default=>'loading-md' };
-$colorClass = "text-{$color}";
+// Class names written out in full, not glued together from a prefix and the color: Tailwind finds classes
+// by scanning the source for complete names, so one built at run time never reaches the CSS.
+// A value that is not listed gets the default look.
+$colorClass = match($color) {
+    'neutral' => 'text-neutral',
+    'primary' => 'text-primary',
+    'secondary' => 'text-secondary',
+    'accent' => 'text-accent',
+    'info' => 'text-info',
+    'success' => 'text-success',
+    'warning' => 'text-warning',
+    'error' => 'text-error',
+    'base-100' => 'text-base-100',
+    'base-200' => 'text-base-200',
+    'base-300' => 'text-base-300',
+    default => 'text-primary',
+};
 $typeClass  = match($type) { 'dots'=>'loading-dots','bars'=>'loading-bars','ring'=>'loading-ring','ball'=>'loading-ball', default=>'loading-spinner' };
 @endphp
 

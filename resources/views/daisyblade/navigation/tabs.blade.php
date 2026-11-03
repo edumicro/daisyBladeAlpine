@@ -5,8 +5,23 @@
     'class'  => '',
 ])
 
+@php
+// Class names written out in full, not glued together from a prefix and the value: Tailwind finds classes
+// by scanning the source for complete names, so one built at run time never reaches the CSS.
+// A value that is not listed gets the default look.
+$styleClass = match($style) {
+    'lifted' => 'tabs-lifted',
+    'bordered' => 'tabs-bordered',
+    'boxed' => 'tabs-boxed',
+    'lift' => 'tabs-lift',
+    'border' => 'tabs-border',
+    'box' => 'tabs-box',
+    default => 'tabs-lifted',
+};
+@endphp
+
 <div x-data="{ active: {{ (int)$active }} }" {{ $attributes->merge(['class' => $class]) }}>
-    <div role="tablist" class="tabs tabs-{{ $style }}">
+    <div role="tablist" class="tabs {{ $styleClass }}">
         @foreach($items as $i => $item)
             <button
                 type="button"

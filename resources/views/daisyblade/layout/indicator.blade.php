@@ -11,10 +11,25 @@
 ])
 
 @php
+// Class names written out in full, not glued together from a prefix and the value: Tailwind finds classes
+// by scanning the source for complete names, so one built at run time never reaches the CSS.
+// A value that is not listed gets the default position.
+$horizontalClass = match($horizontal) {
+    'start' => 'indicator-start',
+    'center' => 'indicator-center',
+    'end' => 'indicator-end',
+    default => 'indicator-end',
+};
+$verticalClass = match($vertical) {
+    'top' => 'indicator-top',
+    'middle' => 'indicator-middle',
+    'bottom' => 'indicator-bottom',
+    default => 'indicator-top',
+};
 $indicatorItemClasses = trim(implode(' ', array_filter([
     'indicator-item',
-    "indicator-{$horizontal}",
-    "indicator-{$vertical}",
+    $horizontalClass,
+    $verticalClass,
     $indicatorClass,
 ])));
 @endphp

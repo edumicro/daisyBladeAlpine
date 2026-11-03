@@ -12,8 +12,25 @@
 ])
 
 @php
-$resolvedVariant = $color ?: $variant;
-$variantClass = $ghost ? 'badge-ghost' : (($outline ? 'badge-outline ' : '') . "badge-{$resolvedVariant}");
+// Class names written out in full, not glued together from a prefix and the value: Tailwind finds classes
+// by scanning the source for complete names, so one built at run time never reaches the CSS.
+// A value that is not listed gets the default look.
+$colorClass = match($color ?: $variant) {
+    'neutral' => 'badge-neutral',
+    'primary' => 'badge-primary',
+    'secondary' => 'badge-secondary',
+    'accent' => 'badge-accent',
+    'info' => 'badge-info',
+    'success' => 'badge-success',
+    'warning' => 'badge-warning',
+    'error' => 'badge-error',
+    'ghost' => 'badge-ghost',
+    'outline' => 'badge-outline',
+    'soft' => 'badge-soft',
+    'dash' => 'badge-dash',
+    default => 'badge-primary',
+};
+$variantClass = $ghost ? 'badge-ghost' : (($outline ? 'badge-outline ' : '') . $colorClass);
 $sizeClass    = match($size) { 'xs' => 'badge-xs', 'sm' => 'badge-sm', 'lg' => 'badge-lg', default => '' };
 @endphp
 

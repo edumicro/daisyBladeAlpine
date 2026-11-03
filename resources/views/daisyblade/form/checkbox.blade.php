@@ -9,6 +9,23 @@
     'containerClass' => '',
 ])
 
+@php
+// Class names written out in full, not glued together from a prefix and the color: Tailwind finds classes
+// by scanning the source for complete names, so one built at run time never reaches the CSS.
+// A value that is not listed gets the default look.
+$colorClass = match($color) {
+    'neutral' => 'checkbox-neutral',
+    'primary' => 'checkbox-primary',
+    'secondary' => 'checkbox-secondary',
+    'accent' => 'checkbox-accent',
+    'info' => 'checkbox-info',
+    'success' => 'checkbox-success',
+    'warning' => 'checkbox-warning',
+    'error' => 'checkbox-error',
+    default => 'checkbox-primary',
+};
+@endphp
+
 <div class="w-full {{ $containerClass }}">
     @if($name && isset($errors))
         <input type="hidden" name="{{ $name }}" value="0" />
@@ -20,7 +37,7 @@
             @if($name) id="{{ $name }}" name="{{ $name }}" value="1" @endif
             @if($disabled) disabled @endif
             @if($required) required @endif
-            {{ $attributes->merge(['class' => trim("checkbox checkbox-{$color} " . $class)]) }}
+            {{ $attributes->merge(['class' => trim("checkbox {$colorClass} " . $class)]) }}
         />
         @if($label)
             <span class="text-sm font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>

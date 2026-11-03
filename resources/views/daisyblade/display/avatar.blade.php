@@ -12,6 +12,23 @@
 ])
 
 @php
+// Class names written out in full, not glued together from a prefix and the color: Tailwind finds classes
+// by scanning the source for complete names, so one built at run time never reaches the CSS.
+// A value that is not listed gets the default look.
+$colorClass = match($color) {
+    'neutral' => 'bg-neutral',
+    'primary' => 'bg-primary',
+    'secondary' => 'bg-secondary',
+    'accent' => 'bg-accent',
+    'info' => 'bg-info',
+    'success' => 'bg-success',
+    'warning' => 'bg-warning',
+    'error' => 'bg-error',
+    'base-100' => 'bg-base-100',
+    'base-200' => 'bg-base-200',
+    'base-300' => 'bg-base-300',
+    default => 'bg-neutral',
+};
 $sizeClass = match($size) {
     'xs'  => 'w-6 h-6',
     'sm'  => 'w-8 h-8',
@@ -32,15 +49,15 @@ $sizeClass = match($size) {
             @if($src)
                 <img src="{{ $src }}" alt="{{ $alt }}" class="rounded-full object-cover w-full h-full" />
             @elseif($initials)
-                <div class="bg-{{ $color }} w-full h-full rounded-full flex items-center justify-center">
+                <div class="{{ $colorClass }} w-full h-full rounded-full flex items-center justify-center">
                     <span class="text-white font-bold text-sm">{{ $initials }}</span>
                 </div>
             @elseif($icon)
-                <div class="bg-{{ $color }} w-full h-full rounded-full flex items-center justify-center">
+                <div class="{{ $colorClass }} w-full h-full rounded-full flex items-center justify-center">
                     <x-dynamic-component :component="$icon" class="w-1/2 h-1/2 text-white" />
                 </div>
             @else
-                <div class="bg-{{ $color }} w-full h-full rounded-full flex items-center justify-center">
+                <div class="{{ $colorClass }} w-full h-full rounded-full flex items-center justify-center">
                     <span class="text-white font-bold text-sm">?</span>
                 </div>
             @endif

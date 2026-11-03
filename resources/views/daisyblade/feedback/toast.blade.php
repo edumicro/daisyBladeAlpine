@@ -8,6 +8,31 @@
     'vertical'  => 'top',
 ])
 
+@php
+// Class names written out in full, not glued together from a prefix and the value: Tailwind finds classes
+// by scanning the source for complete names, so one built at run time never reaches the CSS.
+// A value that is not listed gets the default look.
+$positionClass = match($position) {
+    'start' => 'toast-start',
+    'center' => 'toast-center',
+    'end' => 'toast-end',
+    default => 'toast-end',
+};
+$verticalClass = match($vertical) {
+    'top' => 'toast-top',
+    'middle' => 'toast-middle',
+    'bottom' => 'toast-bottom',
+    default => 'toast-top',
+};
+$typeClass = match($type) {
+    'success' => 'alert-success',
+    'error' => 'alert-error',
+    'warning' => 'alert-warning',
+    'info' => 'alert-info',
+    default => 'alert-info',
+};
+@endphp
+
 @if($message)
     {{-- Static single toast --}}
     <div
@@ -21,9 +46,9 @@
             }
         }"
         x-show="visible"
-        class="toast toast-{{ $vertical }} toast-{{ $position }} z-50"
+        class="toast {{ $verticalClass }} {{ $positionClass }} z-50"
     >
-        <div class="alert alert-{{ $type }}">
+        <div class="alert {{ $typeClass }}">
             <span>{{ $message }}</span>
             @if($closable)
                 <button type="button" @click="visible = false" class="btn btn-ghost btn-xs">✕</button>
@@ -35,7 +60,7 @@
     <div
         x-data="dbToast()"
         @notify.window="add($event.detail.message, $event.detail.type ?? 'info', $event.detail.duration ?? {{ $duration }})"
-        class="toast toast-{{ $vertical }} toast-{{ $position }} z-50 pointer-events-none"
+        class="toast {{ $verticalClass }} {{ $positionClass }} z-50 pointer-events-none"
     >
         <template x-for="toast in toasts" :key="toast.id">
             <div

@@ -9,7 +9,23 @@
     'containerClass'   => '',
 ])
 
-@php $stepCount = count($steps); @endphp
+@php
+$stepCount = count($steps);
+// Class names written out in full, not glued together from a prefix and the color: Tailwind finds classes
+// by scanning the source for complete names, so one built at run time never reaches the CSS.
+// A value that is not listed gets the default look.
+$stepColorClass = match($color) {
+    'neutral' => 'step-neutral',
+    'primary' => 'step-primary',
+    'secondary' => 'step-secondary',
+    'accent' => 'step-accent',
+    'info' => 'step-info',
+    'success' => 'step-success',
+    'warning' => 'step-warning',
+    'error' => 'step-error',
+    default => 'step-primary',
+};
+@endphp
 
 <div
     x-data="{
@@ -27,7 +43,7 @@
                 :data-content="current > {{ $num }} ? '✓' : '{{ $num }}'"
                 :class="{
                     'step-success': current > {{ $num }},
-                    'step-{{ $color }}': current === {{ $num }}
+                    '{{ $stepColorClass }}': current === {{ $num }}
                 }"
                 class="step {{ $clickable ? 'cursor-pointer' : '' }}"
                 @if($clickable) @click="current = {{ $num }}; $dispatch('step-changed', { step: {{ $num }} })" @endif

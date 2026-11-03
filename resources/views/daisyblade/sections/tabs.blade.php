@@ -15,6 +15,18 @@
 ])
 
 @php
+// Class names written out in full, not glued together from a prefix and the value: Tailwind finds classes
+// by scanning the source for complete names, so one built at run time never reaches the CSS.
+// A value that is not listed gets the default look.
+$styleClass = match($style) {
+    'lifted' => 'tabs-lifted',
+    'bordered' => 'tabs-bordered',
+    'boxed' => 'tabs-boxed',
+    'lift' => 'tabs-lift',
+    'border' => 'tabs-border',
+    'box' => 'tabs-box',
+    default => 'tabs-lifted',
+};
 $tabsJson = json_encode(array_map(fn($t) => ['label' => $t['label'] ?? '', 'url' => $t['load-url'] ?? ''], $tabs), JSON_UNESCAPED_SLASHES);
 @endphp
 
@@ -23,7 +35,7 @@ $tabsJson = json_encode(array_map(fn($t) => ['label' => $t['label'] ?? '', 'url'
     {{ $attributes->merge(['class' => "space-y-0 {$containerClass}"]) }}
 >
     {{-- Tab headers --}}
-    <div role="tablist" class="tabs tabs-{{ $style }} w-full">
+    <div role="tablist" class="tabs {{ $styleClass }} w-full">
         @foreach($tabs as $i => $tab)
             <button
                 type="button"

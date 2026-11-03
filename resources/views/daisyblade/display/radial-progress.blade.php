@@ -12,7 +12,23 @@
 
 @php
 $sizeClass  = match($size) { 'xs' => 'w-12 h-12 text-xs', 'sm' => 'w-16 h-16 text-sm', 'lg' => 'w-32 h-32 text-lg', 'xl' => 'w-40 h-40 text-xl', default => 'w-24 h-24 text-base' };
-$colorClass = "text-{$color}";
+// Class names written out in full, not glued together from a prefix and the color: Tailwind finds classes
+// by scanning the source for complete names, so one built at run time never reaches the CSS.
+// A value that is not listed gets the default look.
+$colorClass = match($color) {
+    'neutral' => 'text-neutral',
+    'primary' => 'text-primary',
+    'secondary' => 'text-secondary',
+    'accent' => 'text-accent',
+    'info' => 'text-info',
+    'success' => 'text-success',
+    'warning' => 'text-warning',
+    'error' => 'text-error',
+    'base-100' => 'text-base-100',
+    'base-200' => 'text-base-200',
+    'base-300' => 'text-base-300',
+    default => 'text-primary',
+};
 $pct        = $max > 0 ? round(($value / $max) * 100) : 0;
 @endphp
 
