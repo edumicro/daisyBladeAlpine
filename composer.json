@@ -34,7 +34,10 @@
         }
     },
     "scripts": {
-        "test": "vendor/bin/pest"
+        "test": [
+            "vendor/bin/pest",
+            "node --test tests/js/*.test.mjs"
+        ]
     },
     "extra": {
         "laravel": {
