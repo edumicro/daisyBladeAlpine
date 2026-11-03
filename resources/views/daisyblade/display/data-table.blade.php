@@ -47,6 +47,7 @@
     x-data="dbDataTable({
         loadUrl: '{{ $loadUrl }}',
         params:  @js(array_merge(['per_page' => $perPage], $params)),
+        messages: @js(['loadFailed' => __('Could not load the data')]),
     })"
     @filters-updated.window="Object.assign(params, $event.detail.filters); page = 1; load()"
     @filters-cleared.window="Object.keys($event.detail?.filters ?? {}).forEach(k => delete params[k]); page = 1; load()"
@@ -144,6 +145,19 @@
                     @endfor
                 </template>
 
+                {{-- The request failed: a message and a way to try again, never a table that waits for ever --}}
+                <template x-if="!loading && error">
+                    <tr>
+                        <td colspan="{{ count($columns) + (isset($rowActions) ? 1 : 0) }}" class="text-center py-12">
+                            <div role="alert" class="flex flex-col items-center gap-3 text-error">
+                                <x-heroicon-o-exclamation-triangle class="w-10 h-10 opacity-60" />
+                                <span x-text="error"></span>
+                                <button type="button" @click="load()" class="btn btn-sm btn-outline">{{ __('Retry') }}</button>
+                            </div>
+                        </td>
+                    </tr>
+                </template>
+
                 {{-- Rows --}}
                 <template x-if="!loading">
                     <template x-for="(row, idx) in rows" :key="row.id ?? idx">
@@ -161,7 +175,7 @@
                 </template>
 
                 {{-- Empty state --}}
-                <template x-if="!loading && rows.length === 0">
+                <template x-if="!loading && !error && rows.length === 0">
                     <tr>
                         <td colspan="{{ count($columns) + (isset($rowActions) ? 1 : 0) }}" class="text-center py-12 text-base-content/50">
                             <x-heroicon-o-inbox class="w-10 h-10 mx-auto mb-3 opacity-30" />

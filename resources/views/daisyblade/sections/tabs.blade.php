@@ -19,7 +19,7 @@ $tabsJson = json_encode(array_map(fn($t) => ['label' => $t['label'] ?? '', 'url'
 @endphp
 
 <div
-    x-data="dbTabsLazy({ active: {{ (int)$active }}, tabs: {{ $tabsJson }} })"
+    x-data="dbTabsLazy({ active: {{ (int)$active }}, tabs: {{ $tabsJson }}, messages: @js(['loadFailed' => __('Could not load the content')]) })"
     {{ $attributes->merge(['class' => "space-y-0 {$containerClass}"]) }}
 >
     {{-- Tab headers --}}
@@ -54,7 +54,14 @@ $tabsJson = json_encode(array_map(fn($t) => ['label' => $t['label'] ?? '', 'url'
             <div x-show="isLoading({{ $i }})" class="flex justify-center py-8">
                 <div class="loading loading-spinner loading-md"></div>
             </div>
-            <div x-show="!isLoading({{ $i }})" x-html="contents[{{ $i }}] ?? ''"></div>
+            {{-- The load failed: a message and a retry button instead of an empty panel. Inline display:none because
+                 the package cannot count on the host defining [x-cloak]. --}}
+            <div x-show="hasError({{ $i }}) && !isLoading({{ $i }})" style="display: none" role="alert" class="alert alert-error">
+                <x-heroicon-o-x-circle class="w-5 h-5" />
+                <span x-text="errors[{{ $i }}]"></span>
+                <button type="button" @click="retry({{ $i }})" class="btn btn-ghost btn-xs">{{ __('Retry') }}</button>
+            </div>
+            <div x-show="!isLoading({{ $i }}) && !hasError({{ $i }})" x-html="contents[{{ $i }}] ?? ''"></div>
         </div>
     @endforeach
 </div>

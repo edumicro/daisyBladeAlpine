@@ -24,6 +24,7 @@
         templateUrl: '{{ $templateUrl }}',
         chunkSize:   {{ (int)$chunkSize }},
         maxPreview:  {{ (int)$maxPreview }},
+        messages:    @js(['uploadFailed' => __('Upload failed')]),
     })"
     {{ $attributes->merge(['class' => $containerClass]) }}
 >

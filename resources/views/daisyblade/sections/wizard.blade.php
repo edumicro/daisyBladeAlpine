@@ -43,6 +43,7 @@ foreach ($steps as $step) {
         userId:        '{{ $userId }}',
         formId:        '{{ $formId }}',
         schemaVersion: {{ $schemaVersion }},
+        messages:      @js(['failed' => __('An error occurred')]),
     })"
     {{-- Alpine already calls dbWizard's init() (it restores the saved progress) before x-init runs. --}}
     x-init="Object.assign(data, @js($initValues))"

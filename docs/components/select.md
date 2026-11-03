@@ -19,7 +19,7 @@ que **pide sus opciones a una URL** (`options-url`) y, opcionalmente, **las vuel
 
 | Prop | Por defecto | Descripción |
 |---|---|---|
-| `options-url` | `''` | URL que devuelve las opciones. Con ella el desplegable las pide con Axios al cargar. |
+| `options-url` | `''` | URL que devuelve las opciones. Con ella el desplegable las pide al cargar, con el cliente HTTP del paquete (el `axios` inyectado, `window.axios` o `fetch`). |
 | `depends-on` | `''` | El `name` de **otro control del mismo formulario** (si el select no está en un `<form>`, del documento). Solo vale junto a `options-url`. |
 | `value` | `null` | Lo que queda elegido cuando llegan las opciones (un array con `multiple`). |
 | `options` | `[]` | Opciones que ya conoce el servidor (por ejemplo la guardada). Salen **antes** de que cargue el JS, o si no carga nunca, y el JS las sustituye por las que lleguen. |
@@ -42,7 +42,7 @@ JSON con una lista de `{value, label}` (también vale `{"data": [...]}`):
 3. Si el otro control está **vacío**, no pide nada: el select queda vacío y **deshabilitado**
    (un control deshabilitado no se envía con el formulario).
 4. Si dos respuestas se cruzan (el usuario cambia deprisa), solo cuenta la de la última petición.
-5. Si la petición falla, no se toca lo elegido (las opciones que traía el servidor siguen ahí si es la primera carga) y el error sale en la consola.
+5. Si la petición falla, no se toca lo elegido (las opciones que traía el servidor siguen ahí si es la primera carga). Bajo el select sale un mensaje traducido con un botón **Reintentar** (el detalle técnico va a la consola), y el select no se queda cargando: `aria-busy` vuelve a `false`.
 
 El otro control puede ser cualquier cosa que lance `change` y tenga `name` (un `<select>`, un `<input>`).
 Un selector `searchable` guarda su valor en un `<input type="hidden">` que no lanza `change`, así que no sirve como origen.
@@ -55,5 +55,5 @@ Un selector `searchable` guarda su valor en un `<input type="hidden">` que no la
 
 ## JavaScript
 
-La factoría `dbSelectRemote` está en `resources/js/daisyblade.js` y se registra sola. Su parte pura
+La factoría `dbSelectRemote` está en `resources/js/daisyblade.js` y se registra sola. Su ámbito Alpine (`x-data`) es el contenedor del select y no el `<select>`, para que el mensaje de error quede dentro; la factoría encuentra el `<select>` dentro del contenedor. Su parte pura
 (`toTexts`, `dependencyParams`, `stillOffered`) se prueba con `node --test tests/js/select-remote.test.mjs`.

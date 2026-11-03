@@ -7,6 +7,10 @@ import { request, joinUrl } from './http.js'
 let injectedDeps = {}
 const http = options => request(options, injectedDeps)
 
+// Texts for the user come translated from Blade, inside `config.messages` (e.g. `{ loadFailed: 'No se pudo…' }`).
+// `fallback` (English) is for views that do not pass them, such as a copy published before 2.4.
+const messageOf = (config, key, fallback) => config.messages?.[key] ?? fallback
+
 // ── Tipo 2: local Alpine state, no server calls ────────────────────────────
 
 const dbModal = (config = {}) => ({
@@ -88,25 +92,33 @@ const dbSelectRemote = (config = {}) => ({
     selected: toTexts(config.value),    // what is chosen now, as texts
     disabled: config.disabled ?? false, // the `disabled` prop
     waiting: false,                     // true while the control we depend on is empty
+    error: '',                          // message when the options could not be loaded ('' = all fine)
     lastRequest: 0,                     // number of the newest request: older answers are ignored
 
     // Alpine calls init() by itself when the component starts: load the options the first time.
     async init() { await this.reload() },
 
+    // The <select> itself. The Alpine scope is its container (so the error message can sit next to it),
+    // and the container holds no other <select>.
+    get field() { return this.$root.querySelector('select') },
+
     // Value of the control we depend on (null if we depend on none), looked up by name
     // in our form or, if we are not in a form, in the whole page.
     dependencyValue() {
         if (!config.dependsOn) return null
-        return (this.$el.form ?? document).querySelector(`[name="${config.dependsOn}"]`)?.value ?? ''
+        return (this.field.form ?? document).querySelector(`[name="${config.dependsOn}"]`)?.value ?? ''
     },
 
     // Every control of the page fires `change`: reload only for the one we depend on.
     onDependencyChange(event) {
-        if (event.target.name === config.dependsOn && event.target.form === this.$el.form) this.reload()
+        if (event.target.name === config.dependsOn && event.target.form === this.field.form) this.reload()
     },
 
     // Remember what the user chose, to know later whether the new options still offer it.
-    remember() { this.selected = toTexts([...this.$el.selectedOptions].map(option => option.value)) },
+    remember() { this.selected = toTexts([...this.field.selectedOptions].map(option => option.value)) },
+
+    // The "Retry" button of the error message.
+    retry() { return this.reload() },
 
     // Load the options and drop from the selection whatever they no longer offer.
     async reload() {
@@ -116,15 +128,16 @@ const dbSelectRemote = (config = {}) => ({
         if (kept.length === this.selected.length) return   // everything chosen is still offered
         this.selected = kept
         await this.$nextTick()                         // wait until the new options are in the page
-        if (!kept.length) this.$el.value = ''          // nothing chosen: leave the select empty
+        if (!kept.length) this.field.value = ''        // nothing chosen: leave the select empty
         // Tell the others (a third select that depends on this one listens to this event).
-        this.$el.dispatchEvent(new Event('change', { bubbles: true }))
+        this.field.dispatchEvent(new Event('change', { bubbles: true }))
     },
 
     // Ask the server for the options. Returns false if there is no usable answer: it failed, or a newer request made it old.
     async fetch(q = '') {
         const request = ++this.lastRequest
         this.loading = true
+        this.error = ''
         try {
             const params = { ...(q ? { search: q } : {}), ...(config.params ?? {}), ...dependencyParams(config.dependsOn, this.dependencyValue()) }
             // `url` is what the Blade passes; `optionsUrl` is the old name.
@@ -133,12 +146,19 @@ const dbSelectRemote = (config = {}) => ({
             this.options = Array.isArray(data) ? data : (data.data ?? [])
         } catch (error) {
             // No answer: show no options (better than the ones of the previous value) and leave what was chosen as it is.
-            if (request === this.lastRequest) this.options = []
+            // The user sees a translated message with a retry button; the technical detail goes to the console.
+            if (request === this.lastRequest) {
+                this.options = []
+                this.error = messageOf(config, 'loadFailed', 'Could not load the options')
+            }
             console.error('dbSelectRemote: could not load the options', error)
             return false
-        } finally { this.loading = false }
+        } finally {
+            // Only the newest request decides when the loading is over: an old one finishing late must not end it early.
+            if (request === this.lastRequest) this.loading = false
+        }
         // The options rendered by the server (the saved value) were only for before the JS: now they come from `options`.
-        this.$el.querySelectorAll('option[data-initial]').forEach(option => option.remove())
+        this.field.querySelectorAll('option[data-initial]').forEach(option => option.remove())
         return true
     },
     filtered() {
@@ -164,7 +184,8 @@ const dbResourceDetails = (config = {}) => ({
             const { data } = await http({ url: config.loadUrl })
             this.resource = data.data ?? data
         } catch (e) {
-            this.error = e.response?.data?.message ?? 'Error loading resource'
+            this.error = e.response?.data?.message ?? messageOf(config, 'loadFailed', 'Error loading resource')
+            console.error('dbResourceDetails: could not load the resource', e)
         } finally { this.loading = false }
     },
     refresh() { return this.load() },
@@ -175,22 +196,31 @@ const dbTabsLazy = (config = {}) => ({
     tabs: config.tabs ?? [],
     contents: {},
     loading: {},
+    errors: {},        // tab index -> message, for the tabs whose content could not be loaded
     async init() { if (this.tabs[this.active]?.url) await this._load(this.active) },
     async select(index) {
         this.active = index
-        if (!(index in this.contents) && this.tabs[index]?.url) await this._load(index)
+        // Not yet loaded and not being loaded now (a click on a tab whose request is still running asks nothing new).
+        if (!(index in this.contents) && !this.loading[index] && this.tabs[index]?.url) await this._load(index)
     },
     async _load(index) {
         this.loading = { ...this.loading, [index]: true }
+        this.errors = { ...this.errors, [index]: '' }
         try {
             const { data } = await http({ url: this.tabs[index].url })
             this.contents = { ...this.contents, [index]: typeof data === 'string' ? data : JSON.stringify(data) }
+        } catch (error) {
+            // A translated message and a retry button in the tab; the technical detail goes to the console.
+            this.errors = { ...this.errors, [index]: messageOf(config, 'loadFailed', 'Could not load the content') }
+            console.error('dbTabsLazy: could not load the tab', error)
         } finally {
             this.loading = { ...this.loading, [index]: false }
         }
     },
+    retry(index) { return this._load(index) },
     isActive(i) { return this.active === i },
     isLoading(i) { return !!this.loading[i] },
+    hasError(i) { return !!this.errors[i] },
 })
 
 const dbSpreadsheetImport = (config = {}) => ({
@@ -218,13 +248,15 @@ const dbSpreadsheetImport = (config = {}) => ({
             })
             this.result = data; this.step = 'done'
         } catch (e) {
-            this.error = e.response?.data?.message ?? 'Upload failed'; this.step = 'error'
+            this.error = e.response?.data?.message ?? messageOf(config, 'uploadFailed', 'Upload failed'); this.step = 'error'
         } finally { this.loading = false }
     },
 })
 
 const dbDataTable = (config = {}) => ({
     rows: [], meta: {}, loading: true,
+    error: '',          // message when the rows could not be loaded ('' = all fine)
+    lastRequest: 0,     // number of the newest load(): an older answer arriving late is ignored
     page: 1, search: '', sort: null, direction: 'asc',
     // Reactive state, not just the closed-over config: the filters-updated / filters-cleared
     // listeners in the Blade template do Object.assign(params, ...), which needs `params` to
@@ -233,11 +265,25 @@ const dbDataTable = (config = {}) => ({
     params: { ...(config.params ?? {}) },
     async init() { await this.load() },
     async load() {
+        const request = ++this.lastRequest
         this.loading = true
-        const { data } = await http({ url: config.loadUrl, params: this.queryState() })
-        this.rows      = data.data ?? []
-        this.meta      = data.meta ?? {}
-        this.loading   = false
+        this.error = ''
+        try {
+            const { data } = await http({ url: config.loadUrl, params: this.queryState() })
+            if (request !== this.lastRequest) return    // a newer load() took over: this answer is old
+            this.rows = data.data ?? []
+            this.meta = data.meta ?? {}
+        } catch (error) {
+            if (request !== this.lastRequest) return
+            // Empty the table (rows of another search or page would mislead) and offer a retry; the detail goes to the console.
+            this.rows = []
+            this.meta = {}
+            this.error = messageOf(config, 'loadFailed', 'Could not load the data')
+            console.error('dbDataTable: could not load the rows', error)
+        } finally {
+            // Whatever happened, the newest load() ends the loading: the spinner never stays on forever.
+            if (request === this.lastRequest) this.loading = false
+        }
     },
     // Everything the table is currently showing: page, search, sort and any filters. The one
     // place that decides what "current state" means, shared by load() and stateUrl().
@@ -277,7 +323,8 @@ const dbAutoForm = (config = {}) => ({
             if (e.response?.status === 422) {
                 this.errors = e.response.data.errors ?? {}
             } else {
-                this.globalError = e.response?.data?.message ?? e.message ?? 'An error occurred'
+                this.globalError = e.response?.data?.message ?? messageOf(config, 'failed', e.message ?? 'An error occurred')
+                console.error('dbAutoForm: the form could not be sent', e)
             }
         } finally { this.loading = false }
     },
@@ -309,7 +356,8 @@ const dbWizard = (config = {}) => {
                 if (e.response?.status === 422) {
                     this.errors = e.response.data.errors ?? {}
                 } else {
-                    this.globalError = e.response?.data?.message ?? e.message ?? 'An error occurred'
+                    this.globalError = e.response?.data?.message ?? messageOf(config, 'failed', e.message ?? 'An error occurred')
+                    console.error('dbWizard: the form could not be sent', e)
                 }
             } finally { this.loading = false }
         },

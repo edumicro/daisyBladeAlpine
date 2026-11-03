@@ -41,6 +41,7 @@
                  "campo obligatorio". Afecta a todo formulario sin valores iniciales, es decir a
                  todos los de alta. --}}
             values: @js((object) $values),
+            messages: @js(['failed' => __('An error occurred')]),
         })"
         {{ $attributes->merge(['class' => $containerClass]) }}
     >

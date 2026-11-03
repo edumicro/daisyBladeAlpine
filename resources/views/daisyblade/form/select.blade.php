@@ -30,7 +30,10 @@ foreach ($options as $optVal => $optLabel) {
 }
 @endphp
 
-<div class="w-full {{ $containerClass }}">
+{{-- With `options-url` the Alpine scope (dbSelectRemote) is this container, so the error message below can sit
+     next to the <select>; the factory finds the <select> inside it. --}}
+<div class="w-full {{ $containerClass }}"
+     @if($optionsUrl) x-data="dbSelectRemote(@js(['url' => $optionsUrl, 'value' => $value, 'dependsOn' => $dependsOn, 'disabled' => $disabled, 'messages' => ['loadFailed' => __('Could not load the options')]]))" @endif>
     @if($label)
         <label class="mb-1 block text-sm font-medium" @if($name) for="{{ $name }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
@@ -38,7 +41,7 @@ foreach ($options as $optVal => $optLabel) {
     @if($optionsUrl)
         {{-- Remote select: Alpine's dbSelectRemote asks `options-url` for the options (again each time `depends-on` changes). --}}
         <select
-            x-data="dbSelectRemote(@js(['url' => $optionsUrl, 'value' => $value, 'dependsOn' => $dependsOn, 'disabled' => $disabled]))"
+            :aria-busy="loading"
             x-on:change="remember()"
             @if($dependsOn) x-on:change.window="onDependencyChange($event)" @endif
             :disabled="waiting || disabled"
@@ -59,6 +62,11 @@ foreach ($options as $optVal => $optLabel) {
                 <option :value="option.value" :selected="selected.includes(String(option.value))" x-text="option.label"></option>
             </template>
         </select>
+        {{-- The options could not be loaded: a message and a retry button (the detail is in the console). --}}
+        <p class="mt-1 flex items-center gap-2 text-xs text-error" role="alert" style="display: none" x-show="error">
+            <span x-text="error"></span>
+            <button type="button" class="link" x-on:click="retry()">{{ __('Retry') }}</button>
+        </p>
     @elseif($searchable)
         {{-- Alpine searchable combobox — soporta flat {k:v} y grouped {group:{k:v}} --}}
         <div x-data="{
