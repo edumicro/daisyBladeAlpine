@@ -189,6 +189,11 @@ const dbSelectRemote = (config = {}) => ({
             expectJson(data)
             if (requestNumber !== this.lastRequest) return false
             this.options = Array.isArray(data) ? data : (data.data ?? [])
+            // A user's `x-model` on the <select>: Alpine applied it once, before any <option> existed, and never
+            // applies it again when the options arrive. So the model is read here and becomes what is chosen
+            // (when it holds a value, it wins over the `value` prop, as on any input with `x-model`).
+            const model = this.field._x_model?.get()
+            if (model !== undefined) this.selected = toTexts(model)
         } catch (error) {
             // No answer: show no options (better than the ones of the previous value) and leave what was chosen as it is.
             // The user sees a translated message with a retry button; the technical detail goes to the console.
