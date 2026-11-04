@@ -94,6 +94,7 @@ const dbSelectRemote = (config = {}) => ({
     waiting: false,                     // true while the control we depend on is empty
     error: '',                          // message when the options could not be loaded ('' = all fine)
     lastRequest: 0,                     // number of the newest request: older answers are ignored
+    disabledByUs: false,                // true while the <select> is disabled because of `waiting` or `disabled`
 
     // Alpine calls init() by itself when the component starts: load the options the first time.
     async init() { await this.reload() },
@@ -112,6 +113,24 @@ const dbSelectRemote = (config = {}) => ({
     // Every control of the page fires `change`: reload only for the one we depend on.
     onDependencyChange(event) {
         if (event.target.name === config.dependsOn && event.target.form === this.field.form) this.reload()
+    },
+
+    // Keep the <select> in step with our state. The container runs this from its `x-effect`, so it runs again
+    // whenever `waiting`, `disabled` or `loading` change.
+    // The <select> can also carry a `:disabled` of the user (it is passed through as an attribute). So we disable
+    // it only when WE need it, and enable it again only if WE were the ones who disabled it: a select that the
+    // user's `:disabled` keeps locked must not be unlocked just because the options finished loading.
+    syncField() {
+        const mustBeDisabled = this.waiting || this.disabled
+        if (mustBeDisabled) {
+            this.field.disabled = true
+            this.disabledByUs = true
+        } else if (this.disabledByUs) {
+            this.field.disabled = false
+            this.disabledByUs = false
+        }
+        // setAttribute and not the `ariaBusy` property: it works in every browser (the property is newer).
+        this.field.setAttribute('aria-busy', String(this.loading))
     },
 
     // Remember what the user chose, to know later whether the new options still offer it.

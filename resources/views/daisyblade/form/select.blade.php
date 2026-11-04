@@ -31,9 +31,22 @@ foreach ($options as $optVal => $optLabel) {
 @endphp
 
 {{-- With `options-url` the Alpine scope (dbSelectRemote) is this container, so the error message below can sit
-     next to the <select>; the factory finds the <select> inside it. --}}
+     next to the <select>; the factory finds the <select> inside it.
+     Everything Alpine needs from the component is written HERE, not on the <select>: the <select> receives
+     `$attributes`, and an attribute of ours repeated there (`x-on:change`, `:disabled`...) would hide the one the
+     user passes, because the browser keeps only the first of two equal attributes. So the <select> carries what
+     it carried in 2.3 plus whatever the user adds.
+       x-on:change         the `change` of the <select> bubbles up to this container (capture: before the user's own
+                           listener, which may stop it).
+       x-on:change.window  the control we depend on is elsewhere in the form, so its `change` only reaches `window`.
+       x-effect            keeps `disabled` and `aria-busy` of the <select> in step with the component state. --}}
 <div class="w-full {{ $containerClass }}"
-     @if($optionsUrl) x-data="dbSelectRemote(@js(['url' => $optionsUrl, 'value' => $value, 'dependsOn' => $dependsOn, 'disabled' => $disabled, 'messages' => ['loadFailed' => __('Could not load the options')]]))" @endif>
+     @if($optionsUrl)
+         x-data="dbSelectRemote(@js(['url' => $optionsUrl, 'value' => $value, 'dependsOn' => $dependsOn, 'disabled' => $disabled, 'messages' => ['loadFailed' => __('Could not load the options')]]))"
+         x-on:change.capture="remember()"
+         @if($dependsOn) x-on:change.window="onDependencyChange($event)" @endif
+         x-effect="syncField()"
+     @endif>
     @if($label)
         <label class="mb-1 block text-sm font-medium" @if($name) for="{{ $name }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
@@ -41,10 +54,6 @@ foreach ($options as $optVal => $optLabel) {
     @if($optionsUrl)
         {{-- Remote select: Alpine's dbSelectRemote asks `options-url` for the options (again each time `depends-on` changes). --}}
         <select
-            :aria-busy="loading"
-            x-on:change="remember()"
-            @if($dependsOn) x-on:change.window="onDependencyChange($event)" @endif
-            :disabled="waiting || disabled"
             @if($name) id="{{ $name }}" name="{{ $name }}{{ $multiple ? '[]' : '' }}" @endif
             @if($multiple) multiple @endif
             @if($disabled) disabled @endif

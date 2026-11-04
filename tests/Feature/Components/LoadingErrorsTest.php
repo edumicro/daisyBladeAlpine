@@ -37,7 +37,7 @@ it('puts the Alpine scope of the remote select on its container, so the error ca
     expect($dataAt)->not->toBeFalse()
         ->and($dataAt)->toBeLessThan($selectAt)
         ->and(substr($html, $selectAt, strpos($html, '>', $selectAt) - $selectAt))->not->toContain('x-data')
-        ->and($html)->toContain('x-show="error"')->toContain('retry()')->toContain(':aria-busy="loading"');
+        ->and($html)->toContain('x-show="error"')->toContain('retry()')->toContain('x-effect="syncField()"');
 });
 
 it('keeps the other selects without any Alpine scope on the container', function () {
