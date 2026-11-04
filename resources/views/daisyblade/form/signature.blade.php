@@ -31,9 +31,11 @@
 
     {{-- Siempre blanco con trazo oscuro, también en modo oscuro: el PDF es blanco. --}}
     {{-- The control of this component is the pad: it takes the attributes of the caller. The box around it, which is also the Alpine scope, takes `wrapper-class`. --}}
-    <div {{ $attributes->merge(['class' => 'relative rounded-box border-2 bg-white']) }}
-         x-bind:class="error ? 'border-error' : 'border-base-content/40'">
+    <div {{ $attributes->merge(['class' => 'relative rounded-box border-2 bg-white']) }}>
+        {{-- The border of the pad follows `error`. It is set from the canvas, not with an `x-bind:class` on the pad: the pad takes
+             the attributes of the caller, and a `:class` of theirs would be a second one (the browser keeps only the first). --}}
         <canvas x-ref="canvas"
+                x-effect="$refs.canvas.parentElement.classList.toggle('border-error', error); $refs.canvas.parentElement.classList.toggle('border-base-content/40', !error)"
                 id="{{ $id }}"
                 role="img"
                 aria-label="{{ $label ?: __('daisyblade::signature.canvas_label') }}"

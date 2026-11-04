@@ -85,12 +85,14 @@
 @endphp
 
 <div {{ $attributes->merge(['class' => 'dbl-flowchart min-w-0 max-w-full']) }}
-     x-data="dblFlowchart(@js($config))"
-     x-on:dbl-flowchart-set.window="onSet($event.detail)"
-     x-on:dbl-flowchart-focus.window="onFocus($event.detail)"
-     x-on:dbl-flowchart-remove-edge.window="onRemoveEdge($event.detail)"
-     x-on:dbl-flowchart-remove-node.window="onRemoveNode($event.detail)">
-    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+     x-data="dblFlowchart(@js($config))">
+    {{-- The orders from outside are listened to here and not on the root, which takes the attributes of the caller: an
+         `x-on:dbl-flowchart-set.window` of theirs would be a second one (the browser keeps only the first). --}}
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-2"
+         x-on:dbl-flowchart-set.window="onSet($event.detail)"
+         x-on:dbl-flowchart-focus.window="onFocus($event.detail)"
+         x-on:dbl-flowchart-remove-edge.window="onRemoveEdge($event.detail)"
+         x-on:dbl-flowchart-remove-node.window="onRemoveNode($event.detail)">
         @if($label)
             <h3 class="font-semibold text-base">{{ $label }}</h3>
         @endif

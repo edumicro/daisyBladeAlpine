@@ -17,7 +17,7 @@
     @prop name        — identificador opcional del mapa, para el evento `dbl-map-focus`
     @prop googleKey   — clave de navegador de Google Maps (driver=google)
 
-    Evento: `map-picked` (detail: {lat, lng}) al colocar o arrastrar el marcador.
+    Evento: `dbl-map-picked` (detail: {lat, lng}) al colocar o arrastrar el marcador.
     Escucha: `dbl-map-focus` en window (detail: {map, layer, id}); método Alpine `focus(layer, id)`.
 --}}
 @props([
@@ -65,8 +65,7 @@
 @endphp
 
 <div {{ $attributes->merge(['class' => 'w-full space-y-2']) }}
-     x-data="dblMap(@js($config))"
-     x-on:dbl-map-focus.window="onFocusEvent($event.detail)">
+     x-data="dblMap(@js($config))">
 
     @if($config['picker'] && $config['geocodeUrl'])
         <form class="join w-full" role="search" x-on:submit.prevent="search()">
@@ -120,7 +119,9 @@
         </details>
     @endif
 
+    {{-- The order to move the map listens here and not on the root, which takes the attributes of the caller. --}}
     <div x-ref="canvas" role="region" aria-label="{{ __('daisyblade::map.map') }}"
+         x-on:dbl-map-focus.window="onFocusEvent($event.detail)"
          class="w-full overflow-hidden rounded-box border border-base-300 bg-base-200"
          style="height: {{ $height }}"></div>
 

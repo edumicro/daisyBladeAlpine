@@ -34,13 +34,14 @@ $typeClass = match($type) {
 @endphp
 
 @if($message)
-    {{-- Static single toast --}}
+    {{-- Static single toast. The root takes the attributes of the caller, so it carries no Alpine attribute of ours but
+         `x-data` (a caller's own `x-show` would be a second one, and the browser keeps only the first): hiding it is
+         done from the box inside. --}}
     <div
         x-data="dblToastSingle(@js(['duration' => (int) $duration, 'autoClose' => (bool) $autoClose]))"
-        x-show="visible"
         {{ $attributes->merge(['class' => "toast {$verticalClass} {$positionClass} z-50"]) }}
     >
-        <div class="alert {{ $typeClass }}">
+        <div class="alert {{ $typeClass }}" x-effect="$root.style.display = visible ? '' : 'none'">
             <span>{{ $message }}</span>
             @if($closable)
                 <button type="button" @click="visible = false" class="btn btn-ghost btn-xs">✕</button>
@@ -51,9 +52,10 @@ $typeClass = match($type) {
     {{-- Event-driven toast container --}}
     <div
         x-data="dblToast(@js(['duration' => (int) $duration]))"
-        @dbl-toast-show.window="show($event.detail)"
         {{ $attributes->merge(['class' => "toast {$verticalClass} {$positionClass} z-50 pointer-events-none"]) }}
     >
+        {{-- Listens to the order for the container. It is not on the root, which takes the attributes of the caller. --}}
+        <span class="hidden" @dbl-toast-show.window="show($event.detail)"></span>
         <template x-for="toast in toasts" :key="toast.id">
             <div
                 class="pointer-events-auto"

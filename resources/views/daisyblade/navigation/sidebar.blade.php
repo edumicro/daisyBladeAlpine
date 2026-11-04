@@ -37,7 +37,7 @@
 
      Solo cuando es plegable: con `collapsible => false` la barra esta fija a proposito, y dejarle
      el escuchador permitiria cerrarla desde fuera, que es justo lo que esa opcion promete evitar. --}}
-<div x-data="dblSidebar()" {{ $attributes }} @if($collapsible) @dbl-sidebar-toggle.window="toggle()" @endif>
+<div x-data="dblSidebar()" {{ $attributes }}>
 
     @if($collapsible && $floatingToggle)
         {{-- The way back in once it is closed.
@@ -70,7 +70,10 @@
         ></div>
     @endif
 
+    {{-- The order to open or close listens here, not on the root: the root takes the attributes of the caller, and one more
+         `@dbl-sidebar-toggle.window` of theirs would be a second one (the browser keeps only the first). --}}
     <aside
+        @if($collapsible) @dbl-sidebar-toggle.window="toggle()" @endif
         :class="open ? 'translate-x-0' : '-translate-x-full lg:hidden'"
         class="w-64 shrink-0 fixed lg:static inset-y-0 left-0 z-40 min-h-screen bg-base-200 transition-transform duration-300 flex flex-col overflow-hidden {{ $asideClass }}"
     >

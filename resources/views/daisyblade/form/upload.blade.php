@@ -47,20 +47,25 @@
     $hasHint = $maxSize || $maxFiles;
 @endphp
 
-<div class="w-full {{ $wrapperClass }}" x-data="dblUpload(@js($config))">
+{{-- The whole box listens to the drag of a file, not only the zone: the zone takes the attributes of the caller, and an
+     `x-on:drop` of theirs would be a second one (the browser keeps only the first of two equal attributes). --}}
+<div class="w-full {{ $wrapperClass }}" x-data="dblUpload(@js($config))"
+     x-on:dragover.prevent="dragging = true"
+     x-on:dragleave.prevent="dragging = false"
+     x-on:drop.prevent="onDrop($event)">
     @if($label)
         <label class="mb-1 block text-sm font-medium" for="{{ $id }}">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
 
     {{-- Zona de soltar. El input real está oculto pero es el que enfoca el label. La zona es el control de este componente:
          recibe los atributos de quien lo usa, y la caja de fuera (que es también el ámbito de Alpine), `wrapper-class`. --}}
-    <div {{ $attributes->merge(['class' => 'flex flex-col items-center gap-3 rounded-box border-2 border-dashed p-6 text-center transition-colors']) }}
-         x-bind:class="dragging ? 'border-primary bg-primary/10' : 'border-base-300'"
-         x-on:dragover.prevent="dragging = true"
-         x-on:dragleave.prevent="dragging = false"
-         x-on:drop.prevent="onDrop($event)">
+    <div {{ $attributes->merge(['class' => 'flex flex-col items-center gap-3 rounded-box border-2 border-dashed p-6 text-center transition-colors']) }}>
         <x-heroicon-o-arrow-up-tray class="size-8 text-base-content/40" aria-hidden="true" />
-        <p class="text-sm text-base-content/70" x-text="dragging ? @js($t('drop')) : @js($t('hint_drag'))"></p>
+        {{-- The colours of the zone follow `dragging`; set from here and not with an `x-bind:class` on the zone, which takes the
+             attributes of the caller. --}}
+        <p class="text-sm text-base-content/70"
+           x-effect="$el.parentElement.classList.toggle('border-primary', dragging); $el.parentElement.classList.toggle('bg-primary/10', dragging); $el.parentElement.classList.toggle('border-base-300', !dragging)"
+           x-text="dragging ? @js($t('drop')) : @js($t('hint_drag'))"></p>
 
         <input type="file" id="{{ $id }}" class="sr-only"
                @if($multiple) multiple @endif

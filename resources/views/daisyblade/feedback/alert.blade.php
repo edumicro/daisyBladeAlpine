@@ -12,12 +12,14 @@ $alertClass = match($type) { 'success'=>'alert-success','warning'=>'alert-warnin
 $defaultIcon = $icon ?: match($type) { 'success'=>'heroicon-o-check-circle','warning'=>'heroicon-o-exclamation-triangle','error'=>'heroicon-o-x-circle', default=>'heroicon-o-information-circle' };
 @endphp
 
+{{-- The root takes the attributes of the caller, so it carries no Alpine attribute of ours but `x-data`: a caller's own
+     `x-show` would be a second one and the browser would keep only the first. Closing is done from the box inside. --}}
 <div
     x-data="{ open: true }"
-    x-show="open"
     {{ $attributes->merge(['class' => "alert {$alertClass}"]) }}
 >
-    <div class="flex items-start gap-3 w-full {{ $contentClass }}">
+    <div class="flex items-start gap-3 w-full {{ $contentClass }}"
+         x-effect="$root.style.display = open ? '' : 'none'">
         <x-dynamic-component :component="$defaultIcon" class="w-6 h-6 flex-shrink-0" />
 
         <div class="flex-1">
