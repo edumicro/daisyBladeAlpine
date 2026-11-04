@@ -42,13 +42,13 @@ composer require edumicro/daisyblade
 php artisan daisyblade:install
 ```
 
-The install command will ask whether to publish assets for **Vite** (recommended) or as a **public script tag**. Either way it copies, side by side, `daisyblade.js`, `http.js` (the one function every component uses to call the server) and the `components/` folder (the optional components: map, upload, rich text, signature, calendar, flowchart):
+The install command will ask whether to publish assets for **Vite** (recommended) or as a **public script tag**. Either way it copies, side by side, `daisyblade.js`, `http.js` (the one function every component uses to call the server), `modelBinding.js` (the one rule of the controls with a model), `factoryConfig.js` (the declared configuration of each component) and the `components/` folder (the optional components: map, upload, rich text, signature, calendar, flowchart):
 
 ```bash
-# Vite — assets published to resources/js/daisyblade.js, resources/js/http.js and resources/js/components/
+# Vite — assets published to resources/js/ (daisyblade.js, http.js, modelBinding.js, factoryConfig.js) and resources/js/components/
 php artisan daisyblade:install --vite
 
-# Script tag — assets published to public/vendor/daisyblade/ (daisyblade.js, http.js, components/)
+# Script tag — assets published to public/vendor/daisyblade/ (daisyblade.js, http.js, modelBinding.js, factoryConfig.js, components/)
 php artisan daisyblade:install --public
 ```
 
@@ -630,10 +630,15 @@ The `action` of a `navigation.menu` or `navigation.dock` item is the name of the
 
 ## JSON response contract
 
-All Type 3 components expect controllers to return JSON following this contract:
+Every component that talks to your server does it through one function, `request()` of `resources/js/http.js`, under one contract (the whole of it, with the shape each component expects, is in **`docs/contrato.md`**):
+
+- **Requests ask for JSON** (`Accept: application/json` and `X-Requested-With`), so Laravel answers a missing session with a JSON `401`/`419` and a failed validation with a `422`, instead of redirecting.
+- **A redirect, or a body that is not JSON** (an HTML page, a plain `OK`), is a `ContractError`: the component shows its generic message and the browser console says `DaisyBlade: the endpoint /api/x did not answer JSON. See docs/contrato.md`. A controller that ends in `back()` or `redirect()` does not keep the contract, the importer's included.
+- **An empty answer (`204`)** only counts where the component says so (delete and reorder in upload, auto-form, wizard).
+- **The shape of the JSON** is checked in one function per component (`answerShapes` in `http.js`).
 
 ```json
-// Success with redirect
+// Success with redirect (auto-form, wizard)
 { "success": true, "redirect": "/products" }
 
 // Success with data (for remote selects, resource-details, etc.)
@@ -644,6 +649,17 @@ All Type 3 components expect controllers to return JSON following this contract:
 ```
 
 The components look at the HTTP status (a 422 puts `errors` next to each field) and at `message` for any other failure. Laravel's `response()->json()` + standard validation exceptions give exactly that if you let them.
+
+---
+
+## Your Alpine scope is yours
+
+The element that receives your attributes (`class`, `x-ref`, `x-model`, `@click`, `:disabled`...) carries nothing of the component's: its defaults go through `$attributes->merge()`, so **what you write wins** (`name`, `type`, `disabled`, `href`...) and `class` is added to. The component's own `x-data` lives in an element inside it or beside it, never around your control, so your `x-ref` and `$root` stay yours.
+
+Two consequences:
+
+- Alpine attributes that you write on a component need a scope above it. `layout.app` and `layout.auth` put `x-data` on the `<body>`; with your own layout, do the same.
+- A control with a model (`x-model` on a `select` with `load-url`, a `searchable` select, a `textarea` with `max-length`) follows one rule (`resources/js/modelBinding.js`): at the start the model wins if it holds something; if it is empty (`null`, `''`, `[]`) the `value` of the view is shown and the model receives it; a value the options do not offer is kept, not erased; a change of the model from outside is always shown; what the user chooses is written to the model and announced with `dbl-<component>-changed`.
 
 ---
 
@@ -678,7 +694,7 @@ composer test:browser       # Pest + a real Chromium: tests/Browser
 composer test:js            # node --test tests/js/*.test.mjs (HTTP client, errors, dates, map, flowchart)
 ```
 
-Currently 561 Pest tests (2261 assertions), 65 browser tests (60 green, 5 pending) and 242 JavaScript tests. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
+Currently 587 Pest tests (2424 assertions), 86 browser tests (140 assertions) and 291 JavaScript tests, all green and none skipped. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
 
 ### Browser tests (`tests/Browser`)
 
@@ -705,7 +721,9 @@ it('checkbox: checked follows the x-model and clicking it updates the model', fu
 - `readPage($page, $js, $until)` waits until the page shows what the test expects (components load their data after painting); `pause()` is only for things that must NOT happen.
 - A test per behaviour; the name says what it protects. Findings of the attack rounds are named in the header comment of each file.
 
-**Pending tests.** A test for a known, not yet fixed defect is written in full and marked `->skip('Pending: <report>, <finding>. Activate when fixed.')`. Whoever fixes the defect deletes the `->skip(...)` line and the test must go green. Today: sidebar `collapsible=false` (2), pagination page 1, calendar roving tabindex and calendar race.
+**Pending tests.** A test for a known, not yet fixed defect is written in full and marked `->skip('Pending: <report>, <finding>. Activate when fixed.')`. Whoever fixes the defect deletes the `->skip(...)` line and the test must go green. Today there are none.
+
+**Architecture tests.** They scan every view and every factory so that a cause cannot come back: `AlpineAttributeOwnershipTest` (nothing written by hand on the element that receives `$attributes`, no `x-data` around it), `FactoryConfigTest` (the keys a factory declares are the ones its view passes), `OutputEscapingTest` (no `{!! !!}` off the list, no `url(` without quotes), `TranslatableTextsTest` (no visible text without `__()`) and `CatalanTest`. `tests/js/model-binding.test.mjs` and `UserScopeBrowserTest` prove the model rule and the scope of the caller.
 
 **Caveats.** `attach()` of the plugin needs a local Playwright server, so files are chosen with `chooseFile()` (a real `File` set on the input). A bare selector such as `'input'` is read as *text*; write `input[type=text]`.
 

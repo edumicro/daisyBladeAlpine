@@ -109,7 +109,8 @@ it('searchable select: Escape closes the list', function () {
 
     $page->keys('input[type=text]', 'Escape');
 
-    expect($page->script($listIsOpen))->toBeFalse();
+    // Alpine hides the list a moment after the key: wait for it instead of reading at once.
+    expect(readPage($page, $listIsOpen, fn ($open) => $open === false))->toBeFalse();
 });
 
 // ── Searchable select: the model ───────────────────────────────────────────
