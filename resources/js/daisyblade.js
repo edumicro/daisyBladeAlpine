@@ -1,6 +1,6 @@
 'use strict'
 
-import { request, joinUrl } from './http.js'
+import { request, joinUrl, expectJson } from './http.js'
 
 // Every server call of this file goes through request() (see http.js): the client injected with
 // registerDaisyBlade(), else window.axios, else fetch.
@@ -28,15 +28,6 @@ const readStored = (storage, key) => {
     storage.setItem(key, legacy)
     storage.removeItem(legacyKey)
     return legacy
-}
-
-// What a component that talks JSON (select options, table rows, a resource, the answer to a form) does with the body of the answer.
-// When the session has expired the server redirects to the login page; axios and fetch follow the redirect and hand
-// over its HTML as a normal 200 answer, which read as data looks like an empty list. So a text body is an error: the
-// component shows its "could not load" message with Retry (a form shows its error). An empty body (a 204) is not text: it still means "nothing".
-const expectJson = data => {
-    if (typeof data === 'string' && data !== '') throw new Error('Expected JSON but the server sent text (an expired session redirected to the login page?)')
-    return data
 }
 
 // ── Tipo 2: local Alpine state, no server calls ────────────────────────────
@@ -449,14 +440,21 @@ const dblTabsLazy = (config = {}) => ({
 })
 
 const dblSpreadsheetImport = (config = {}) => ({
+    // step: 'upload' (choose the file) → 'confirm' (name and size) → 'importing' → 'done' | 'error'
     file: null, step: 'upload',
-    headers: [], preview: [], totalRows: 0,
     progress: 0, loading: false, error: null, result: null,
-    async handleFile(event) { this.file = event.target.files[0]; if (this.file) await this._parsePreview() },
-    async handleDrop(event) { this.file = event.dataTransfer.files[0]; if (this.file) await this._parsePreview() },
-    async _parsePreview() {
-        this.step = 'preview'
-        this.totalRows = 0; this.headers = []; this.preview = []
+    // The browser does not read the file (an .xlsx needs a library to be opened), so there is no preview of its rows.
+    handleFile(event) { this.choose(event.target.files[0]) },
+    handleDrop(event) { this.choose(event.dataTransfer.files[0]) },
+    choose(file) {
+        if (!file) return
+        this.file = file
+        this.step = 'confirm'
+    },
+    // "12 KB" / "1.4 MB": what the confirmation step shows next to the name.
+    get fileSizeText() {
+        const bytes = this.file?.size ?? 0
+        return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
     },
     async upload() {
         this.loading = true; this.error = null; this.progress = 0; this.step = 'importing'
@@ -471,6 +469,7 @@ const dblSpreadsheetImport = (config = {}) => ({
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: e => { this.progress = e.total ? Math.round(e.loaded * 100 / e.total) : 50 },
             })
+            expectJson(data)    // an HTML answer (the login page of an expired session) is a failure, not "Import complete"
             this.result = data; this.step = 'done'
         } catch (e) {
             this.error = e.response?.data?.message ?? messageOf(config, 'uploadFailed', 'Upload failed'); this.step = 'error'

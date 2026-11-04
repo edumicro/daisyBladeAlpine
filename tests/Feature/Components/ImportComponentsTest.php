@@ -38,3 +38,10 @@ it('spreadsheet with label shows label heading', function () {
     $html = Blade::render('<x-dbl::import.spreadsheet upload-url="/import" label="Importar productos" />');
     expect($html)->toContain('Importar productos');
 });
+
+it('spreadsheet promises no preview of rows that nobody reads', function () {
+    $html = Blade::render('<x-dbl::import.spreadsheet upload-url="/import" />');
+
+    expect($html)->not->toContain('rows detected')->not->toContain('maxPreview')
+        ->and($html)->toContain("step === 'confirm'");
+});

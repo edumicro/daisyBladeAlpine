@@ -1,18 +1,20 @@
 {{--
-    Tipo 3: spreadsheet file upload with preview and progress.
+    Tipo 3: spreadsheet file upload with a confirmation step and progress.
+
+    The browser does not read the file: an .xlsx is a zip of XML, and reading it takes a library the package does not
+    ship. So there is no preview of the rows. The confirmation step shows the name and size of the chosen file, and the
+    server (which does read it) answers with how many rows it imported.
 
     @prop uploadUrl    — POST endpoint for the file
     @prop templateUrl  — download link for the import template
     @prop chunkSize    — rows per chunk (passed to server as hint)
     @prop accept       — accepted MIME/extensions
-    @prop maxPreview   — preview rows to show before confirm
 --}}
 @props([
     'uploadUrl'   => '',
     'templateUrl' => '',
     'chunkSize'   => 1000,
     'accept'      => '.xlsx,.xls,.csv',
-    'maxPreview'  => 5,
     'label'       => '',
 ])
 
@@ -23,7 +25,6 @@ $config = [
     'uploadUrl'   => $uploadUrl,
     'templateUrl' => $templateUrl,
     'chunkSize'   => (int) $chunkSize,
-    'maxPreview'  => (int) $maxPreview,
     'messages'    => ['uploadFailed' => __('Upload failed')],
 ];
 @endphp
@@ -67,10 +68,13 @@ $config = [
         @endif
     </div>
 
-    {{-- Step: preview --}}
-    <div x-show="step === 'preview'" x-cloak class="space-y-4">
-        <div class="flex items-center justify-between">
-            <p class="font-medium" x-text="`${totalRows} {{ __('rows detected') }}`"></p>
+    {{-- Step: confirm. The name and size of the chosen file; the rows are counted by the server, not here. --}}
+    <div x-show="step === 'confirm'" x-cloak class="space-y-4">
+        <div class="flex items-center justify-between gap-4">
+            <p class="font-medium truncate">
+                <span x-text="file?.name"></span>
+                <span class="text-sm font-normal text-base-content/60" x-text="`(${fileSizeText})`"></span>
+            </p>
             <div class="flex gap-2">
                 <button type="button" @click="step = 'upload'" class="btn btn-ghost btn-sm">{{ __('Cancel') }}</button>
                 <button type="button" @click="upload()" :disabled="loading" class="btn btn-primary btn-sm">
@@ -78,23 +82,6 @@ $config = [
                     {{ __('Confirm import') }}
                 </button>
             </div>
-        </div>
-
-        <div class="overflow-x-auto max-h-64 rounded-lg border border-base-300">
-            <table class="table table-xs">
-                <thead>
-                    <tr>
-                        <template x-for="h in headers" :key="h"><th x-text="h"></th></template>
-                    </tr>
-                </thead>
-                <tbody>
-                    <template x-for="(row, i) in preview" :key="i">
-                        <tr>
-                            <template x-for="h in headers" :key="h"><td x-text="row[h] ?? ''"></td></template>
-                        </tr>
-                    </template>
-                </tbody>
-            </table>
         </div>
     </div>
 
