@@ -15,6 +15,8 @@ $sizeClass  = match($size) { 'xs' => 'w-12 h-12 text-xs', 'sm' => 'w-16 h-16 tex
 // Class names written out in full, not glued together from a prefix and the color: Tailwind finds classes
 // by scanning the source for complete names, so one built at run time never reaches the CSS.
 // A value that is not listed gets the default look.
+// The list has the `*-content` colors of DaisyUI (the color of what goes ON a colored background, such as a spinner
+// inside a primary button) and `white`, which 2.3 also accepted.
 $colorClass = match($color) {
     'neutral' => 'text-neutral',
     'primary' => 'text-primary',
@@ -27,6 +29,16 @@ $colorClass = match($color) {
     'base-100' => 'text-base-100',
     'base-200' => 'text-base-200',
     'base-300' => 'text-base-300',
+    'primary-content' => 'text-primary-content',
+    'secondary-content' => 'text-secondary-content',
+    'accent-content' => 'text-accent-content',
+    'neutral-content' => 'text-neutral-content',
+    'info-content' => 'text-info-content',
+    'success-content' => 'text-success-content',
+    'warning-content' => 'text-warning-content',
+    'error-content' => 'text-error-content',
+    'base-content' => 'text-base-content',
+    'white' => 'text-white',
     default => 'text-primary',
 };
 $pct        = $max > 0 ? round(($value / $max) * 100) : 0;

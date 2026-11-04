@@ -14,6 +14,8 @@
 // Class names written out in full, not glued together from a prefix and the color: Tailwind finds classes
 // by scanning the source for complete names, so one built at run time never reaches the CSS.
 // A value that is not listed gets the default look.
+// The list has the `*-content` colors of DaisyUI (the color of what goes ON a colored background, such as a spinner
+// inside a primary button) and `white`, which 2.3 also accepted.
 $textColorClass = match($color) {
     'neutral' => 'text-neutral',
     'primary' => 'text-primary',
@@ -26,6 +28,16 @@ $textColorClass = match($color) {
     'base-100' => 'text-base-100',
     'base-200' => 'text-base-200',
     'base-300' => 'text-base-300',
+    'primary-content' => 'text-primary-content',
+    'secondary-content' => 'text-secondary-content',
+    'accent-content' => 'text-accent-content',
+    'neutral-content' => 'text-neutral-content',
+    'info-content' => 'text-info-content',
+    'success-content' => 'text-success-content',
+    'warning-content' => 'text-warning-content',
+    'error-content' => 'text-error-content',
+    'base-content' => 'text-base-content',
+    'white' => 'text-white',
     default => 'text-primary',
 };
 $bgColorClass = match($color) {
@@ -40,6 +52,16 @@ $bgColorClass = match($color) {
     'base-100' => 'bg-base-100',
     'base-200' => 'bg-base-200',
     'base-300' => 'bg-base-300',
+    'primary-content' => 'bg-primary-content',
+    'secondary-content' => 'bg-secondary-content',
+    'accent-content' => 'bg-accent-content',
+    'neutral-content' => 'bg-neutral-content',
+    'info-content' => 'bg-info-content',
+    'success-content' => 'bg-success-content',
+    'warning-content' => 'bg-warning-content',
+    'error-content' => 'bg-error-content',
+    'base-content' => 'bg-base-content',
+    'white' => 'bg-white',
     default => 'bg-primary',
 };
 $sizeClass = match($size) { 'xs'=>'text-xs','sm'=>'text-sm','base'=>'text-base','xl'=>'text-xl','2xl'=>'text-2xl','3xl'=>'text-3xl','4xl'=>'text-4xl', default=>'text-lg' };
