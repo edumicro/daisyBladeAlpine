@@ -42,7 +42,11 @@ $colorClass = match($color) {
                     @if($name) name="{{ $name }}" @endif
                     @if($value !== null && (string)$value === (string)$optVal) checked @endif
                     @if($disabled) disabled @endif
-                    {{ $attributes->merge(['class' => trim("radio {$colorClass} " . $class)]) }}
+                    {{-- `required` goes to every radio of the group: the browser asks for one of them to be chosen. --}}
+                    @if($required) required @endif
+                    {{-- The `id` the caller writes goes only to the FIRST radio: the same id on all of them is invalid HTML
+                         and getElementById or aria-describedby would only ever reach the first one anyway. --}}
+                    {{ ($loop->first ? $attributes : $attributes->except('id'))->merge(['class' => trim("radio {$colorClass} " . $class)]) }}
                 />
                 <span class="text-sm">{{ $optLabel }}</span>
             </label>

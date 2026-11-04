@@ -37,9 +37,13 @@ $colorClass = match($color) {
         @endif
         <input
             type="checkbox"
+            {{-- The `id` is the one the caller writes or, if none, the `name` (written once: the `id` is taken out of $attributes below). --}}
+            @if($attributes->get('id', $name)) id="{{ $attributes->get('id', $name) }}" @endif
             @if($name) name="{{ $name }}" value="1" @endif
             @if($disabled) disabled @endif
-            {{ $attributes->merge(['class' => trim("toggle {$colorClass} " . $class)]) }}
+            {{-- `required` must reach the <input>, or the browser lets the form go with the toggle off. --}}
+            @if($required) required @endif
+            {{ $attributes->except('id')->merge(['class' => trim("toggle {$colorClass} " . $class)]) }}
         />
     </label>
 
