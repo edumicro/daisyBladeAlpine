@@ -542,20 +542,21 @@ it('lets the remote select depend on another control', function () {
     $html = Blade::render('<x-dbl::form.select name="region_code" load-url="/location/regions" depends-on="country_code" />');
 
     expect(remoteSelectConfig($html))->toMatchArray(['dependsOn' => 'country_code'])
-        ->and($html)->toContain('x-on:change.window="onDependencyChange($event)"')
+        ->and($html)->toContain('x-on:change.window.capture="onChange($event)"')   // the change of the control we depend on reaches the window
         ->and($html)->toContain('x-effect="syncField()"');   // disabled while waiting for the control it depends on
 });
 
-it('does not listen to other controls when the remote select depends on none', function () {
+it('gives no dependency to a remote select that depends on none', function () {
     $html = Blade::render('<x-dbl::form.select name="city" load-url="/cities" />');
 
-    expect($html)->not->toContain('x-on:change.window');
+    // The listener is the same (it also hears the select's own change), but the configuration says it depends on nothing.
+    expect(remoteSelectConfig($html))->toMatchArray(['dependsOn' => '']);
 });
 
 it('ignores depends-on on selects that do not load their options from a url', function () {
     $html = Blade::render('<x-dbl::form.select name="city" :options="[\'a\' => \'A\']" depends-on="country_code" />');
 
-    expect($html)->not->toContain('dblSelectRemote')->not->toContain('x-on:change.window');
+    expect($html)->not->toContain('dblSelectRemote')->not->toContain('.window');
 });
 
 it('remote select javascript is syntactically valid', function () {

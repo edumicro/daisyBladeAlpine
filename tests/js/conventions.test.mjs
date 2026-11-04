@@ -16,6 +16,7 @@ import { dblMap } from '../../resources/js/components/map.js'
 import { dblSignature } from '../../resources/js/components/signature.js'
 import { dblRichText } from '../../resources/js/components/rich-text.js'
 import { dblFlowchart } from '../../resources/js/components/flowchart.js'
+import { fakeSelect, rootBesides } from './helpers/fake-select.mjs'
 
 const ROOT = new URL('../../resources/js/', import.meta.url).pathname
 
@@ -122,10 +123,7 @@ test('2. the components that read data ask the URL given as loadUrl', async () =
         await dblDataTable({ loadUrl: '/table' }).init()
         await dblResourceDetails({ loadUrl: '/details' }).init()
         await dblTabsLazy({ tabs: [{ loadUrl: '/tab' }] }).init()
-        const select = Object.assign(dblSelectRemote({ loadUrl: '/options' }), {
-            $root: { querySelector: () => ({ form: null, selectedOptions: [], querySelectorAll: () => [] }) },
-            $nextTick: async () => {},
-        })
+        const select = Object.assign(dblSelectRemote({ loadUrl: '/options' }), { $root: rootBesides(fakeSelect()) })
         await select.init()
         await dblCalendar({ loadUrl: '/events', initialDate: '2026-10-05' }).init()
     } finally { leavePage() }
@@ -215,8 +213,8 @@ test('8. the rich text announces dbl-rich-text-changed with { name, value }', ()
 
 /** The parts of Alpine that dblSelectRemote uses around a fake <select> whose chosen options are `chosen`. */
 const remoteSelectWith = (config, chosen) => {
-    const field = { form: null, selectedOptions: chosen.map(value => ({ value })), querySelectorAll: () => [] }
-    return recording(Object.assign(dblSelectRemote(config), { $root: { querySelector: () => field } }))
+    const field = fakeSelect({ selectedOptions: chosen.map(value => ({ value })) })
+    return recording(Object.assign(dblSelectRemote(config), { $root: rootBesides(field) }))
 }
 
 test('8. the remote select announces dbl-select-changed with { name, value }: a text, or a list when multiple', () => {
@@ -404,9 +402,7 @@ test('loadOptions() sends the params of the component and the value of the contr
     globalThis.location = { href: 'https://app.test/', origin: 'https://app.test' }
     globalThis.window = { axios: { get: async (url, config) => { calls.push({ url, params: config.params }); return { data: [] } } } }
     try {
-        const select = Object.assign(dblSelectRemote({ loadUrl: '/o', params: { only: 'active' } }), {
-            $root: { querySelector: () => ({ form: null, selectedOptions: [], querySelectorAll: () => [] }) },
-        })
+        const select = Object.assign(dblSelectRemote({ loadUrl: '/o', params: { only: 'active' } }), { $root: rootBesides(fakeSelect()) })
         await select.loadOptions()
     } finally { leavePage() }
 

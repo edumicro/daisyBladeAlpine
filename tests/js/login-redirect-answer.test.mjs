@@ -1,6 +1,7 @@
 import test, { beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { dblSelectRemote, dblDataTable, dblResourceDetails } from '../../resources/js/daisyblade.js'
+import { fakeSelect, rootBesides } from './helpers/fake-select.mjs'
 
 // The session expired and the data URL redirects to the login page. axios and fetch follow the redirect and hand over
 // its HTML as a normal 200 answer. Read as data, `data.data ?? []` turned it into "zero rows" or "zero options": the user
@@ -18,10 +19,9 @@ const realConsoleError = console.error
 beforeEach(() => { consoleErrors = []; console.error = (...args) => consoleErrors.push(args) })
 afterEach(() => { console.error = realConsoleError; delete globalThis.window; delete globalThis.location })
 
-/** A remote select with a <select> inside its container. */
+/** A remote select with its <select> beside the element that carries the x-data. */
 function remoteSelect(config) {
-    const field = { form: null, selectedOptions: [], value: '', querySelectorAll: () => [], dispatchEvent() {} }
-    return Object.assign(dblSelectRemote(config), { $root: { querySelector: () => field }, $nextTick: async () => {} })
+    return Object.assign(dblSelectRemote(config), { $root: rootBesides(fakeSelect()), $nextTick: async () => {} })
 }
 
 test('select remote: an HTML answer (login page) is an error with retry, not an empty list', async () => {

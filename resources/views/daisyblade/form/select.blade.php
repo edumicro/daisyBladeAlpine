@@ -38,24 +38,13 @@ foreach ($options as $optVal => $optLabel) {
 $controlId = $attributes->get('id', $name ?: null);
 @endphp
 
-{{-- With `load-url` the Alpine scope (dblSelectRemote) is this container, so the error message below can sit
-     next to the <select>; the factory finds the <select> inside it.
-     Everything Alpine needs from the component is written HERE, on the container, and not on the <select>:
-       x-on:change         the `change` of the <select> bubbles up to this container (capture: before any listener
-                           of the user, which may stop it).
-       x-on:change.window  the control we depend on is elsewhere in the form, so its `change` only reaches `window`.
-       x-effect            keeps `disabled` and `aria-busy` of the <select> in step with the component state.
-     The main element of a form control is the control itself: everything the caller writes (class, x-model,
+{{-- The main element of a form control is the control itself: everything the caller writes (class, x-model,
      wire:model, x-on:*, data-*...) goes to the <select> (to the text box, in `searchable` mode), and the box around
-     it takes its classes from `wrapper-class`. --}}
+     it takes its classes from `wrapper-class`.
+     The native select announces its change as `dbl-select-changed`, like the other two (this box is the root it is
+     dispatched from). The remote select has its Alpine scope in an element of its own, further down (see there). --}}
 <div class="w-full {{ $wrapperClass }}"
-     @if($loadUrl)
-         x-data="dblSelectRemote(@js(['loadUrl' => $loadUrl, 'name' => $name, 'multiple' => (bool) $multiple, 'value' => $value, 'dependsOn' => $dependsOn, 'disabled' => $disabled, 'messages' => ['loadFailed' => __('Could not load the options')]]))"
-         x-on:change.capture="remember()"
-         @if($dependsOn) x-on:change.window="onDependencyChange($event)" @endif
-         x-effect="syncField()"
-     @elseif(! $searchable)
-         {{-- The native select announces its change as `dbl-select-changed`, like the other two (this container is the root it is dispatched from). --}}
+     @if(! $loadUrl && ! $searchable)
          x-data
          x-on:change="$dispatch('dbl-select-changed', { name: @js($name), value: $event.target.multiple ? [...$event.target.selectedOptions].map(option => option.value) : $event.target.value })"
      @endif>
@@ -64,7 +53,13 @@ $controlId = $attributes->get('id', $name ?: null);
     @endif
 
     @if($loadUrl)
-        {{-- Remote select: Alpine's dblSelectRemote asks `load-url` for the options (again each time `depends-on` changes). --}}
+        {{-- Remote select: dblSelectRemote asks `load-url` for the options (again each time `depends-on` changes) and writes them here.
+             The <select> is OUTSIDE the element that carries the x-data of dblSelectRemote, on purpose: every Alpine expression the
+             caller writes on it (`::disabled="loading"`, `x-model`...) is evaluated in the scope of the elements around it, and
+             inside our scope the `loading`, `error`, `options`, `selected`... of this component would hide the caller's own.
+             For the same reason it carries no Alpine attribute of ours: the caller's `x-on:change` or `:disabled` would
+             be a second copy of the same attribute, and the browser keeps only the first. What Alpine needs from the
+             component is written on the element below. --}}
         <select
             @if($name) name="{{ $name }}{{ $multiple ? '[]' : '' }}" @endif
             @if($multiple) multiple @endif
@@ -78,15 +73,20 @@ $controlId = $attributes->get('id', $name ?: null);
             @foreach($options as $optVal => $optLabel)
                 <option value="{{ $optVal }}" data-initial @selected($isSelected($optVal))>{{ $optLabel }}</option>
             @endforeach
-            <template x-for="option in options" :key="option.value">
-                <option :value="option.value" :selected="selected.includes(String(option.value))" x-text="option.label"></option>
-            </template>
         </select>
-        {{-- The options could not be loaded: a message and a retry button (the detail is in the console). --}}
-        <p class="mt-1 flex items-center gap-2 text-xs text-error" role="alert" style="display: none" x-show="error">
-            <span x-text="error"></span>
-            <button type="button" class="link" x-on:click="retry()">{{ __('Retry') }}</button>
-        </p>
+        {{-- The element with the scope. It finds the <select> in its parent, and holds the message that shows when the options
+             could not be loaded (with a retry button; the detail is in the console).
+               x-on:change.window.capture  the `change` of the <select> and of the control we depend on (elsewhere in
+                                           the form) reach the window; capture: before any listener of the user, which may stop it.
+               x-effect                    keeps `disabled` and `aria-busy` of the <select> in step with the component state. --}}
+        <div x-data="dblSelectRemote(@js(['loadUrl' => $loadUrl, 'name' => $name, 'multiple' => (bool) $multiple, 'value' => $value, 'dependsOn' => $dependsOn, 'disabled' => $disabled, 'messages' => ['loadFailed' => __('Could not load the options')]]))"
+             x-on:change.window.capture="onChange($event)"
+             x-effect="syncField()">
+            <p class="mt-1 flex items-center gap-2 text-xs text-error" role="alert" style="display: none" x-show="error">
+                <span x-text="error"></span>
+                <button type="button" class="link" x-on:click="retry()">{{ __('Retry') }}</button>
+            </p>
+        </div>
     @elseif($searchable)
         {{-- Alpine searchable combobox — soporta flat {k:v} y grouped {group:{k:v}} --}}
         <div x-data="dblSelectSearch(@js(['name' => $name, 'search' => $selectedLabel, 'options' => $options]))" class="relative" @click.outside="open = false">

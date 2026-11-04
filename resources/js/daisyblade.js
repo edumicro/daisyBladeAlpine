@@ -252,9 +252,9 @@ const dblSelectRemote = (config = {}) => ({
         try { await this.starting } finally { this.starting = null }
     },
 
-    // The <select> itself. In the current view the Alpine scope is its container (so the error message can sit next
-    // to it) and the container holds no other <select>. A view published with 2.3 has the scope on the <select>.
-    get field() { return this.$root.matches?.('select') ? this.$root : this.$root.querySelector('select') },
+    // The <select> itself. It is NOT inside the element that carries our x-data but right before it, as its sibling
+    // (see form/select.blade.php for why), so we look for it in the parent, which holds no other <select>.
+    get field() { return this.$root.parentElement.querySelector('select') },
 
     // Value of the control we depend on (null if we depend on none), looked up by name
     // in our form or, if we are not in a form, in the whole page.
@@ -269,12 +269,21 @@ const dblSelectRemote = (config = {}) => ({
         return sent[sent.length - 1]?.value ?? ''
     },
 
+    // The window hears the `change` of every control of the page (our <select> is not inside our element, so its `change`
+    // does not pass through us). The view listens with `capture`, so this runs before any listener of the user, which
+    // may stop the event. Two controls matter to us: our own <select> and the one we depend on.
+    onChange(event) {
+        if (event.target === this.field) this.remember()
+        else this.onDependencyChange(event)
+    },
+
     // Every control of the page fires `change`: reload only for the one we depend on.
     onDependencyChange(event) {
+        if (!config.dependsOn) return    // we depend on nothing: a control without a name must not match ''
         if (event.target.name === config.dependsOn && event.target.form === this.field.form) this.reload()
     },
 
-    // Keep the <select> in step with our state. The container runs this from its `x-effect`, so it runs again
+    // Keep the <select> in step with our state. Our element runs this from its `x-effect`, so it runs again
     // whenever `waiting`, `disabled` or `loading` change.
     // The <select> can also carry a `:disabled` of the user (it is passed through as an attribute). So we disable
     // it only when WE need it, and enable it again only if WE were the ones who disabled it: a select that the
@@ -310,7 +319,6 @@ const dblSelectRemote = (config = {}) => ({
         const kept = stillOffered(this.selected, this.options)
         if (kept.length === this.selected.length) return   // everything chosen is still offered
         this.selected = kept
-        await this.$nextTick()                         // wait until the new options are in the page
         if (!kept.length) this.field.value = ''        // nothing chosen: leave the select empty
         // Tell the others (a third select that depends on this one listens to this event).
         this.field.dispatchEvent(new Event('change', { bubbles: true }))
@@ -334,6 +342,7 @@ const dblSelectRemote = (config = {}) => ({
             // The user sees a translated message with a retry button; the technical detail goes to the console.
             if (requestNumber === this.lastRequest) {
                 this.options = []
+                this.showOptions()
                 this.error = messageOf(config, 'loadFailed', 'Could not load the options')
             }
             console.error('dblSelectRemote: could not load the options', error)
@@ -344,7 +353,26 @@ const dblSelectRemote = (config = {}) => ({
         }
         // The options rendered by the server (the saved value) were only for before the JS: now they come from `options`.
         this.field.querySelectorAll('option[data-initial]').forEach(option => option.remove())
+        this.showOptions()
         return true
+    },
+
+    // Write `options` as <option>s of the <select>, marking the ones in `selected`.
+    // They are written by hand and not with a `<template x-for>` because the <select> is outside our x-data (a
+    // template inside it could not see `options`). `data-loaded` marks them, to remove them before writing again;
+    // the placeholder and the options of the server (`data-initial`) are left alone here.
+    showOptions() {
+        const field = this.field
+        field.querySelectorAll('option[data-loaded]').forEach(option => option.remove())
+        for (const { value, label } of this.options) {
+            const option = field.ownerDocument.createElement('option')
+            option.value = value
+            option.textContent = label
+            // `defaultSelected` writes the `selected` attribute too, so resetting the form goes back to this choice.
+            option.selected = option.defaultSelected = this.selected.includes(String(value))
+            option.setAttribute('data-loaded', '')
+            field.append(option)
+        }
     },
 })
 

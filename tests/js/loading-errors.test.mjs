@@ -1,6 +1,7 @@
 import test, { beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { dblDataTable, dblTabsLazy, dblSelectRemote, dblResourceDetails, dblAutoForm, dblSpreadsheetImport } from '../../resources/js/daisyblade.js'
+import { fakeSelect, rootBesides } from './helpers/fake-select.mjs'
 
 // A page whose axios we control: each call takes the next answer of the list.
 // An answer that is an Error makes the call fail; anything else is the `data` of a good response.
@@ -124,11 +125,7 @@ test('tabs-lazy: clicking a tab whose request is still running does not ask agai
 
 /** The parts of Alpine that dblSelectRemote uses, around a fake <select>. */
 function remoteSelect(config) {
-    const field = { form: null, selectedOptions: [], value: '', querySelectorAll: () => [], dispatchEvent() {} }
-    return Object.assign(dblSelectRemote(config), {
-        $root: { querySelector: () => field },
-        $nextTick: async () => {},
-    })
+    return Object.assign(dblSelectRemote(config), { $root: rootBesides(fakeSelect()), $nextTick: async () => {} })
 }
 
 test('select remote: a failed request leaves a message and no options, and the retry button loads them', async () => {

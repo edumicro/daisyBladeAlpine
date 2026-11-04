@@ -1,6 +1,7 @@
 import test, { beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { dblSelectRemote } from '../../resources/js/daisyblade.js'
+import { fakeSelect, rootBesides, shownOptions } from './helpers/fake-select.mjs'
 
 // Edge cases of the remote select (`<x-dbl::form.select options-url="...">`) that the pure helpers
 // tested in select-remote.test.mjs do not reach.
@@ -18,28 +19,15 @@ const realConsoleError = console.error
 beforeEach(() => { console.error = () => {} })
 afterEach(() => { console.error = realConsoleError; delete globalThis.window; delete globalThis.location })
 
-// ── A remote select as the Blade mounts it: the Alpine scope is the container, the <select> is inside ──
+// ── A remote select as the Blade mounts it: the <select> sits beside the element that carries the Alpine scope ──
 
-/** The <select> element, with the bits of the DOM that dblSelectRemote reads and writes. */
-function fakeField(overrides = {}) {
-    const attributes = {}
-    return {
-        form: null, selectedOptions: [], value: '', disabled: false,
-        attributes,
-        setAttribute(name, value) { attributes[name] = value },
-        querySelectorAll: () => [], dispatchEvent() {},
-        ...overrides,
-    }
-}
-
-function selectWith(config, field = fakeField()) {
-    return Object.assign(dblSelectRemote(config), { $root: { querySelector: () => field }, $nextTick: async () => {} })
-}
+const selectWith = (config, field = fakeSelect()) =>
+    Object.assign(dblSelectRemote(config), { $root: rootBesides(field), $nextTick: async () => {} })
 
 // ── syncField: what the x-effect of the container does to the <select> ──
 
 test('syncField disables the select while it waits for the control it depends on, and enables it afterwards', () => {
-    const field = fakeField()
+    const field = fakeSelect()
     const select = selectWith({ loadUrl: '/options' }, field)
 
     select.waiting = true
@@ -52,7 +40,7 @@ test('syncField disables the select while it waits for the control it depends on
 })
 
 test('syncField disables the select for the `disabled` prop', () => {
-    const field = fakeField()
+    const field = fakeSelect()
 
     selectWith({ loadUrl: '/options', disabled: true }, field).syncField()
 
@@ -60,7 +48,7 @@ test('syncField disables the select for the `disabled` prop', () => {
 })
 
 test('syncField does not enable a select that the user disabled with their own :disabled', () => {
-    const field = fakeField({ disabled: true })   // the user's `:disabled="locked"` locked it
+    const field = fakeSelect({ disabled: true })   // the user's `:disabled="locked"` locked it
     const select = selectWith({ loadUrl: '/options' }, field)
 
     select.syncField()   // for example, the options finished loading and `loading` changed
@@ -69,7 +57,7 @@ test('syncField does not enable a select that the user disabled with their own :
 })
 
 test('syncField mirrors the loading state in aria-busy', () => {
-    const field = fakeField()
+    const field = fakeSelect()
     const select = selectWith({ loadUrl: '/options' }, field)
 
     select.loading = true
@@ -81,33 +69,12 @@ test('syncField mirrors the loading state in aria-busy', () => {
     assert.equal(field.attributes['aria-busy'], 'false')
 })
 
-// ── A view published with 2.3 next to the 2.4 JavaScript ──
-//
-// In 2.3 the x-data was on the <select> itself and the view had `x-init="init()"`. The 2.4 factory looks for the
-// <select> INSIDE the Alpine scope: for the old view that found nothing and loadOptions() threw
-// "Cannot read properties of null (reading 'querySelectorAll')". Alpine also calls init() by itself, so the old
-// `x-init="init()"` made it run twice and asked the server twice.
+// ── Alpine calls init() by itself; a second call while the first one loads must not ask the server again ──
 
-/** The <select> that carries the x-data itself, as in a view published with 2.3. */
-function selectCarryingTheScope(config) {
-    const selectElement = fakeField({ matches: selector => selector === 'select', querySelector: () => null })
-    return Object.assign(dblSelectRemote(config), { $root: selectElement, $nextTick: async () => {} })
-}
-
-test('a <select> that carries the x-data itself (view published with 2.3) loads without throwing', async () => {
-    pageWithAxios([{ value: 'a', label: 'A' }])
-    const select = selectCarryingTheScope({ loadUrl: '/options', name: 'city' })
-
-    await assert.doesNotReject(() => select.init())
-
-    assert.deepEqual(select.options, [{ value: 'a', label: 'A' }])
-})
-
-test('the double init() of a view published with 2.3 asks the server once', async () => {
+test('a second init() while the first one is still loading asks the server once', async () => {
     const calls = pageWithAxios([{ value: 'a', label: 'A' }])
-    const select = selectCarryingTheScope({ loadUrl: '/options', name: 'city' })
+    const select = selectWith({ loadUrl: '/options', name: 'city' })
 
-    // Alpine calls init() by itself, and the old view's x-init="init()" calls it again right away.
     await Promise.all([select.init(), select.init()])
 
     assert.equal(calls.length, 1)
@@ -136,7 +103,7 @@ function formWith(controls) {
 
 /** A remote select that depends on `kind`, inside `form`. */
 function dependentSelect(form, dependsOn = 'kind') {
-    return selectWith({ loadUrl: '/options', dependsOn }, fakeField({ form }))
+    return selectWith({ loadUrl: '/options', dependsOn }, fakeSelect({ form }))
 }
 
 test('depends-on a radio group sends the CHECKED radio, not the first one', async () => {

@@ -28,16 +28,17 @@ it('lazy tabs show a failed tab as a message with a retry button, and hide the e
         ->toContain('x-show="!isLoading(0) && !hasError(0)"');
 });
 
-it('puts the Alpine scope of the remote select on its container, so the error can sit next to the select', function () {
+it('puts the Alpine scope of the remote select next to the select, around its error message', function () {
     $html = Blade::render('<x-dbl::form.select name="city" load-url="/cities" />');
 
-    // x-data comes before the <select>, on the container; the <select> itself has none.
+    // The <select> comes first and has no x-data; the element with the scope follows it and holds the message and the retry.
     $dataAt = strpos($html, 'x-data="dblSelectRemote');
     $selectAt = strpos($html, '<select');
     expect($dataAt)->not->toBeFalse()
-        ->and($dataAt)->toBeLessThan($selectAt)
+        ->and($selectAt)->toBeLessThan($dataAt)
         ->and(substr($html, $selectAt, strpos($html, '>', $selectAt) - $selectAt))->not->toContain('x-data')
-        ->and($html)->toContain('x-show="error"')->toContain('retry()')->toContain('x-effect="syncField()"');
+        ->and(strpos($html, 'x-show="error"'))->toBeGreaterThan($dataAt)
+        ->and($html)->toContain('retry()')->toContain('x-effect="syncField()"');
 });
 
 it('keeps the other selects without any Alpine scope on the container', function () {
