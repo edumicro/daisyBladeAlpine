@@ -1,4 +1,4 @@
-import { request, isCanceled } from '../http.js'
+import { request, isCanceled, expectJson } from '../http.js'
 
 /**
  * dbUpload — subida de ficheros para <x-dbl::form.upload>.
@@ -101,6 +101,7 @@ export const dbUpload = (config = {}, deps = {}) => ({
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: e => { item.progress = e.total ? Math.round(e.loaded * 100 / e.total) : 50 },
             }, deps)
+            expectJson(data)    // an HTML answer (the login page of an expired session) is a failure: the file did not arrive
             Object.assign(item, { id: data.id, name: data.name ?? item.name, url: data.url,
                                   thumb: data.thumb ?? null, size: data.size ?? item.size,
                                   status: 'done', progress: 100, file: null, cancel: null })
