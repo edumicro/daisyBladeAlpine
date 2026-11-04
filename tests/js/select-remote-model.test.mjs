@@ -4,7 +4,7 @@ import { dbSelectRemote } from '../../resources/js/daisyblade.js'
 
 // 2.4.1. A user's `x-model` on the remote <select>: Alpine applies a model to a <select> when the model changes,
 // not when <option>s appear. The first application found no options and nobody applied it again, so the select
-// stayed empty while the model held '2' (and with `value="2"` and an empty model, the opposite).
+// stayed empty while the model held '2'. An empty model (null or '') does not wipe the `value` of the view.
 // Alpine leaves `el._x_model` ({ get, set }) on the element: the component reads it when the options arrive.
 
 function pageWithAxios(answer) {
@@ -39,14 +39,17 @@ test('with x-model, what the model holds is what is chosen when the options arri
     assert.deepEqual(select.selected, ['2'])
 })
 
-test('with x-model and a value prop, an empty model wins, as on any Alpine input', async () => {
-    pageWithAxios(OPTIONS)
-    const select = selectWith({ url: '/options', value: '2' }, fieldWithModel({ value: '' }))
+// An edit form: the view writes the saved `value="2"` and the x-model starts empty. The empty model must not wipe it.
+for (const empty of [null, '']) {
+    test(`with a value prop and an x-model that starts as ${JSON.stringify(empty)}, the value prop stays chosen`, async () => {
+        pageWithAxios(OPTIONS)
+        const select = selectWith({ url: '/options', value: '2' }, fieldWithModel({ value: empty }))
 
-    await select.init()
+        await select.init()
 
-    assert.deepEqual(select.selected, [])
-})
+        assert.deepEqual(select.selected, ['2'])
+    })
+}
 
 test('with a list in the model (multiple), all of them are chosen', async () => {
     pageWithAxios(OPTIONS)
