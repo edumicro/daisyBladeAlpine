@@ -31,3 +31,15 @@ it('writes no Alpine at all without max-length', function () {
 
     expect($html)->not->toContain('x-data');
 });
+
+it('follows the x-model of the textarea, so a model that changes from outside or starts with text is counted', function () {
+    $html = Blade::render('<x-dbl::form.textarea name="bio" max-length="20" x-model="form.bio" />');
+
+    expect($html)->toContain('x-effect="dbTypedCharacters = String(form.bio ?? \'\').length"');
+});
+
+it('has no model effect without an x-model', function () {
+    $html = Blade::render('<x-dbl::form.textarea name="bio" max-length="20" />');
+
+    expect($html)->not->toContain('x-effect');
+});

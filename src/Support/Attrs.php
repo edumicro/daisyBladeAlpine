@@ -33,17 +33,19 @@ final class Attrs
 
     /**
      * @param  array<array-key, mixed>  $attrs
-     * @param  string  $componentClass  The classes the component itself puts on the element. They are written together with
-     *                                  the `class` of the schema in ONE `class` attribute: with two, the browser keeps the first
-     *                                  and silently drops the other (`['class' => 'font-mono']` used to erase `input w-full`).
+     * @param  string  $componentClass  The classes the component itself puts on the element. The `class` of the schema
+     *                                  REPLACES them, as it did in 2.4.0 (where it was written first and the browser keeps the
+     *                                  first of two `class` attributes): whoever sets `['class' => 'my-own']` strips the DaisyUI look.
+     *                                  Without a `class` in the schema, the element gets the component's.
      */
     public static function render(array $attrs, string $componentClass = ''): HtmlString
     {
         $rendered = [];
 
-        // The `class` of the schema is joined to the component's, and written first, before the other attributes.
+        // One single `class`, written first: the one of the schema when there is one (it replaces), else the component's.
+        // (The mix of both comes in 3.0; in 2.x nobody sees a change.)
         if ($componentClass !== '') {
-            $classes = trim($componentClass.' '.(string) ($attrs['class'] ?? ''));
+            $classes = isset($attrs['class']) && is_string($attrs['class']) ? $attrs['class'] : trim($componentClass);
             unset($attrs['class']);
             $rendered[] = 'class="'.e($classes).'"';
         }

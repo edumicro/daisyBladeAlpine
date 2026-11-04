@@ -1,6 +1,6 @@
 'use strict'
 
-import { request, joinUrl, expectJson } from './http.js'
+import { request, joinUrl, expectJson, rejectHtmlPage } from './http.js'
 
 // Every server call of this file goes through request() (see http.js): the client injected with
 // registerDaisyBlade(), else window.axios, else fetch.
@@ -183,10 +183,13 @@ const dbSelectRemote = (config = {}) => ({
             // A user's `x-model` on the <select>: Alpine applied it once, before any <option> existed, and never
             // applies it again when the options arrive. So the model is read here and becomes what is chosen
             // (when it holds a value, it wins over the `value` prop, as on any input with `x-model`).
-            // An EMPTY model (null or '') is "nothing typed yet", not a choice: an edit form that starts its
-            // model empty keeps the `value` the view wrote, as it did in 2.4.0.
+            // An EMPTY model (null, '' or an empty list) is "nothing typed yet", not a choice: an edit form that
+            // starts its model empty keeps the `value` the view wrote, as it did in 2.4.0. And then the model
+            // receives that value, so a form that sends the model does not send an empty one.
             const model = this.field._x_model?.get()
-            if (model !== undefined && model !== null && model !== '') this.selected = toTexts(model)
+            const modelIsEmpty = model === undefined || model === null || model === '' || (Array.isArray(model) && model.length === 0)
+            if (!modelIsEmpty) this.selected = toTexts(model)
+            else if (this.field._x_model && this.selected.length) this.field._x_model.set(this.field.multiple ? [...this.selected] : this.selected[0])
         } catch (error) {
             // No answer: show no options (better than the ones of the previous value) and leave what was chosen as it is.
             // The user sees a translated message with a retry button; the technical detail goes to the console.
@@ -293,7 +296,7 @@ const dbSpreadsheetImport = (config = {}) => ({
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: e => { this.progress = e.total ? Math.round(e.loaded * 100 / e.total) : 50 },
             })
-            expectJson(data)    // an HTML answer (the login page of an expired session) is a failure, not "Import complete"
+            rejectHtmlPage(data)    // an HTML page (the login page of an expired session) is a failure, not "Import complete"; plain text is still a success
             this.result = data; this.step = 'done'
         } catch (e) {
             this.error = e.response?.data?.message ?? messageOf(config, 'uploadFailed', 'Upload failed'); this.step = 'error'

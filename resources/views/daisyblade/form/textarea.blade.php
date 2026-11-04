@@ -19,6 +19,9 @@
     @if($maxLength > 0)
         x-data="{ dbTypedCharacters: {{ mb_strlen((string) $value) }} }"
         x-on:input="dbTypedCharacters = $event.target.value.length"
+        {{-- With an `x-model` on the textarea, the counter also follows the MODEL: it changes from outside (a "clear" button, a
+             loaded record) without any `input` event, and an edit form starts with text the `value` prop does not carry. --}}
+        @if($attributes->get('x-model')) x-effect="dbTypedCharacters = String({{ $attributes->get('x-model') }} ?? '').length" @endif
     @endif
 >
     @if($label)

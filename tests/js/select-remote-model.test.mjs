@@ -68,3 +68,36 @@ test('without x-model, the value prop stays as it was', async () => {
 
     assert.deepEqual(select.selected, ['2'])
 })
+
+// An edit form of a `multiple` select: the model starts as an empty list and the view wrote value=['1','2'].
+test('an EMPTY LIST in the model (multiple) keeps the value prop', async () => {
+    pageWithAxios(OPTIONS)
+    const select = selectWith({ url: '/options', value: ['1', '2'], multiple: true }, fieldWithModel({ value: [] }))
+
+    await select.init()
+
+    assert.deepEqual(select.selected, ['1', '2'])
+})
+
+// The select shows "Two" (from the value prop) and a form that sends the model must not send an empty one.
+test('an empty model receives the value prop that is shown', async () => {
+    pageWithAxios(OPTIONS)
+    const model = { value: '' }
+    const select = selectWith({ url: '/options', value: '2' }, fieldWithModel(model))
+
+    await select.init()
+
+    assert.equal(model.value, '2')
+})
+
+test('an empty model of a multiple select receives the list that is shown', async () => {
+    pageWithAxios(OPTIONS)
+    const model = { value: [] }
+    const field = fieldWithModel(model)
+    field.multiple = true
+    const select = selectWith({ url: '/options', value: ['1', '2'] }, field)
+
+    await select.init()
+
+    assert.deepEqual(model.value, ['1', '2'])
+})

@@ -11,7 +11,7 @@
  *            Placeholder?, axios? }
  */
 
-import { request, expectJson } from '../http.js'
+import { request, rejectHtmlPage } from '../http.js'
 
 // Solo se aceptan enlaces http(s) y mailto. El servidor debe volver a comprobarlo al sanear.
 const SAFE_URL = /^(https?:\/\/|mailto:)/i
@@ -135,7 +135,7 @@ export const dbRichText = (config = {}, deps = {}) => {
             try {
                 // Escalera de http.js: axios inyectado, `window.axios` o `fetch`.
                 const { data } = await request({ method: 'post', url: config.uploadUrl, data: form }, deps)
-                expectJson(data)    // an HTML answer (the login page of an expired session) must not insert an image without `src`
+                rejectHtmlPage(data)    // an HTML answer (the login page of an expired session) must not insert an image without `src`
                 editor.chain().focus().setImage({ src: data.url, alt: file.name }).run()
             } catch (e) {
                 this.error = labels.uploadFailed ?? ''
