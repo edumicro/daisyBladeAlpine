@@ -69,11 +69,5 @@ $checked = filter_var($value, FILTER_VALIDATE_BOOLEAN);
         <p class="text-sm text-base-content/60 mt-0.5">{{ $hint }}</p>
     @endif
 
-    @if($name && isset($errors))
-        @error($name)
-            <div class="mt-1">
-                <span class="text-xs text-error font-semibold">{{ $message }}</span>
-            </div>
-        @enderror
-    @endif
+    <x-dbl::form.field-error :name="$name" />
 </div>

@@ -49,6 +49,8 @@ $placeholder = $placeholder !== '' ? $placeholder : __('Type and press Enter or 
             />
         </div>
 
+        <x-dbl::form.field-error :name="$name" />
+
         @if($hint)
         <div class="mt-1 text-xs text-base-content/40">{{ $hint }}</div>
         @endif

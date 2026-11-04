@@ -3,10 +3,5 @@
     'message' => '',
 ])
 
-@if($message)
-    <p {{ $attributes->merge(['class' => 'text-sm text-error mt-1']) }}>{{ $message }}</p>
-@elseif($field && isset($errors))
-    @error($field)
-        <p {{ $attributes->merge(['class' => 'text-sm text-error mt-1']) }}>{{ $message }}</p>
-    @enderror
-@endif
+{{-- The message of a field is painted in one place for every kind of field (form/field-error.blade.php). --}}
+<x-dbl::form.field-error :name="$field" :message="$message" {{ $attributes }} />

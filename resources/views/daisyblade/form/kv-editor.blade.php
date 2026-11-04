@@ -126,6 +126,8 @@ $initialRows = collect($value)->map(function ($v, $k) {
             {{ __('Add field') }}
         </button>
 
+        <x-dbl::form.field-error :name="$name" />
+
         @if($hint)
         <div class="mt-1 text-xs text-base-content/40">{{ $hint }}</div>
         @endif

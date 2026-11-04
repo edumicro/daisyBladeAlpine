@@ -154,11 +154,7 @@
          that code which looks for the first `{{ $name }}[]` finds a real one. --}}
     <input type="hidden" x-ref="field" name="{{ $name }}[]" disabled />
 
-    @if($name && isset($errors))
-        @error($name)
-            <p class="mt-1 text-xs font-semibold text-error">{{ $message }}</p>
-        @enderror
-    @endif
+    <x-dbl::form.field-error :name="$name" />
 
     @if($hint)
         <p id="{{ $id }}-hint" class="mt-1 text-xs text-base-content/60">{{ $hint }}</p>

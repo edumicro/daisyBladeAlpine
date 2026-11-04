@@ -473,6 +473,7 @@ function conventionMinimalProps(): array
         'display/data-table.blade.php' => 'load-url="/r"',
         'display/flowchart.blade.php' => '',
         'display/resource-details.blade.php' => 'load-url="/r"',
+        'form/field-error.blade.php' => 'message="Mal"',
         'form/kv-editor.blade.php' => 'name="k"',
         'form/list-editor.blade.php' => 'name="l"',
         'form/validator.blade.php' => 'message="Mal"',

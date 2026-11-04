@@ -65,6 +65,8 @@
         </button>
     </div>
 
+    <x-dbl::form.field-error :name="$name" />
+
     @if($hint)
         <p class="mt-2 text-base text-base-content/70">{{ $hint }}</p>
     @endif

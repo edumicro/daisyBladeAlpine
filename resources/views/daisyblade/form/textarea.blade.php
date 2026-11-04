@@ -54,13 +54,7 @@ $controlId = $attributes->get('id', $name ?: null);
         'class' => trim('textarea w-full ' . $sizeClass . ' ' . ($name && isset($errors) && $errors->has($name) ? 'textarea-error' : '')),
     ]) }}>{{ $value }}</textarea>
 
-    @if($name && isset($errors))
-        @error($name)
-            <div class="mt-1">
-                <span class="text-xs text-error font-semibold">{{ $message }}</span>
-            </div>
-        @enderror
-    @endif
+    <x-dbl::form.field-error :name="$name" />
 
     @if($hint)
         <p class="mt-1 text-xs text-base-content/60">{{ $hint }}</p>

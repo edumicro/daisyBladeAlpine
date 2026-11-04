@@ -67,17 +67,7 @@ $controlId = $attributes->get('id', $name ?: null);
         @endif
     </div>
 
-    @if($error)
-        <div class="mt-1">
-            <span class="text-xs text-error font-semibold">{{ $error }}</span>
-        </div>
-    @elseif($name && isset($errors))
-        @error($name)
-            <div class="mt-1">
-                <span class="text-xs text-error font-semibold">{{ $message }}</span>
-            </div>
-        @enderror
-    @endif
+    <x-dbl::form.field-error :name="$name" :message="$error" />
 
     @if($hint)
         <div class="mt-1">

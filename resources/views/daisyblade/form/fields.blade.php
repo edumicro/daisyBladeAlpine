@@ -107,11 +107,7 @@
                         @if($required) required @endif
                         {{ \Edumicro\DaisyBlade\Support\Attrs::render($attrs, 'textarea w-full '.($mode==='form' && $errors->has($key) ? 'textarea-error' : ''), ['placeholder' => $placeholder, 'rows' => $field['rows'] ?? 4]) }}
                     >@if($mode==='form'){{ $value }}@endif</textarea>
-                    @if($mode==='form')
-                        @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror
-                    @else
-                        <p class="mt-1 text-xs text-error" x-show="({{ $aE }}[@js($key)]||[]).length" x-cloak x-text="({{ $aE }}[@js($key)]||[])[0]"></p>
-                    @endif
+                    <x-dbl::form.field-error :name="$key" :mode="$mode" :alpine-errors="$aE" />
                 </div>
             @break
 
@@ -132,7 +128,7 @@
                         />
                         <span class="text-sm font-medium">{{ $label }}</span>
                     </label>
-                    @if($mode==='form') @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror @endif
+                    <x-dbl::form.field-error :name="$key" :mode="$mode" :alpine-errors="$aE" />
                 </div>
             @break
 
@@ -156,6 +152,7 @@
                             class="toggle toggle-primary shrink-0"
                         />
                     </label>
+                    <x-dbl::form.field-error :name="$key" :mode="$mode" :alpine-errors="$aE" />
                 </div>
             @break
 
@@ -181,7 +178,7 @@
                             </label>
                         @endforeach
                     </div>
-                    @if($mode==='form') @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror @endif
+                    <x-dbl::form.field-error :name="$key" :mode="$mode" :alpine-errors="$aE" />
                 </div>
             @break
 
@@ -220,11 +217,7 @@
                             @endif
                         @endforeach
                     </select>
-                    @if($mode==='form')
-                        @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror
-                    @else
-                        <p class="mt-1 text-xs text-error" x-show="({{ $aE }}[@js($key)]||[]).length" x-cloak x-text="({{ $aE }}[@js($key)]||[])[0]"></p>
-                    @endif
+                    <x-dbl::form.field-error :name="$key" :mode="$mode" :alpine-errors="$aE" />
                 </div>
             @break
 
@@ -260,11 +253,7 @@
                         @if($required) required @endif
                         {{ \Edumicro\DaisyBlade\Support\Attrs::render($attrs, 'input w-full '.($mode==='form' && $errors->has($key) ? 'input-error' : ''), ['type' => $inputType, 'placeholder' => $placeholder]) }}
                     />
-                    @if($mode==='form')
-                        @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror
-                    @else
-                        <p class="mt-1 text-xs text-error" x-show="({{ $aE }}[@js($key)]||[]).length" x-cloak x-text="({{ $aE }}[@js($key)]||[])[0]"></p>
-                    @endif
+                    <x-dbl::form.field-error :name="$key" :mode="$mode" :alpine-errors="$aE" />
                 </div>
 
         @endswitch

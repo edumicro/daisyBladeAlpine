@@ -90,11 +90,7 @@
 
     <p x-show="error" x-cloak x-text="error" class="mt-1 text-xs text-error font-semibold" role="alert"></p>
 
-    @if($name && isset($errors))
-        @error($name)
-            <div class="mt-1"><span class="text-xs text-error font-semibold">{{ $message }}</span></div>
-        @enderror
-    @endif
+    <x-dbl::form.field-error :name="$name" />
 
     @if($hint)
         <p class="mt-1 text-xs text-base-content/60">{{ $hint }}</p>

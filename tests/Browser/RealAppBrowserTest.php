@@ -220,6 +220,20 @@ function realAppFill($page): void
     setField($page, '#f input[type=text]:nth-of-type(1)', 'Ana');
 }
 
+it('real app: the auto-form with a dependent select sends what the user chose, and the 422 of Laravel shows under each field', function (string $client) {
+    realAppStart();
+    $GLOBALS['real_app_last_post'] = null;
+    $page = visit(realAppPage('real-app-form-'.$client, realAppFormTemplate(), $client));
+
+    readPage($page, "document.querySelectorAll('#f select[name=country] option').length", fn ($n) => $n >= 3);
+    $page->script("document.querySelector('#f button[type=submit]').click()");
+    $errors = readPage($page, "[...document.querySelectorAll('#f p.text-error')].map(p => p.offsetParent !== null ? p.textContent.trim() : '').filter(Boolean)", fn ($v) => count($v) > 0);
+
+    // name and email are shown; the checkbox "I accept" has an error too (`accepted`) and it must be shown as well.
+    expect(collect($errors)->implode(' | '))->toContain('name field is required')->toContain('email field is required');
+    expect(collect($errors)->implode(' | '))->toContain('must be accepted');
+})->with('clients');
+
 it('real app: country -> region -> submit reaches the controller with both values', function (string $client) {
     realAppStart();
     $GLOBALS['real_app_last_post'] = null;
