@@ -353,8 +353,25 @@ const dblSelectRemote = (config = {}) => ({
         }
         // The options rendered by the server (the saved value) were only for before the JS: now they come from `options`.
         this.field.querySelectorAll('option[data-initial]').forEach(option => option.remove())
+        this.takeModel()
         this.showOptions()
         return true
+    },
+
+    // `x-model` on the <select>: Alpine applies the model to a <select> when the MODEL changes, not when <option>s
+    // appear. So the first application, which ran before our options existed, found none and chose nothing, and nobody
+    // applies it again once they arrive. The model is the truth of an input that has `x-model`, so we take what it holds
+    // as what is chosen, and showOptions() marks that one. (With `value` and an empty model the model wins, as on any input.)
+    //
+    // Alpine has no public way to read the model of an element: `Alpine.evaluate()` needs the TEXT of the expression, and
+    // getting it means parsing the attribute by hand (`x-model`, `x-model.number`, `x-model.debounce.500ms`...), which misses
+    // a model that `Alpine.bind()` or another library attaches. So this uses `el._x_model`, a `{ get, set }` that the x-model
+    // directive leaves on the element whatever its spelling (Alpine's own `x-modelable` reads it too). Checked in Chrome
+    // with Alpine 3.14.9. If a future Alpine drops it, `_x_model` is undefined, this does nothing, and the select behaves
+    // as it did before this fix.
+    takeModel() {
+        const model = this.field._x_model?.get()
+        if (model !== undefined) this.selected = toTexts(model)
     },
 
     // Write `options` as <option>s of the <select>, marking the ones in `selected`.
