@@ -9,8 +9,8 @@
     'readonly'       => false,
     'required'       => false,
     'error'          => '',
+    'value'          => null,
     'hint'           => '',
-    'description'    => '',
     'class'          => '',
     'containerClass' => '',
 ])
@@ -18,10 +18,6 @@
 <div class="w-full {{ $containerClass }}">
     @if($label)
         <label class="mb-1 block text-sm font-medium" @if($name) for="{{ $name }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
-    @endif
-
-    @if($description)
-        <p class="text-sm text-base-content/70 mb-1">{{ $description }}</p>
     @endif
 
     <div class="relative flex items-center">
@@ -34,6 +30,7 @@
         <input
             type="{{ $type }}"
             placeholder="{{ $placeholder }}"
+            @if($value !== null) value="{{ $value }}" @endif
             @if($name) id="{{ $name }}" name="{{ $name }}" @endif
             @if($disabled) disabled @endif
             @if($readonly) readonly @endif

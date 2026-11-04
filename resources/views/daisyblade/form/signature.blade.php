@@ -4,7 +4,7 @@
     'signer'      => '',
     'height'      => 220,
     'required'    => false,
-    'description' => '',
+    'hint'        => '',
     'class'       => '',
 ])
 
@@ -22,10 +22,6 @@
         <div id="{{ $id }}-label" class="mb-1 text-lg font-semibold">
             {{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif
         </div>
-    @endif
-
-    @if($description)
-        <p class="mb-1 text-base text-base-content/70">{{ $description }}</p>
     @endif
 
     {{-- Descripción para lectores de pantalla y aviso visible de que hace falta dedo o puntero. --}}
@@ -64,6 +60,10 @@
             {{ __('daisyblade::signature.clear') }}
         </button>
     </div>
+
+    @if($hint)
+        <p class="mt-2 text-base text-base-content/70">{{ $hint }}</p>
+    @endif
 
     <input type="hidden" x-ref="input" @if($name) name="{{ $name }}" @endif value="">
 </div>

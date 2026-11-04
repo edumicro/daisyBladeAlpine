@@ -49,6 +49,46 @@ it('input with hint prop shows hint text', function () {
     expect($html)->toContain('Máximo 50 caracteres');
 });
 
+it('input puts its value in the value attribute of the <input>, and only when it has one', function () {
+    expect(Blade::render('<x-dbl::form.input name="x" value="valor inicial" />'))->toContain('value="valor inicial"')
+        ->and(Blade::render('<x-dbl::form.input name="x" :value="0" />'))->toContain('value="0"')
+        ->and(Blade::render('<x-dbl::form.input name="x" />'))->not->toContain('value=');
+});
+
+it('checkbox and toggle are checked when their value is true, and only then', function (string $component) {
+    foreach ([true, 1, '1', 'on'] as $on) {
+        expect(Blade::render("<x-dbl::form.{$component} name=\"x\" :value=\"\$value\" />", ['value' => $on]))->toMatch('/<input[^>]*type="checkbox"[^>]*\schecked/s');
+    }
+    foreach ([false, 0, '0', '', null] as $off) {
+        expect(Blade::render("<x-dbl::form.{$component} name=\"x\" :value=\"\$value\" />", ['value' => $off]))->not->toMatch('/<input[^>]*type="checkbox"[^>]*\schecked/s');
+    }
+    expect(Blade::render("<x-dbl::form.{$component} name=\"x\" />"))->not->toMatch('/\schecked/');
+})->with(['checkbox', 'toggle']);
+
+it('checkbox and toggle still send 1 when checked, whatever their value', function (string $component) {
+    expect(Blade::render("<x-dbl::form.{$component} name=\"x\" :value=\"true\" />"))->toContain('name="x" value="1"');
+})->with(['checkbox', 'toggle']);
+
+it('textarea closes the box of its error message', function () {
+    $errors = (new Illuminate\Support\ViewErrorBag)->put('default', new Illuminate\Support\MessageBag(['x' => ['Mal']]));
+    view()->share('errors', $errors);   // what the ShareErrorsFromSession middleware does on every web request
+    $html = Blade::render('<x-dbl::form.textarea name="x" />');
+
+    expect($html)->toContain('Mal')->and(substr_count($html, '<div'))->toBe(substr_count($html, '</div>'));
+});
+
+it('shows the hint of every form control', function () {
+    $controls = [
+        'input' => '', 'textarea' => '', 'checkbox' => '', 'toggle' => '', 'select' => ':options="[\'a\' => \'A\']"',
+        'radio' => ':options="[\'a\' => \'A\']"', 'rich-text' => '', 'signature' => '', 'upload' => 'upload-url="/u"',
+        'kv-editor' => '', 'list-editor' => '', 'repeater' => '',
+    ];
+
+    foreach ($controls as $control => $extra) {
+        expect(Blade::render("<x-dbl::form.{$control} name=\"x\" hint=\"Texto de ayuda\" {$extra} />"))->toContain('Texto de ayuda');
+    }
+});
+
 // ── form/textarea ─────────────────────────────────────────────────────────────
 
 it('textarea renders textarea element with name', function () {

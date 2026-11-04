@@ -3,6 +3,7 @@
     'label'          => '',
     'options'        => [],
     'value'          => null,
+    'hint'           => '',
     'disabled'       => false,
     'required'       => false,
     'color'          => 'primary',
@@ -48,6 +49,10 @@ $colorClass = match($color) {
             </label>
         @endforeach
     </div>
+
+    @if($hint)
+        <p class="mt-1 text-xs text-base-content/60">{{ $hint }}</p>
+    @endif
 
     @if($name && isset($errors))
         @error($name)

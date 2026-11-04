@@ -8,8 +8,8 @@ it('signature renders canvas and hidden input with name', function () {
         ->toContain('dblSignature(');
 });
 
-it('signature renders label, signer and description', function () {
-    $html = Blade::render('<x-dbl::form.signature name="f" label="Firma" signer="Secretaría: Ana López" description="Acta 3" />');
+it('signature renders label, signer and hint', function () {
+    $html = Blade::render('<x-dbl::form.signature name="f" label="Firma" signer="Secretaría: Ana López" hint="Acta 3" />');
     expect($html)->toContain('Firma')->toContain('Secretaría: Ana López')->toContain('Acta 3');
 });
 

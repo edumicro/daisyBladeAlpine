@@ -5,6 +5,7 @@
     'loadUrl'        => '',
     'dependsOn'      => '',
     'placeholder'    => '',
+    'hint'           => '',
     'multiple'       => false,
     'searchable'     => false,
     'disabled'       => false,
@@ -187,5 +188,9 @@ foreach ($options as $optVal => $optLabel) {
                 <span class="text-xs text-error font-semibold">{{ $message }}</span>
             </div>
         @enderror
+    @endif
+
+    @if($hint)
+        <p class="mt-1 text-xs text-base-content/60">{{ $hint }}</p>
     @endif
 </div>

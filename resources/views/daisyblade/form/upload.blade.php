@@ -22,7 +22,7 @@
     'deleteUrl'      => '',
     'reorderUrl'     => '',
     'required'       => false,
-    'description'    => '',
+    'hint'           => '',
     'class'          => '',
     'containerClass' => '',
 ])
@@ -51,10 +51,6 @@
         <label class="mb-1 block text-sm font-medium" for="{{ $id }}">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
 
-    @if($description)
-        <p id="{{ $id }}-desc" class="text-sm text-base-content/70 mb-1">{{ $description }}</p>
-    @endif
-
     {{-- Zona de soltar. El input real está oculto pero es el que enfoca el label. --}}
     <div class="flex flex-col items-center gap-3 rounded-box border-2 border-dashed p-6 text-center transition-colors {{ $class }}"
          x-bind:class="dragging ? 'border-primary bg-primary/10' : 'border-base-300'"
@@ -69,7 +65,7 @@
                @if($accept) accept="{{ $accept }}" @endif
                @if($capture) capture="{{ $capture }}" @endif
                @if($required) x-bind:required="ids.length === 0" @endif
-               @if($description) aria-describedby="{{ $id }}-desc" @endif
+               @if($hint) aria-describedby="{{ $id }}-hint" @endif
                x-on:change="onPick($event)" />
         <label for="{{ $id }}" class="btn btn-primary btn-sm">
             {{ $capture ? $t('take_photo') : $t('choose') }}
@@ -152,5 +148,9 @@
         @error($name)
             <p class="mt-1 text-xs font-semibold text-error">{{ $message }}</p>
         @enderror
+    @endif
+
+    @if($hint)
+        <p id="{{ $id }}-hint" class="mt-1 text-xs text-base-content/60">{{ $hint }}</p>
     @endif
 </div>

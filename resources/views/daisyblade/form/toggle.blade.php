@@ -1,7 +1,8 @@
 @props([
     'name'           => '',
     'label'          => '',
-    'description'    => '',
+    'value'          => false,
+    'hint'           => '',
     'disabled'       => false,
     'required'       => false,
     'color'          => 'primary',
@@ -24,6 +25,9 @@ $colorClass = match($color) {
     'error' => 'toggle-error',
     default => 'toggle-primary',
 };
+
+// `value` is the current value of the control: on when it is true, 1, '1', 'on'... and off when it is false, 0, '0', '' or null.
+$checked = filter_var($value, FILTER_VALIDATE_BOOLEAN);
 @endphp
 
 <div class="w-full {{ $containerClass }}">
@@ -39,12 +43,13 @@ $colorClass = match($color) {
             type="checkbox"
             @if($name) name="{{ $name }}" value="1" @endif
             @if($disabled) disabled @endif
+            @checked($checked)
             {{ $attributes->merge(['class' => trim("toggle {$colorClass} " . $class)]) }}
         />
     </label>
 
-    @if($description)
-        <p class="text-sm text-base-content/60 mt-0.5">{{ $description }}</p>
+    @if($hint)
+        <p class="text-sm text-base-content/60 mt-0.5">{{ $hint }}</p>
     @endif
 
     @if($name && isset($errors))

@@ -6,7 +6,7 @@
     'uploadUrl'      => '',
     'maxLength'      => 0,
     'required'       => false,
-    'description'    => '',
+    'hint'           => '',
     'minimal'        => false,
     'containerClass' => '',
 ])
@@ -60,10 +60,6 @@
         </label>
     @endif
 
-    @if($description)
-        <p class="text-sm text-base-content/70 mb-1">{{ $description }}</p>
-    @endif
-
     {{-- Lo que viaja en el formulario: el HTML del editor, que el servidor DEBE sanear. --}}
     <input type="hidden" x-ref="input" @if($name) name="{{ $name }}" @endif value="{{ $value }}">
 
@@ -94,5 +90,9 @@
         @error($name)
             <div class="mt-1"><span class="text-xs text-error font-semibold">{{ $message }}</span></div>
         @enderror
+    @endif
+
+    @if($hint)
+        <p class="mt-1 text-xs text-base-content/60">{{ $hint }}</p>
     @endif
 </div>

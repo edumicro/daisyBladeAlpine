@@ -7,7 +7,7 @@
     'disabled'       => false,
     'readonly'       => false,
     'required'       => false,
-    'description'    => '',
+    'hint'           => '',
     'class'          => '',
     'containerClass' => '',
     'value'          => null,
@@ -22,10 +22,6 @@
             <span>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
             @if($maxLength > 0) <span class="text-xs font-normal text-base-content/60">0/{{ $maxLength }}</span> @endif
         </label>
-    @endif
-
-    @if($description)
-        <p class="text-sm text-base-content/70 mb-1">{{ $description }}</p>
     @endif
 
     <textarea
@@ -45,6 +41,11 @@
         @error($name)
             <div class="mt-1">
                 <span class="text-xs text-error font-semibold">{{ $message }}</span>
+            </div>
         @enderror
+    @endif
+
+    @if($hint)
+        <p class="mt-1 text-xs text-base-content/60">{{ $hint }}</p>
     @endif
 </div>

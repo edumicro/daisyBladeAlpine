@@ -48,10 +48,11 @@ it('upload paints existing files in the config', function () {
     expect($html)->toContain('ticket.jpg')->toContain('acta.pdf')->toContain('name="f[]"');
 });
 
-it('upload marks required with an asterisk and describes the field', function () {
-    $html = Blade::render('<x-dbl::form.upload name="f" label="Fotos" upload-url="/files" required description="Sube las fotos" />');
+it('upload marks required with an asterisk and describes the field with its hint', function () {
+    $html = Blade::render('<x-dbl::form.upload name="f" label="Fotos" upload-url="/files" required hint="Sube las fotos" />');
 
-    expect($html)->toContain('text-error')->toContain('Sube las fotos')->toContain('aria-describedby="f-upload-desc"');
+    expect($html)->toContain('text-error')->toContain('Sube las fotos')
+        ->toContain('aria-describedby="f-upload-hint"')->toContain('id="f-upload-hint"');
 });
 
 it('upload is translated', function () {

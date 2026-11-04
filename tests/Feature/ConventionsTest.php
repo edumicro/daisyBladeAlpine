@@ -192,3 +192,43 @@ it('2. gives the scripts one name for each URL in their configuration', function
 
     expect($offenders)->toBe([]);
 });
+
+// ── 3. Value: `value` for one value, `values` for a name => value map ──────
+
+it('3. gives a value prop to every form control', function () {
+    $controls = [
+        'form/input.blade.php', 'form/checkbox.blade.php', 'form/toggle.blade.php', 'form/radio.blade.php',
+        'form/select.blade.php', 'form/textarea.blade.php', 'form/rich-text.blade.php',
+        'form/kv-editor.blade.php', 'form/list-editor.blade.php', 'form/repeater.blade.php',
+    ];
+
+    $without = array_values(array_diff($controls, conventionViewsWithProp('value')));
+
+    expect($without)->toBe([]);
+});
+
+it('3. keeps values for the name => value maps of auto-form and fields only', function () {
+    // The wizard takes its maps inside each step (`steps[].values`), not as a prop of its own.
+    expect(conventionViewsWithProp('values'))->toBe(['form/fields.blade.php', 'sections/auto-form.blade.php']);
+});
+
+// ── 4. Help: `hint`, never `description`, on a form control ────────────────
+
+it('4. gives a hint prop to every form control', function () {
+    $controls = [
+        'form/input.blade.php', 'form/checkbox.blade.php', 'form/toggle.blade.php', 'form/radio.blade.php',
+        'form/select.blade.php', 'form/textarea.blade.php', 'form/rich-text.blade.php', 'form/signature.blade.php',
+        'form/upload.blade.php', 'form/kv-editor.blade.php', 'form/list-editor.blade.php', 'form/repeater.blade.php',
+    ];
+
+    expect(array_values(array_diff($controls, conventionViewsWithProp('hint'))))->toBe([]);
+});
+
+it('4. has no description prop on any form control', function () {
+    $offenders = array_values(array_filter(
+        conventionViewsWithProp('description'),
+        fn (string $path) => str_starts_with($path, 'form/') || $path === 'import/spreadsheet.blade.php',
+    ));
+
+    expect($offenders)->toBe([]);
+});

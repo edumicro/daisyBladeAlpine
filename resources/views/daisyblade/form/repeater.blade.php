@@ -4,6 +4,7 @@
     Props:
       name      — HTML array name (e.g. 'installments')
       label     — optional section label
+      hint      — optional help text under the rows
       fields    — array of sub-field defs: [['key'=>'x','label'=>'X','type'=>'text','cols'=>4], ...]
                   'type'  => text | decimal | number | money | percentage | date | datetime |
                              email | select | textarea | toggle | boolean | checkbox
@@ -25,6 +26,7 @@
 @props([
     'name'       => 'items',
     'label'      => null,
+    'hint'       => '',
     'fields'     => [],
     'value'      => null,
     'mode'       => 'form',
@@ -201,4 +203,8 @@
         <x-heroicon-o-plus class="w-4 h-4" />
         {{ $addLabel }}
     </button>
+
+    @if($hint)
+        <p class="text-xs text-base-content/60">{{ $hint }}</p>
+    @endif
 </div>
