@@ -55,7 +55,7 @@ Respuesta 2xx:
 { "message": "The file field must be a PDF.", "errors": { "file": ["El fichero debe ser un PDF."] } }
 ```
 
-**Borrado** — `DELETE {delete-url con {id}}`; cualquier 2xx vale. Si falla, el fichero se queda con el error.
+**Borrado** — `DELETE {delete-url con {id}}`; vale un 2xx con JSON o un `204`. Si falla, el fichero se queda con el error.
 
 **Orden** — `POST {reorder-url}` con `{"ids": [3, 1, 2]}`; solo ids ya subidos.
 

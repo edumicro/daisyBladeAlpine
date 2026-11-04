@@ -33,7 +33,8 @@ test('select remote: an HTML answer (login page) is an error with retry, not an 
     assert.equal(select.error, 'No se han podido cargar las opciones')
     assert.deepEqual(select.options, [])
     assert.equal(select.loading, false)
-    assert.equal(consoleErrors.length, 1)   // the detail goes to the console
+    assert.equal(consoleErrors.length, 2)   // the warning for the developer (docs/contrato.md) and the detail of the component
+    assert.match(String(consoleErrors[0][0]), /docs\/contrato\.md/)
 })
 
 test('select remote: after the login page, retrying loads the options and clears the message', async () => {
@@ -71,7 +72,7 @@ test('resource-details: an HTML answer (login page) is an error with retry, not 
     assert.equal(details.loading, false)
 })
 
-test('an empty answer (204) is still "nothing", not an error', async () => {
+test('an empty answer (204) is an error for a select and a table: they need their list', async () => {
     pageWithAxios('')
     const select = remoteSelect({ loadUrl: '/options' })
     const table = dblDataTable({ loadUrl: '/rows' })
@@ -79,8 +80,6 @@ test('an empty answer (204) is still "nothing", not an error', async () => {
     await select.init()
     await table.load()
 
-    assert.equal(select.error, '')
-    assert.deepEqual(select.options, [])
-    assert.equal(table.error, '')
-    assert.deepEqual(table.rows, [])
+    assert.notEqual(select.error, '')
+    assert.notEqual(table.error, '')
 })

@@ -1,6 +1,6 @@
 'use strict'
 
-import { request, joinUrl, expectJson, rejectHtmlPage, latestOnly } from './http.js'
+import { request, joinUrl, latestOnly, answerShapes } from './http.js'
 
 // Every server call of this file goes through request() (see http.js): the client injected with
 // registerDaisyBlade(), else window.axios, else fetch.
@@ -393,9 +393,9 @@ const dblSelectRemote = (config = {}) => ({
         this.error = ''
         const params = { ...(config.params ?? {}), ...dependencyParams(config.dependsOn, this.dependencyValue()) }
         const outcome = await this.latest.run(async () => {
-            const { data } = this.waiting ? { data: [] } : await http({ url: config.loadUrl, params })
-            expectJson(data)
-            return Array.isArray(data) ? data : (data.data ?? [])
+            if (this.waiting) return []
+            const { data } = await http({ url: config.loadUrl, params })
+            return answerShapes.selectOptions(data, config.loadUrl)
         })
         // A newer request took over: it owns `loading`, `options` and `error`. This one leaves no trace.
         if (outcome.stale) return false
@@ -471,8 +471,7 @@ const dblResourceDetails = (config = {}) => ({
         this.loading = true; this.error = null
         const outcome = await this.latest.run(async () => {
             const { data } = await http({ url: config.loadUrl })
-            expectJson(data)
-            return data.data ?? data
+            return answerShapes.resource(data, config.loadUrl)
         })
         if (outcome.stale) return    // a newer load() took over
 
@@ -507,7 +506,7 @@ const dblTabsLazy = (config = {}) => {
         async _load(index) {
             this.loading = { ...this.loading, [index]: true }
             this.errors = { ...this.errors, [index]: '' }
-            const outcome = await latestOf(index).run(async () => (await http({ url: this.tabs[index].loadUrl })).data)
+            const outcome = await latestOf(index).run(async () => (await http({ url: this.tabs[index].loadUrl, answer: 'html' })).data)
             if (outcome.stale) return    // a newer load of this tab took over
 
             this.loading = { ...this.loading, [index]: false }
@@ -516,8 +515,7 @@ const dblTabsLazy = (config = {}) => {
                 this.errors = { ...this.errors, [index]: messageOf(config, 'loadFailed', 'Could not load the content') }
                 console.error('dblTabsLazy: could not load the tab', outcome.error)
             } else {
-                const data = outcome.value
-                this.contents = { ...this.contents, [index]: typeof data === 'string' ? data : JSON.stringify(data) }
+                this.contents = { ...this.contents, [index]: outcome.value }
             }
         },
         retry(index) { return this._load(index) },
@@ -585,11 +583,7 @@ const dblSpreadsheetImport = (config = {}) => ({
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: e => { this.progress = e.total ? Math.round(e.loaded * 100 / e.total) : 50 },
             })
-            // Only an HTML PAGE (the login page of an expired session) is a failure. The answer need not be JSON (the view reads
-            // `imported` from it if there is one), and the rows ARE imported when the server answers "OK": calling that an
-            // error would make the user retry and import them twice.
-            rejectHtmlPage(data)
-            this.result = data; this.step = 'done'
+            this.result = answerShapes.importResult(data, config.uploadUrl); this.step = 'done'
         } catch (e) {
             this.error = e.response?.data?.message ?? messageOf(config, 'uploadFailed', 'Upload failed'); this.step = 'error'
         } finally { this.loading = false }
@@ -613,8 +607,7 @@ const dblDataTable = (config = {}) => ({
         this.error = ''
         const outcome = await this.latest.run(async () => {
             const { data } = await http({ url: config.loadUrl, params: this.queryState() })
-            expectJson(data)
-            return data
+            return answerShapes.tableRows(data, config.loadUrl)
         })
         if (outcome.stale) return    // a newer load() took over: it owns the rows and the spinner
 
@@ -626,8 +619,8 @@ const dblDataTable = (config = {}) => ({
             this.error = messageOf(config, 'loadFailed', 'Could not load the data')
             console.error('dblDataTable: could not load the rows', outcome.error)
         } else {
-            this.rows = outcome.value.data ?? []
-            this.meta = outcome.value.meta ?? {}
+            this.rows = outcome.value.rows
+            this.meta = outcome.value.meta
         }
     },
     // Everything the table is currently showing: page, search, sort and any filters. The one
@@ -686,10 +679,10 @@ const dblAutoForm = (config = {}) => ({
     async submit() {
         this.loading = true; this.errors = {}; this.globalError = ''; this.success = false
         try {
-            const { data } = await http({ method: config.method ?? 'POST', url: config.submitUrl, data: this.values })
-            // A text answer is not a success: an expired session redirects to the login page, and an empty `submit-url`
-            // posts to the current page. Both come back as a 200 with HTML, and "Saved!" would be a lie.
-            expectJson(data)
+            // A redirect or an HTML answer is not a success (an expired session, or an empty `submit-url` that posts to the
+            // current page): http.js fails them as a contract error, and "Saved!" is never shown. A 204 is accepted.
+            const { data: answer } = await http({ method: config.method ?? 'POST', url: config.submitUrl, data: this.values, answer: 'json-or-empty' })
+            const data = answerShapes.formAnswer(answer, config.submitUrl)
             this.success = true
             if (data.redirect) window.location.href = data.redirect
             else if (config.onSuccess) config.onSuccess(data)
@@ -724,8 +717,9 @@ const dblWizard = (config = {}) => {
         async submit() {
             this.loading = true; this.errors = {}; this.globalError = ''
             try {
-                const { data } = await http({ method: config.method ?? 'POST', url: config.submitUrl, data: this.data })
-                expectJson(data)    // a text answer (the login page) is a failure: the saved progress must stay
+                // A redirect or an HTML answer (the login page) is a failure: the saved progress must stay.
+                const { data: answer } = await http({ method: config.method ?? 'POST', url: config.submitUrl, data: this.data, answer: 'json-or-empty' })
+                const data = answerShapes.formAnswer(answer, config.submitUrl)
                 this.clear()
                 if (data.redirect) window.location.href = data.redirect
                 else if (config.onSuccess) config.onSuccess(data)

@@ -1,4 +1,4 @@
-import { request, isCanceled, expectJson } from '../http.js'
+import { request, isCanceled, answerShapes } from '../http.js'
 
 /**
  * dblUpload — subida de ficheros para <x-dbl::form.upload>.
@@ -93,7 +93,7 @@ export const dblUpload = (config = {}, deps = {}) => ({
         Object.assign(item, { status: 'uploading', progress: 0, error: '', cancel: () => controller.abort() })
         try {
             // Escalera de http.js: axios inyectado, `window.axios` o, si no hay, XMLHttpRequest (fetch no da el progreso).
-            const { data } = await request({
+            const { data: answer } = await request({
                 method: 'post',
                 url: config.uploadUrl,
                 data: body,
@@ -101,9 +101,8 @@ export const dblUpload = (config = {}, deps = {}) => ({
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: e => { item.progress = e.total ? Math.round(e.loaded * 100 / e.total) : 50 },
             }, deps)
-            expectJson(data)    // an HTML answer (the login page of an expired session) is a failure: the file did not arrive
-            // The form sends the ids of the files: an answer without one (a 204, or `{}`) would leave a "done" file that posts `files[]=`.
-            if (data?.id == null) throw new Error('The server did not answer with the id of the file')
+            // An HTML answer (the login page) or one without the `id` (a 204, `{}`) is a failure: the form sends the ids of the files.
+            const data = answerShapes.uploadedFile(answer, config.uploadUrl)
             Object.assign(item, { id: data.id, name: data.name ?? item.name, url: data.url,
                                   thumb: data.thumb ?? null, size: data.size ?? item.size,
                                   status: 'done', progress: 100, file: null, cancel: null })
@@ -138,7 +137,7 @@ export const dblUpload = (config = {}, deps = {}) => ({
         if (item.id === null) return this.discard(item)
         if (!window.confirm(this.t('confirm_delete', { name: item.name }))) return
         if (config.deleteUrl) {
-            try { await request({ method: 'delete', url: config.deleteUrl.replace('{id}', encodeURIComponent(item.id)) }, deps) }
+            try { await request({ method: 'delete', url: config.deleteUrl.replace('{id}', encodeURIComponent(item.id)), answer: 'json-or-empty' }, deps) }
             catch (e) { item.error = e.response?.data?.message || this.t('delete_failed'); this.announce(item.error); return }
         }
         this.discard(item)
@@ -152,7 +151,7 @@ export const dblUpload = (config = {}, deps = {}) => ({
         this.items.splice(to, 0, this.items.splice(from, 1)[0])
         this.announce(this.t('moved', { name: item.name, position: to + 1 }))
         if (!config.reorderUrl) return
-        try { await request({ method: 'post', url: config.reorderUrl, data: { ids: this.ids } }, deps) }
+        try { await request({ method: 'post', url: config.reorderUrl, data: { ids: this.ids }, answer: 'json-or-empty' }, deps) }
         catch (e) { this.announce(this.t('reorder_failed')) }
     },
 

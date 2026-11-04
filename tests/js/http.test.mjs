@@ -1,10 +1,13 @@
 import test, { beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { request, joinUrl, isCrossOrigin, isCanceled } from '../../resources/js/http.js'
+import { request, joinUrl, isCrossOrigin, isCanceled, isContractError } from '../../resources/js/http.js'
 
 // ── A fake browser: only what http.js looks at ─────────────────────────────
 
 const realFetch = globalThis.fetch
+
+/** The headers every request carries by contract (see the top of http.js), as an axios client receives them. */
+const contractHeaders = { accept: 'application/json', 'x-requested-with': 'XMLHttpRequest' }
 let fetchCalls
 
 /** Replace `fetch` with a function that records the call and answers with `reply`. */
@@ -51,7 +54,7 @@ test('with an injected axios, that client is used (before window.axios and befor
 
     assert.deepEqual(data, { from: 'axios' })
     assert.equal(injected.calls.length, 1)
-    assert.deepEqual(injected.calls[0].args, ['/api/users', { params: { page: 2 } }])
+    assert.deepEqual(injected.calls[0].args, ['/api/users', { params: { page: 2 }, headers: contractHeaders }])
     assert.equal(global.calls.length, 0)
     assert.equal(fetchCalls.length, 0)
 })
@@ -82,19 +85,19 @@ test('axios methods get the arguments axios expects: post(url, data, config), de
     await request({ method: 'POST', url: '/save', data: { a: 1 }, headers: { 'X-A': '1' }, signal }, { axios: client })
     await request({ method: 'delete', url: '/remove/3', data: { why: 'old' } }, { axios: client })
 
-    assert.deepEqual(client.calls[0].args, ['/save', { a: 1 }, { headers: { 'X-A': '1' }, signal }])
-    assert.deepEqual(client.calls[1].args, ['/remove/3', { data: { why: 'old' } }])
+    assert.deepEqual(client.calls[0].args, ['/save', { a: 1 }, { headers: { ...contractHeaders, 'x-a': '1' }, signal }])
+    assert.deepEqual(client.calls[1].args, ['/remove/3', { headers: contractHeaders, data: { why: 'old' } }])
 })
 
 test('a client with no get/post methods is called through request() or as a function', async () => {
     const seen = []
-    const withRequest = { request: async config => { seen.push(config); return { data: 1 } } }
-    const asFunction = async config => { seen.push(config); return { data: 2 } }
+    const withRequest = { request: async config => { seen.push(config); return { data: { n: 1 } } } }
+    const asFunction = async config => { seen.push(config); return { data: { n: 2 } } }
 
-    assert.equal((await request({ url: '/a' }, { axios: withRequest })).data, 1)
-    assert.equal((await request({ method: 'put', url: '/b', data: { x: 1 } }, { axios: asFunction })).data, 2)
-    assert.deepEqual(seen[0], { method: 'get', url: '/a' })
-    assert.deepEqual(seen[1], { method: 'put', url: '/b', data: { x: 1 } })
+    assert.equal((await request({ url: '/a' }, { axios: withRequest })).data.n, 1)
+    assert.equal((await request({ method: 'put', url: '/b', data: { x: 1 } }, { axios: asFunction })).data.n, 2)
+    assert.deepEqual(seen[0], { method: 'get', url: '/a', headers: contractHeaders })
+    assert.deepEqual(seen[1], { method: 'put', url: '/b', data: { x: 1 }, headers: contractHeaders })
 })
 
 // ── Another domain: always fetch, no Laravel headers ───────────────────────
@@ -178,15 +181,65 @@ test('headers given by the caller win, whatever the case of their names', async 
 
 // ── Responses and errors with the shape of axios ───────────────────────────
 
-test('a text answer (HTML) comes back as text, a JSON one as an object even with another content type', async () => {
-    fakeFetch({ status: 200, body: '<p>hello</p>', type: 'text/html' })
-    assert.equal((await request({ url: '/tab' })).data, '<p>hello</p>')
-
+test('a JSON answer comes back as an object even with another content type', async () => {
     fakeFetch({ status: 200, body: '{"a":1}', type: 'text/plain' })
     assert.deepEqual((await request({ url: '/odd' })).data, { a: 1 })
+})
 
+test('an HTML fragment is only accepted where the component asks for `answer: html`, and then Accept says so', async () => {
+    fakeFetch({ status: 200, body: '<p>hello</p>', type: 'text/html' })
+    assert.equal((await request({ url: '/tab', answer: 'html' })).data, '<p>hello</p>')
+    assert.match(fetchCalls[0].init.headers.accept, /^text\/html/)
+
+    await assert.rejects(request({ url: '/tab' }), error => isContractError(error) && error.reason === 'not-json')
+})
+
+test('every request asks for JSON (Accept) and says it is Ajax (X-Requested-With, same origin only)', async () => {
+    await request({ url: '/api/users' })
+    await request({ url: 'https://tiles.example.org/layer.json' })
+
+    assert.equal(fetchCalls[0].init.headers.accept, 'application/json')
+    assert.equal(fetchCalls[0].init.headers['x-requested-with'], 'XMLHttpRequest')
+    assert.equal(fetchCalls[1].init.headers.accept, 'application/json')
+    assert.equal(fetchCalls[1].init.headers['x-requested-with'], undefined)
+})
+
+test('an empty body (a 204) is a contract error, unless the component says `json-or-empty`; then it reads as {}', async () => {
     fakeFetch({ status: 204, body: null, type: 'text/plain' })
-    assert.equal((await request({ url: '/none' })).data, '')
+    await assert.rejects(request({ url: '/none' }), error => isContractError(error) && error.reason === 'empty')
+    assert.deepEqual((await request({ url: '/none', answer: 'json-or-empty' })).data, {})
+})
+
+test('plain text with a 200 is a contract error, and the console tells the developer which endpoint and where to read', async () => {
+    const logged = []
+    const realError = console.error
+    console.error = message => logged.push(message)
+    fakeFetch({ status: 200, body: 'OK', type: 'text/plain' })
+    try {
+        await assert.rejects(request({ url: '/save' }), error => isContractError(error) && error.reason === 'not-json')
+    } finally { console.error = realError }
+
+    assert.equal(logged.length, 1)
+    assert.match(logged[0], /\/save/)
+    assert.match(logged[0], /docs\/contrato\.md/)
+})
+
+test('a redirect is a contract error, with fetch, XMLHttpRequest and axios', async () => {
+    const silenced = console.error
+    console.error = () => {}
+    try {
+        // fetch says it by itself
+        globalThis.fetch = async () => Object.defineProperty(new Response('{"ok":true}', { status: 200, headers: { 'content-type': 'application/json' } }), 'redirected', { value: true })
+        await assert.rejects(request({ url: '/api/users' }), error => isContractError(error) && error.reason === 'redirected')
+
+        // axios leaves the final URL in request.responseURL
+        const redirectedAxios = { get: async () => ({ data: { ok: true }, status: 200, request: { responseURL: 'https://app.test/login' } }) }
+        await assert.rejects(request({ url: '/api/users' }, { axios: redirectedAxios }), error => isContractError(error) && error.reason === 'redirected')
+
+        // the same endpoint (with the query string axios writes in its own way) is not a redirect
+        const sameAxios = { get: async () => ({ data: { ok: true }, status: 200, request: { responseURL: 'https://app.test/api/users?page=2' } }) }
+        assert.deepEqual((await request({ url: '/api/users', params: { page: 2 } }, { axios: sameAxios })).data, { ok: true })
+    } finally { console.error = silenced }
 })
 
 test('a 422 fails with error.response.status and error.response.data, like axios', async () => {

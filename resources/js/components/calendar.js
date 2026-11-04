@@ -1,6 +1,6 @@
 'use strict'
 
-import { request as sendRequest, expectJson, latestOnly } from '../http.js'
+import { request as sendRequest, latestOnly, answerShapes } from '../http.js'
 
 // ── Fechas: funciones puras (se prueban con `node --test`) ─────────────────
 // Los días se manejan como cadenas 'YYYY-MM-DD'. Así no hay zonas horarias de por medio.
@@ -135,9 +135,8 @@ export const dblCalendar = (config = {}, deps = {}) => ({
         }
         this.loading = true
         const outcome = await this.latest.run(async () => {
-            const data = await this.request(config.loadUrl, { start, end })
-            expectJson(data)    // an HTML answer (the login page of an expired session) is an error, not an empty month that gets cached
-            return Array.isArray(data) ? data : (data.data ?? [])
+            // Not JSON, or not events (the login page of an expired session): an error, not an empty month that gets cached.
+            return answerShapes.calendarEvents(await this.request(config.loadUrl, { start, end }), config.loadUrl)
         })
         if (outcome.stale) return    // el usuario ya está en otro mes: esta respuesta no pinta nada
 

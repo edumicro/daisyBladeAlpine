@@ -17,6 +17,15 @@
 // Every client resolves to the same shape ({ data, status, ... }) and fails with the same shape
 // (`error.response.status`, `error.response.data`), so the callers look at a 422 or at
 // `error.response.data.message` without caring which client ran.
+//
+// THE CONTRACT WITH THE SERVER (the whole of it lives in this file; the forms of the answers are in docs/contrato.md):
+//
+//   - Every request asks for JSON: `Accept: application/json` and, on the same domain, `X-Requested-With`. With them Laravel
+//     answers by itself a 401 / 419 / 422 in JSON instead of redirecting to the login page.
+//   - A redirect, or a 2xx body that is not JSON, is a CONTRACT ERROR (`ContractError`, `isContractError()`), with a clear
+//     warning in the console for the developer. It is never taken as data: a login page is not an empty list.
+//   - An empty answer (a 204) only counts where the component says so with `answer: 'json-or-empty'`.
+//   - The FORM of the JSON is checked by one function per component, in `answerShapes` at the end of this file.
 
 /** Methods that carry a body. The others (get, head) put everything in the URL. */
 const METHODS_WITH_BODY = ['post', 'put', 'patch', 'delete']
@@ -150,6 +159,31 @@ function networkError(cause, settings) {
     return error
 }
 
+/**
+ * The server did not keep the contract (see the top of this file): it redirected, or its answer is not the JSON the component
+ * needs. `reason` says which one (redirected | not-json | empty | not-html | shape). The developer gets a warning in the
+ * console that names the endpoint, because the user only sees a generic "could not load".
+ */
+function contractError(reason, settings, detail = '') {
+    const causes = {
+        redirected: 'answered with a redirect (an expired session going to the login page? a controller that does back()?)',
+        'not-json': 'did not answer JSON',
+        empty: 'answered with an empty body (a 204) and this component does not accept that',
+        'not-html': 'did not answer an HTML fragment',
+        shape: detail,
+    }
+    const error = new Error(`DaisyBlade: the endpoint ${settings.url} ${causes[reason]}. See docs/contrato.md`)
+    error.name = 'ContractError'
+    error.code = 'ERR_CONTRACT'
+    error.reason = reason
+    error.config = settings
+    console.error(error.message)
+    return error
+}
+
+/** True when `error` is a failure of the contract with the server (see `contractError`). */
+export const isContractError = error => error?.code === 'ERR_CONTRACT'
+
 /** The caller aborted it with its AbortController. */
 function canceledError(settings) {
     const error = new Error('canceled')
@@ -164,11 +198,49 @@ export function isCanceled(error, client) {
     return !!(client?.isCancel?.(error) || error?.code === 'ERR_CANCELED')
 }
 
+/** The origin and the path of a URL, without the query: what tells a redirect apart from the same endpoint. */
+function placeOf(url) {
+    try {
+        const parsed = new URL(String(url), globalThis.location?.href ?? 'http://localhost/')
+        return parsed.origin + parsed.pathname
+    } catch {
+        return String(url)
+    }
+}
+
+/** True when the answer came from another URL than the one asked for (a client that follows redirects does not say it). */
+const cameFromElsewhere = (askedUrl, answeredUrl) => !!answeredUrl && placeOf(askedUrl) !== placeOf(answeredUrl)
+
+/**
+ * The contract (see the top of this file) applied to a 2xx answer, whichever client brought it.
+ * `redirected` is what each client knows about it. Returns the response, with `data` ready for `answerShapes`.
+ */
+function acceptAnswer(response, settings, redirected) {
+    if (redirected) throw contractError('redirected', settings)
+
+    const kind = settings.answer ?? 'json'
+    const { data } = response
+    const isEmpty = data === '' || data === undefined || data === null
+
+    if (kind === 'html') {
+        if (typeof data !== 'string' || isEmpty) throw contractError('not-html', settings)
+        return response
+    }
+    if (isEmpty) {
+        if (kind !== 'json-or-empty') throw contractError('empty', settings)
+        // An accepted empty answer reads as an object without fields, so the callers never test for null.
+        return { ...response, data: {} }
+    }
+    // A text body (HTML page, "OK") stays a string in `data`; the JSON that we want is an object or a list.
+    if (typeof data !== 'object') throw contractError('not-json', settings)
+    return response
+}
+
 /** The same result and the same failures for fetch and XMLHttpRequest. */
-function settle({ status, statusText, text, contentType, headers }, settings) {
+function settle({ status, statusText, text, contentType, headers, redirected }, settings) {
     const response = { data: parseBody(text, contentType), status, statusText, headers }
     if (status < 200 || status >= 300) throw httpError(response, settings)
-    return response
+    return acceptAnswer(response, settings, redirected)
 }
 
 // ── Clients ─────────────────────────────────────────────────────────────────
@@ -177,25 +249,30 @@ function settle({ status, statusText, text, contentType, headers }, settings) {
 const compact = object => Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined))
 
 /** axios (or anything with its interface): its own methods when it has them, else `request`, else call it. */
-function viaClient(client, settings) {
-    const { method, url, params, data, headers, signal, onUploadProgress } = settings
+async function viaClient(client, settings) {
+    const { method, url, params, data, signal, onUploadProgress } = settings
+    // axios already adds `X-Requested-With` in a Laravel app, but a client injected by hand may not.
+    const headers = buildHeaders(settings, false)
     const options = compact({ params, headers, signal, onUploadProgress })
 
+    let response
     if (typeof client[method] === 'function') {
-        if (!METHODS_WITH_BODY.includes(method)) return client[method](url, options)
+        if (!METHODS_WITH_BODY.includes(method)) response = await client[method](url, options)
         // axios.delete(url, config) takes the body inside the config; post/put/patch take it as an argument.
-        return method === 'delete'
-            ? client.delete(url, compact({ ...options, data }))
-            : client[method](url, data, options)
+        else if (method === 'delete') response = await client.delete(url, compact({ ...options, data }))
+        else response = await client[method](url, data, options)
+    } else {
+        const full = compact({ method, url, data, ...options })
+        response = await (typeof client.request === 'function' ? client.request(full) : client(full))
     }
-    const full = compact({ method, url, data, ...options })
-    return typeof client.request === 'function' ? client.request(full) : client(full)
+    // axios leaves the URL that finally answered in `request.responseURL`.
+    return acceptAnswer(response, settings, cameFromElsewhere(joinUrl(url, params), response?.request?.responseURL))
 }
 
-/** Headers for fetch and XMLHttpRequest: our defaults, the Laravel ones if same-origin, then the caller's. */
+/** Headers for every client: the contract's, the Laravel ones if same-origin, then the caller's. */
 function buildHeaders(settings, crossOrigin) {
     return {
-        accept: 'application/json, text/plain, */*',
+        accept: settings.answer === 'html' ? 'text/html, */*' : 'application/json',
         ...(crossOrigin ? {} : laravelHeaders(settings.method)),
         ...lowerCaseKeys(settings.headers),
     }
@@ -225,6 +302,7 @@ async function viaFetch(settings, crossOrigin) {
         text: await response.text(),
         contentType: response.headers.get('content-type'),
         headers: Object.fromEntries(response.headers.entries()),
+        redirected: response.redirected,
     }, settings)
 }
 
@@ -269,6 +347,7 @@ function viaXhr(settings) {
                     text: xhr.responseText ?? '',
                     contentType: xhr.getResponseHeader('content-type'),
                     headers: parseRawHeaders(xhr.getAllResponseHeaders?.() ?? ''),
+                    redirected: cameFromElsewhere(joinUrl(settings.url, settings.params), xhr.responseURL),
                 }, settings))
             } catch (error) { reject(error) }
         }
@@ -287,6 +366,8 @@ function viaXhr(settings) {
  * @param {object}   [options.params]         query string
  * @param {*}        [options.data]           body: an object (sent as JSON), FormData or a string
  * @param {object}   [options.headers]
+ * @param {'json'|'json-or-empty'|'html'} [options.answer='json']  what the component accepts as an answer: JSON (the default),
+ *                                        JSON or an empty body (a 204), or an HTML fragment (lazy tabs)
  * @param {AbortSignal} [options.signal]
  * @param {Function} [options.onUploadProgress]  ({ loaded, total }) => void
  * @param {object}   [deps]
@@ -306,23 +387,6 @@ export async function request(options, deps = {}) {
     // No axios. fetch cannot report upload progress, XMLHttpRequest can.
     if (settings.onUploadProgress && typeof XMLHttpRequest !== 'undefined') return viaXhr(settings)
     return viaFetch(settings, false)
-}
-
-// What a component that SENDS something (an upload, an import) and does not need the answer to be JSON does with it. Plain
-// text with a 200 is still a success (a server that answers "OK" or redirects back() to a page). Only an answer that looks
-// like an HTML PAGE (it starts with `<`: the login page that an expired session redirects to) is a failure.
-export const rejectHtmlPage = data => {
-    if (typeof data === 'string' && data.trimStart().startsWith('<')) throw new Error('The server sent an HTML page (an expired session redirected to the login page?)')
-    return data
-}
-
-// What a component that talks JSON (select options, table rows, a resource, the answer to a form) does with the body of the answer.
-// When the session has expired the server redirects to the login page; axios and fetch follow the redirect and hand
-// over its HTML as a normal 200 answer, which read as data looks like an empty list. So a text body is an error: the
-// component shows its "could not load" message with Retry (a form shows its error). An empty body (a 204) is not text: it still means "nothing".
-export const expectJson = data => {
-    if (typeof data === 'string' && data !== '') throw new Error('Expected JSON but the server sent text (an expired session redirected to the login page?)')
-    return data
 }
 
 // ── Latest only (cause 6: an old answer must never overwrite a newer one) ───
@@ -357,4 +421,80 @@ export function latestOnly() {
         },
         cancel() { newestTicket++ },
     }
+}
+
+// ── The form of each answer (one function per component; docs/contrato.md explains them) ──────
+
+const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value)
+
+/** If the answer is not right: log what the component expects (for the developer) and fail with a ContractError. */
+function expectShape(url, component, expected, isRight) {
+    if (isRight) return
+    throw contractError('shape', { url }, `answered something that ${component} cannot read: it expects ${expected}`)
+}
+
+/** A list, bare or inside `{ data: [...] }`. */
+const listOf = data => (Array.isArray(data) ? data : (isObject(data) ? data.data : undefined))
+
+/**
+ * What every component that reads JSON expects from the server. Each function receives the body of a good answer (and the URL,
+ * only to name it in the warning), throws a ContractError if its form is wrong, and returns the part the component uses.
+ */
+export const answerShapes = {
+    /** select with load-url: `[{ value, label }]` or `{ data: [{ value, label }] }` -> the list. */
+    selectOptions(data, url) {
+        const options = listOf(data)
+        expectShape(url, 'the remote select', '[{ "value": …, "label": … }] or { "data": [ … ] }',
+            Array.isArray(options) && options.every(option => isObject(option) && 'value' in option && 'label' in option))
+        return options
+    },
+    /** data-table: `{ data: [row, …], meta?: {…} }` -> { rows, meta }. */
+    tableRows(data, url) {
+        expectShape(url, 'the data table', '{ "data": [ … ], "meta": { … } }', isObject(data) && Array.isArray(data.data))
+        return { rows: data.data, meta: isObject(data.meta) ? data.meta : {} }
+    },
+    /** resource-details: the resource, bare or inside `{ data: {…} }` -> the resource. */
+    resource(data, url) {
+        expectShape(url, 'the resource details', '{ …fields } or { "data": { …fields } }', isObject(data))
+        return isObject(data.data) ? data.data : data
+    },
+    /** calendar: `[{ id, title, start, … }]` or `{ data: [ … ] }` -> the list. */
+    calendarEvents(data, url) {
+        const events = listOf(data)
+        expectShape(url, 'the calendar', '[{ "id": …, "title": …, "start": "YYYY-MM-DD" }] or { "data": [ … ] }',
+            Array.isArray(events) && events.every(event => isObject(event) && 'title' in event && typeof event.start === 'string'))
+        return events
+    },
+    /** map layer: a GeoJSON FeatureCollection -> itself. */
+    geoJsonLayer(data, url) {
+        expectShape(url, 'the map', 'a GeoJSON FeatureCollection { "type": "FeatureCollection", "features": [ … ] }',
+            isObject(data) && Array.isArray(data.features))
+        return data
+    },
+    /** map geocoder: `{ data: [{ lat, lng, … }] }` -> the list. */
+    geocoderResults(data, url) {
+        expectShape(url, 'the map search', '{ "data": [{ "lat": …, "lng": …, "label": … }] }',
+            isObject(data) && Array.isArray(data.data) && data.data.every(place => isObject(place) && 'lat' in place && 'lng' in place))
+        return data.data
+    },
+    /** upload: `{ id, name?, url?, thumb?, size? }` -> itself. The form sends the `id`, so a file without one is not uploaded. */
+    uploadedFile(data, url) {
+        expectShape(url, 'the upload', '{ "id": …, "name": …, "url": … }', isObject(data) && data.id !== undefined && data.id !== null)
+        return data
+    },
+    /** rich-text image upload: `{ url }` -> itself. */
+    uploadedImage(data, url) {
+        expectShape(url, 'the rich text editor', '{ "url": "https://…/image.jpg" }', isObject(data) && typeof data.url === 'string' && data.url !== '')
+        return data
+    },
+    /** auto-form and wizard: any JSON object (`{ redirect? }`); an empty answer arrives here as `{}`. */
+    formAnswer(data, url) {
+        expectShape(url, 'the form', 'a JSON object, such as { "redirect": "/users" }', isObject(data))
+        return data
+    },
+    /** spreadsheet import: a JSON object (`{ imported? }`). */
+    importResult(data, url) {
+        expectShape(url, 'the import', 'a JSON object, such as { "imported": 120 }', isObject(data))
+        return data
+    },
 }

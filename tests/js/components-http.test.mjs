@@ -77,11 +77,11 @@ test('map: a layer of our own goes through the injected axios, one of another do
 
     assert.equal(axiosCalls.length, 1)
     assert.equal(axiosCalls[0].url, '/api/own.geojson')
-    assert.equal(axiosCalls[0].headers.Accept, 'application/geo+json, application/json')
+    assert.equal(axiosCalls[0].headers.accept, 'application/json')
     assert.equal(fetchCalls.length, 1)
     assert.equal(fetchCalls[0].url, 'https://tiles.example.org/public.geojson')
     assert.equal(fetchCalls[0].init.headers['x-requested-with'], undefined)
-    assert.equal(fetchCalls[0].init.headers.accept, 'application/geo+json, application/json')
+    assert.equal(fetchCalls[0].init.headers.accept, 'application/json')
 })
 
 test('map: a layer that fails shows the translated message; the geocoder reads `data` and reports its failure', async () => {

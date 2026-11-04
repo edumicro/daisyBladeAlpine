@@ -10,7 +10,7 @@
 import { createMapLibreAdapter } from './map/maplibre.js'
 import { createGoogleAdapter } from './map/google.js'
 import { findFeature, boundsOf } from './map/features.js'
-import { request, expectJson, latestOnly } from '../http.js'
+import { request, latestOnly, answerShapes } from '../http.js'
 
 let deps = {}
 
@@ -100,9 +100,8 @@ export const dblMap = (config = {}) => {
             try {
                 // Una capa propia usa la escalera de http.js (axios inyectado, window.axios o fetch);
                 // una capa de otro dominio va siempre por fetch y sin cabeceras de Laravel.
-                const { data } = await request({ url: l.loadUrl, headers: { Accept: 'application/geo+json, application/json' } }, deps)
-                expectJson(data)    // an HTML answer (the login page) is a failed layer, not an empty one without a warning
-                raw[l.id] = data
+                const { data } = await request({ url: l.loadUrl }, deps)
+                raw[l.id] = answerShapes.geoJsonLayer(data, l.loadUrl)    // an HTML answer (the login page) is a failed layer, not an empty one
             } catch {
                 raw[l.id] = emptyCollection
                 this.error = `${config.labels.layer_failed}: ${l.label}`
@@ -152,8 +151,7 @@ export const dblMap = (config = {}) => {
             this.error = ''
             const outcome = await latestSearch.run(async () => {
                 const { data } = await request({ url: config.geocodeUrl, params: { q } }, deps)
-                expectJson(data)    // an HTML answer (the login page) is `search_failed`, not "no results"
-                return data.data ?? []
+                return answerShapes.geocoderResults(data, config.geocodeUrl)    // an HTML answer (the login page) is `search_failed`, not "no results"
             })
             if (outcome.stale) return    // the user searched again: only the newest search paints
 

@@ -66,12 +66,12 @@ test('upload: a plain-text 200 is an error too (the form needs the id of the fil
     assert.equal(item.status, 'error')
 })
 
-test('spreadsheet import: a plain-text 200 stays "done" (the rows were imported)', async () => {
+test('spreadsheet import: a plain-text 200 is an error too (the importer also needs JSON)', async () => {
     answer = { data: 'OK', status: 200 }
     const importer = dblSpreadsheetImport({ uploadUrl: '/import' })
     importer.file = new Blob(['a'])
     await importer.upload()
-    assert.equal(importer.step, 'done')
+    assert.equal(importer.step, 'error')
 })
 
 test('spreadsheet import: an HTML page is an error', async () => {
