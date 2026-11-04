@@ -85,6 +85,7 @@ test('a number in the model is the same key as its text', () => {
 test('the model emptied from outside (a reset) empties the box and the hidden input', () => {
     const { select, box } = searchableWithBox({ chosen: '1', search: 'One' })
     box.value = 'One'
+    select.starting = false // the page has started
 
     select.chosen = null
     select.sync()
@@ -108,4 +109,41 @@ test('the label of a key is found in grouped options too', () => {
 
     assert.equal(select.labelOf('jp'), 'Japón')
     assert.equal(select.labelOf('zz'), '')
+})
+
+// An edit form: `x-data="{ form: { country_id: null } }"` and the `value` the server wrote. x-modelable copies the empty model
+// into `chosen` before the first sync(); the value of the view must come back, and the model receives it.
+for (const empty of [null, '']) {
+    test(`an empty model at the start (${JSON.stringify(empty)}) keeps the value of the view, and the model receives it`, () => {
+        const { select, box } = searchableWithBox({ chosen: '2', search: 'Two' })
+        select.chosen = empty   // what x-modelable does while the page starts
+
+        select.sync()
+
+        assert.equal(select.chosen, '2')
+        assert.equal(box.value, 'Two')
+        assert.equal(select.$refs.value.value, '2')
+    })
+}
+
+test('an empty model AFTER the start is a reset: the box empties instead of getting the value of the view back', () => {
+    const { select, box } = searchableWithBox({ chosen: '2', search: 'Two' })
+    select.starting = false
+    box.value = 'Two'
+
+    select.chosen = ''
+    select.sync()
+
+    assert.equal(select.chosen, '')
+    assert.equal(box.value, '')
+})
+
+test('a model that holds a key at the start wins over the value of the view', () => {
+    const { select, box } = searchableWithBox({ chosen: '2', search: 'Two' })
+    select.chosen = '1'
+
+    select.sync()
+
+    assert.equal(select.chosen, '1')
+    assert.equal(box.value, 'One')
 })

@@ -178,8 +178,15 @@ const dblSelectSearch = (config = {}) => ({
     // `shown` is the key whose label the text box shows now: when `chosen` is another one, it was changed from outside.
     chosen: config.chosen ?? '',
     shown: String(config.chosen ?? ''),
+    starting: true,   // true while the page starts: x-modelable copies the model into `chosen` a moment AFTER the first sync()
+    init() { this.$nextTick(() => { this.starting = false }) },
     // Keeps the text box and the hidden input in step with `chosen` (the view calls it from an x-effect).
     sync() {
+        // An EMPTY model at the start (null or '') is "nothing typed yet", not a choice: an edit form that starts its model
+        // empty keeps the `value` the view wrote, and the model receives it. (A model that already holds a key wins.)
+        // Only while starting: later, an empty model is the page resetting the field, and the box must empty.
+        const empty = value => value === null || value === undefined || value === ''
+        if (this.starting && empty(this.chosen) && !empty(config.chosen)) this.chosen = config.chosen
         const key = this.chosen === null || this.chosen === undefined ? '' : String(this.chosen)
         if (key !== this.shown) {
             // Changed from outside (the model): the box shows the label of that key, or nothing.
