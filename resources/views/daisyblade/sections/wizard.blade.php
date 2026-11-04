@@ -2,7 +2,7 @@
     Tipo 3: Multi-step wizard with Alpine + Axios + localStorage persistence.
 
     @prop steps   — [ ['label'=>'Info', 'description'=>'', 'schema'=>[...], 'values'=>[...]] ]
-    @prop action  — POST endpoint URL
+    @prop submitUrl — endpoint that receives the values (POST by default)
     @prop method  — HTTP method (default POST)
     @prop submitLabel — last step button label (default 'Finish')
     @prop userId  — user ID for localStorage key isolation
@@ -16,7 +16,7 @@
 --}}
 @props([
     'steps'         => [],
-    'action'        => '',
+    'submitUrl'     => '',
     'method'        => 'POST',
     'submitLabel'   => '',
     'userId'        => '',
@@ -38,7 +38,7 @@ foreach ($steps as $step) {
 
 <div
     x-data="dblWizard({
-        action:        '{{ $action }}',
+        submitUrl:     '{{ $submitUrl }}',
         method:        '{{ strtoupper($method) }}',
         userId:        '{{ $userId }}',
         formId:        '{{ $formId }}',

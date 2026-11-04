@@ -64,7 +64,7 @@ test('calendar: without axios it uses fetch, and a 500 puts it in the error stat
 
 // ── map ────────────────────────────────────────────────────────────────────
 
-const layer = (url) => ({ id: 'l', label: 'L', url, color: '#000', icon: '', cluster: false, visible: true, loading: true })
+const layer = (url) => ({ id: 'l', label: 'L', loadUrl: url, color: '#000', icon: '', cluster: false, visible: true, loading: true })
 const mapConfig = { labels: { layer_failed: 'Capa no cargada', search_failed: 'Búsqueda fallida', init_failed: 'No se ha podido cargar el mapa.' }, geocodeUrl: '/geocode' }
 
 test('map: a layer of our own goes through the injected axios, one of another domain through fetch (no Laravel headers)', async () => {
@@ -133,7 +133,7 @@ class XhrFake {
     reply(status, text) { Object.assign(this, { status, statusText: '', responseText: text }); this.onload() }
 }
 
-const uploader = (extra = {}) => withAlpine(dblUpload({ action: '/upload', multiple: true, messages: { failed: 'Falló', cancelled: 'Cancelado' }, ...extra }))
+const uploader = (extra = {}) => withAlpine(dblUpload({ uploadUrl: '/upload', multiple: true, messages: { failed: 'Falló', cancelled: 'Cancelado' }, ...extra }))
 const newItem = (upload) => upload.makeItem({ name: 'a.pdf', size: 3, file: new Blob(['abc']), status: 'uploading' })
 
 test('upload: without axios the file goes by XMLHttpRequest, with progress, and a 422 gives the message of the server', async () => {

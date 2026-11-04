@@ -20,7 +20,7 @@ it('data-table shows a failed load as a message with a retry button instead of a
 });
 
 it('lazy tabs show a failed tab as a message with a retry button, and hide the empty content', function () {
-    $html = Blade::render('<x-dbl::sections.tabs :tabs="[[\'label\' => \'A\', \'load-url\' => \'/a\']]" />');
+    $html = Blade::render('<x-dbl::sections.tabs :tabs="[[\'label\' => \'A\', \'load_url\' => \'/a\']]" />');
 
     expect($html)->toContain('hasError(0)')
         ->toContain('x-text="errors[0]"')
@@ -29,7 +29,7 @@ it('lazy tabs show a failed tab as a message with a retry button, and hide the e
 });
 
 it('puts the Alpine scope of the remote select on its container, so the error can sit next to the select', function () {
-    $html = Blade::render('<x-dbl::form.select name="city" options-url="/cities" />');
+    $html = Blade::render('<x-dbl::form.select name="city" load-url="/cities" />');
 
     // x-data comes before the <select>, on the container; the <select> itself has none.
     $dataAt = strpos($html, 'x-data="dblSelectRemote');

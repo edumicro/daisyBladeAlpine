@@ -98,7 +98,7 @@ const dependencyParams = (name, value) => (name ? { [name]: value } : {})
 const stillOffered = (selected, options) => selected.filter(text => options.some(option => String(option.value) === text))
 
 /**
- * Select whose options come from a URL (`<x-dbl::form.select options-url="...">`).
+ * Select whose options come from a URL (`<x-dbl::form.select load-url="...">`).
  * With `dependsOn` (the `name` of another control) it asks again each time that control changes,
  * sending its value as a param named like the control: `?country_code=ES`.
  */
@@ -159,8 +159,7 @@ const dblSelectRemote = (config = {}) => ({
         this.error = ''
         try {
             const params = { ...(q ? { search: q } : {}), ...(config.params ?? {}), ...dependencyParams(config.dependsOn, this.dependencyValue()) }
-            // `url` is what the Blade passes; `optionsUrl` is the old name.
-            const { data } = this.waiting ? { data: [] } : await http({ url: config.url ?? config.optionsUrl, params })
+            const { data } = this.waiting ? { data: [] } : await http({ url: config.loadUrl, params })
             if (request !== this.lastRequest) return false
             this.options = Array.isArray(data) ? data : (data.data ?? [])
         } catch (error) {
@@ -216,17 +215,17 @@ const dblTabsLazy = (config = {}) => ({
     contents: {},
     loading: {},
     errors: {},        // tab index -> message, for the tabs whose content could not be loaded
-    async init() { if (this.tabs[this.active]?.url) await this._load(this.active) },
+    async init() { if (this.tabs[this.active]?.loadUrl) await this._load(this.active) },
     async select(index) {
         this.active = index
         // Not yet loaded and not being loaded now (a click on a tab whose request is still running asks nothing new).
-        if (!(index in this.contents) && !this.loading[index] && this.tabs[index]?.url) await this._load(index)
+        if (!(index in this.contents) && !this.loading[index] && this.tabs[index]?.loadUrl) await this._load(index)
     },
     async _load(index) {
         this.loading = { ...this.loading, [index]: true }
         this.errors = { ...this.errors, [index]: '' }
         try {
-            const { data } = await http({ url: this.tabs[index].url })
+            const { data } = await http({ url: this.tabs[index].loadUrl })
             this.contents = { ...this.contents, [index]: typeof data === 'string' ? data : JSON.stringify(data) }
         } catch (error) {
             // A translated message and a retry button in the tab; the technical detail goes to the console.
@@ -361,7 +360,7 @@ const dblAutoForm = (config = {}) => ({
     async submit() {
         this.loading = true; this.errors = {}; this.globalError = ''; this.success = false
         try {
-            const { data } = await http({ method: config.method ?? 'POST', url: config.action, data: this.values })
+            const { data } = await http({ method: config.method ?? 'POST', url: config.submitUrl, data: this.values })
             this.success = true
             if (data.redirect) window.location.href = data.redirect
             else if (config.onSuccess) config.onSuccess(data)
@@ -394,7 +393,7 @@ const dblWizard = (config = {}) => {
         async submit() {
             this.loading = true; this.errors = {}; this.globalError = ''
             try {
-                const { data } = await http({ method: config.method ?? 'POST', url: config.action, data: this.data })
+                const { data } = await http({ method: config.method ?? 'POST', url: config.submitUrl, data: this.data })
                 this.clear()
                 if (data.redirect) window.location.href = data.redirect
                 else if (config.onSuccess) config.onSuccess(data)

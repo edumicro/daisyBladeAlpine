@@ -39,7 +39,7 @@ export const dblMap = (config = {}) => {
             const layers = config.layers ?? []
             this.layerState = layers.map((l) => ({
                 id: l.id, label: l.label ?? l.id, color: l.color ?? '#2563eb', icon: l.icon ?? '',
-                cluster: !!l.cluster, url: l.url, visible: true, loading: true,
+                cluster: !!l.cluster, loadUrl: l.load_url, visible: true, loading: true,
             }))
             if (config.pickerValue) [this.lat, this.lng] = config.pickerValue
 
@@ -99,7 +99,7 @@ export const dblMap = (config = {}) => {
             try {
                 // Una capa propia usa la escalera de http.js (axios inyectado, window.axios o fetch);
                 // una capa de otro dominio va siempre por fetch y sin cabeceras de Laravel.
-                const { data } = await request({ url: l.url, headers: { Accept: 'application/geo+json, application/json' } }, deps)
+                const { data } = await request({ url: l.loadUrl, headers: { Accept: 'application/geo+json, application/json' } }, deps)
                 raw[l.id] = data
             } catch {
                 raw[l.id] = emptyCollection

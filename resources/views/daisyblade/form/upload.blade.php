@@ -2,7 +2,7 @@
     Subida de ficheros (arrastrar y soltar + botón, progreso, existentes, reordenar).
     Contrato con el servidor y ejemplos: docs/components/upload.md
 
-    @prop action     — URL POST (multipart, campo `file`)
+    @prop uploadUrl  — URL POST (multipart, campo `file`)
     @prop existing   — [{id, name, url, thumb, size}]
     @prop deleteUrl  — plantilla con {id}, p. ej. /files/{id}
     @prop reorderUrl — opcional; recibe POST {ids: [...]}
@@ -12,7 +12,7 @@
 @props([
     'name'           => 'files',
     'label'          => '',
-    'action'         => '',
+    'uploadUrl'      => '',
     'multiple'       => false,
     'accept'         => '',
     'maxSize'        => 0,
@@ -32,7 +32,7 @@
     $keys = ['drop', 'too_many', 'too_big', 'bad_type', 'uploaded', 'cancelled', 'failed', 'confirm_delete',
              'delete_failed', 'removed', 'moved', 'reorder_failed'];
     $config = [
-        'action'     => $action,
+        'uploadUrl'  => $uploadUrl,
         'multiple'   => (bool) $multiple,
         'accept'     => $accept,
         'maxSize'    => (float) $maxSize,

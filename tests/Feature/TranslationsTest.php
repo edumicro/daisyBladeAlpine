@@ -111,12 +111,12 @@ it('hands the translated error texts to the javascript of the components that lo
     App::setLocale('es');
 
     $this->blade('<x-dbl::display.data-table load-url="/x" :columns="[]" />')->assertSee('No se han podido cargar los datos', false);
-    $this->blade('<x-dbl::sections.tabs :tabs="[[\'label\' => \'A\', \'load-url\' => \'/a\']]" />')->assertSee('No se ha podido cargar el contenido', false);
-    $this->blade('<x-dbl::form.select name="x" options-url="/o" />')->assertSee('No se han podido cargar las opciones', false);
+    $this->blade('<x-dbl::sections.tabs :tabs="[[\'label\' => \'A\', \'load_url\' => \'/a\']]" />')->assertSee('No se ha podido cargar el contenido', false);
+    $this->blade('<x-dbl::form.select name="x" load-url="/o" />')->assertSee('No se han podido cargar las opciones', false);
     $this->blade('<x-dbl::display.resource-details load-url="/r" />')->assertSee('Error al cargar el recurso', false);
     $this->blade('<x-dbl::import.spreadsheet upload-url="/u" />')->assertSee('La subida ha fallado', false);
-    $this->blade('<x-dbl::sections.auto-form action="/s" />')->assertSee('Ha ocurrido un error', false);
-    $this->blade('<x-dbl::sections.wizard :steps="[]" action="/s" />')->assertSee('Ha ocurrido un error', false);
+    $this->blade('<x-dbl::sections.auto-form submit-url="/s" />')->assertSee('Ha ocurrido un error', false);
+    $this->blade('<x-dbl::sections.wizard :steps="[]" submit-url="/s" />')->assertSee('Ha ocurrido un error', false);
 });
 
 it('gives the map a translated message for when it cannot start, in the three languages', function () {

@@ -7,7 +7,7 @@
     @prop center      — [lat, lng]
     @prop zoom        — nivel de zoom inicial
     @prop height      — altura CSS (px, rem, em, vh o %)
-    @prop layers      — [ ['id'=>'ent','label'=>'Entidades','url'=>'/api/ent.geojson','cluster'=>true,'color'=>'#2563eb','icon'=>''] ]
+    @prop layers      — [ ['id'=>'ent','label'=>'Entidades','load_url'=>'/api/ent.geojson','cluster'=>true,'color'=>'#2563eb','icon'=>''] ]
     @prop filters     — true (capas + categorías) | false | ['layers'=>bool,'categories'=>bool]
     @prop picker      — marcador arrastrable; escribe <picker-name>_lat y <picker-name>_lng
     @prop pickerName  — prefijo de los inputs ocultos

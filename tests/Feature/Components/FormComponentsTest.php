@@ -90,10 +90,10 @@ it('select renders placeholder', function () {
 });
 
 it('select with options-url uses Alpine remote factory', function () {
-    $html = Blade::render('<x-dbl::form.select name="x" :options="[]" options-url="/api/categories" />');
+    $html = Blade::render('<x-dbl::form.select name="x" :options="[]" load-url="/api/categories" />');
     // `@js` escapes the slashes inside the JSON, so the URL is read back from the factory config.
     expect($html)->toContain('dblSelectRemote')->toContain('x-data')
-        ->and(remoteSelectConfig($html))->toMatchArray(['url' => '/api/categories']);
+        ->and(remoteSelectConfig($html))->toMatchArray(['loadUrl' => '/api/categories']);
 });
 
 it('select with multiple=true has multiple attribute', function () {
@@ -154,7 +154,7 @@ it('radio with value=active marks that option checked', function () {
 
 it('auto-form renders form with schema, factory and action', function () {
     $html = Blade::render(
-        '<x-dbl::sections.auto-form :fields="$fields" action="/products" />',
+        '<x-dbl::sections.auto-form :fields="$fields" submit-url="/products" />',
         ['fields' => ['title' => ['type' => 'text', 'label' => 'Título']]]
     );
     expect($html)
@@ -166,19 +166,19 @@ it('auto-form renders form with schema, factory and action', function () {
 
 it('auto-form with money field renders number input', function () {
     $html = Blade::render(
-        '<x-dbl::sections.auto-form :fields="$fields" action="/x" />',
+        '<x-dbl::sections.auto-form :fields="$fields" submit-url="/x" />',
         ['fields' => ['price' => ['type' => 'money', 'label' => 'Precio']]]
     );
     expect($html)->toContain('number');
 });
 
 it('auto-form with method=PUT includes method info', function () {
-    $html = Blade::render('<x-dbl::sections.auto-form :fields="[]" action="/x" method="PUT" />');
+    $html = Blade::render('<x-dbl::sections.auto-form :fields="[]" submit-url="/x" method="PUT" />');
     expect($html)->toContain('PUT');
 });
 
 it('auto-form with empty schema renders without exception', function () {
-    $html = Blade::render('<x-dbl::sections.auto-form :fields="[]" action="/x" />');
+    $html = Blade::render('<x-dbl::sections.auto-form :fields="[]" submit-url="/x" />');
     expect($html)->not->toBeEmpty();
 });
 
@@ -208,7 +208,7 @@ it('filter renders field labels and apply-url', function () {
 
 it('fields renders a decimal as text with a numeric keypad', function () {
     $html = Blade::render(
-        '<x-dbl::sections.auto-form :fields="$fields" action="/x" />',
+        '<x-dbl::sections.auto-form :fields="$fields" submit-url="/x" />',
         ['fields' => ['dose' => ['type' => 'decimal', 'label' => 'Dosis']]]
     );
 
@@ -217,7 +217,7 @@ it('fields renders a decimal as text with a numeric keypad', function () {
 
 it('fields renders raw attrs on an input', function () {
     $html = Blade::render(
-        '<x-dbl::sections.auto-form :fields="$fields" action="/x" />',
+        '<x-dbl::sections.auto-form :fields="$fields" submit-url="/x" />',
         ['fields' => ['ref' => ['attrs' => ['autocomplete' => 'off']]]]
     );
 
@@ -226,7 +226,7 @@ it('fields renders raw attrs on an input', function () {
 
 it('fields renders raw attrs on a select', function () {
     $html = Blade::render(
-        '<x-dbl::sections.auto-form :fields="$fields" action="/x" />',
+        '<x-dbl::sections.auto-form :fields="$fields" submit-url="/x" />',
         ['fields' => ['u' => ['type' => 'select', 'options' => ['mg' => 'mg'], 'attrs' => ['aria-label' => 'Unidad']]]]
     );
 
@@ -235,7 +235,7 @@ it('fields renders raw attrs on a select', function () {
 
 it('fields passes events down to a nested repeater', function () {
     $html = Blade::render(
-        '<x-dbl::sections.auto-form :fields="$fields" action="/x" />',
+        '<x-dbl::sections.auto-form :fields="$fields" submit-url="/x" />',
         ['fields' => ['items' => [
             'type'   => 'repeater',
             'fields' => [['key' => 'a']],
@@ -255,7 +255,7 @@ it('fields passes events down to a nested repeater', function () {
 
 it('auto-form seeds values as an object so an empty form still submits its fields', function () {
     $html = Blade::render(
-        '<x-dbl::sections.auto-form :fields="$fields" action="/login" />',
+        '<x-dbl::sections.auto-form :fields="$fields" submit-url="/login" />',
         ['fields' => ['email' => ['type' => 'email'], 'password' => ['type' => 'password']]],
     );
 
@@ -265,7 +265,7 @@ it('auto-form seeds values as an object so an empty form still submits its field
 
 it('auto-form keeps the values it is given', function () {
     $html = Blade::render(
-        '<x-dbl::sections.auto-form :fields="$fields" :values="$values" action="/x" />',
+        '<x-dbl::sections.auto-form :fields="$fields" :values="$values" submit-url="/x" />',
         ['fields' => ['email' => ['type' => 'email']], 'values' => ['email' => 'ana@example.com']],
     );
 
@@ -280,7 +280,7 @@ it('auto-form keeps the values it is given', function () {
 
 it('auto-form does not paint a hidden field as an editable box', function () {
     $html = Blade::render(
-        '<x-dbl::sections.auto-form :fields="$fields" action="/x" />',
+        '<x-dbl::sections.auto-form :fields="$fields" submit-url="/x" />',
         ['fields' => [
             'student_id' => ['type' => 'hidden', 'label' => '', 'cols' => 1],
             'name' => ['type' => 'text', 'label' => 'Nombre'],
@@ -311,7 +311,7 @@ it('repeater does not paint a hidden row key as an editable box', function () {
 
 it('a hidden field still travels in form mode, where the HTML is what gets posted', function () {
     $html = Blade::render(
-        '<x-dbl::sections.auto-form :fields="$fields" :values="$values" action="/x" mode="form" />',
+        '<x-dbl::sections.auto-form :fields="$fields" :values="$values" submit-url="/x" mode="form" />',
         [
             'fields' => ['student_id' => ['type' => 'hidden', 'label' => '']],
             'values' => ['student_id' => 1448],
@@ -325,7 +325,7 @@ it('toggle keeps its label from colliding with the switch in a narrow column', f
     // `justify-between` reparte el espacio SOBRANTE; en una columna estrecha con una etiqueta
     // larga no sobra ninguno y texto e interruptor acaban montados.
     $html = Blade::render(
-        '<x-dbl::sections.auto-form :fields="$fields" action="/x" />',
+        '<x-dbl::sections.auto-form :fields="$fields" submit-url="/x" />',
         ['fields' => ['requires_ssn' => ['type' => 'toggle', 'label' => 'Pide nº Seg. Social', 'cols' => 3]]],
     );
 
@@ -447,21 +447,21 @@ it('select does not leak an option text into its label', function () {
 // ── form/select con options-url y depends-on ──────────────────────────────────
 
 it('passes the url to the remote factory under the key the factory reads', function () {
-    $html = Blade::render('<x-dbl::form.select name="city" options-url="/cities?x=1&y=2" />');
+    $html = Blade::render('<x-dbl::form.select name="city" load-url="/cities?x=1&y=2" />');
 
-    expect(remoteSelectConfig($html))->toMatchArray(['url' => '/cities?x=1&y=2'])
+    expect(remoteSelectConfig($html))->toMatchArray(['loadUrl' => '/cities?x=1&y=2'])
         ->and($html)->not->toContain('x-init');
 });
 
 it('passes the initial value and the disabled prop to the remote factory', function () {
-    $html = Blade::render('<x-dbl::form.select name="city" options-url="/cities" value="ES-TF" disabled />');
+    $html = Blade::render('<x-dbl::form.select name="city" load-url="/cities" value="ES-TF" disabled />');
 
     expect(remoteSelectConfig($html))->toMatchArray(['value' => 'ES-TF', 'disabled' => true]);
 });
 
 it('sends the remote select with the form under its name, and as a list when multiple', function () {
-    $single = Blade::render('<x-dbl::form.select name="city" options-url="/cities" />');
-    $multiple = Blade::render('<x-dbl::form.select name="cities" options-url="/cities" multiple placeholder="Elige" />');
+    $single = Blade::render('<x-dbl::form.select name="city" load-url="/cities" />');
+    $multiple = Blade::render('<x-dbl::form.select name="cities" load-url="/cities" multiple placeholder="Elige" />');
 
     expect($single)->toContain('name="city"')->toContain('id="city"')->not->toContain('multiple')
         ->and($multiple)->toContain('name="cities[]"')->toContain('multiple')
@@ -469,14 +469,14 @@ it('sends the remote select with the form under its name, and as a list when mul
 });
 
 it('renders the saved value as a chosen option for when the JavaScript does not run', function () {
-    $html = Blade::render('<x-dbl::form.select name="city" options-url="/cities" placeholder="Ciudad" :options="[\'ES-TF\' => \'ES-TF\']" value="ES-TF" />');
+    $html = Blade::render('<x-dbl::form.select name="city" load-url="/cities" placeholder="Ciudad" :options="[\'ES-TF\' => \'ES-TF\']" value="ES-TF" />');
 
     expect($html)->toContain('<option value="">Ciudad</option>')
         ->toContain('<option value="ES-TF" data-initial selected>ES-TF</option>');
 });
 
 it('lets the remote select depend on another control', function () {
-    $html = Blade::render('<x-dbl::form.select name="region_code" options-url="/location/regions" depends-on="country_code" />');
+    $html = Blade::render('<x-dbl::form.select name="region_code" load-url="/location/regions" depends-on="country_code" />');
 
     expect(remoteSelectConfig($html))->toMatchArray(['dependsOn' => 'country_code'])
         ->and($html)->toContain('x-on:change.window="onDependencyChange($event)"')
@@ -484,7 +484,7 @@ it('lets the remote select depend on another control', function () {
 });
 
 it('does not listen to other controls when the remote select depends on none', function () {
-    $html = Blade::render('<x-dbl::form.select name="city" options-url="/cities" />');
+    $html = Blade::render('<x-dbl::form.select name="city" load-url="/cities" />');
 
     expect($html)->not->toContain('x-on:change.window');
 });

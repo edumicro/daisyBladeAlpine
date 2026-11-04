@@ -6,7 +6,11 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
 import * as daisyblade from '../../resources/js/daisyblade.js'
-import { readStored, dblSidebar, dblWizard } from '../../resources/js/daisyblade.js'
+import {
+    readStored, dblSidebar, dblWizard, dblAutoForm, dblDataTable, dblResourceDetails, dblSelectRemote, dblTabsLazy, dblSpreadsheetImport,
+} from '../../resources/js/daisyblade.js'
+import { dblCalendar } from '../../resources/js/components/calendar.js'
+import { dblUpload } from '../../resources/js/components/upload.js'
 
 const ROOT = new URL('../../resources/js/', import.meta.url).pathname
 
@@ -92,4 +96,58 @@ test('1. no script still names a factory, a CSS class or a storage key with the 
     const offenders = Object.entries(scripts())
         .flatMap(([file, source]) => (source.match(/\bdb[A-Z]\w*|\bdb-[\w-]+|\bdb_[a-z]\w*/g) ?? []).map(found => `${file}: ${found}`))
     assert.deepEqual(offenders, [])
+})
+
+// ── 2. URL props: load-url, submit-url, upload-url ──────────────────────────
+
+/** A page whose axios records the URL of every call, and answers with `answer` as the data. */
+function pageThatRecordsUrls(answer = {}) {
+    const urls = []
+    const reply = url => { urls.push(url); return { data: answer, status: 200 } }
+    globalThis.location = { href: 'https://app.test/', origin: 'https://app.test' }
+    globalThis.window = { axios: { get: async url => reply(url), post: async url => reply(url), put: async url => reply(url) } }
+    return urls
+}
+
+const leavePage = () => { delete globalThis.window; delete globalThis.location }
+
+test('2. the components that read data ask the URL given as loadUrl', async () => {
+    const urls = pageThatRecordsUrls({ data: [] })
+    try {
+        await dblDataTable({ loadUrl: '/table' }).init()
+        await dblResourceDetails({ loadUrl: '/details' }).init()
+        await dblTabsLazy({ tabs: [{ loadUrl: '/tab' }] }).init()
+        const select = Object.assign(dblSelectRemote({ loadUrl: '/options' }), {
+            $root: { querySelector: () => ({ form: null, selectedOptions: [], querySelectorAll: () => [] }) },
+            $nextTick: async () => {},
+        })
+        await select.init()
+        await dblCalendar({ loadUrl: '/events', initialDate: '2026-10-05' }).init()
+    } finally { leavePage() }
+
+    assert.deepEqual(urls.map(url => url.split('?')[0]), ['/table', '/details', '/tab', '/options', '/events'])
+})
+
+test('2. auto-form and wizard send what the user filled in to submitUrl', async () => {
+    const urls = pageThatRecordsUrls({})
+    try {
+        await dblAutoForm({ submitUrl: '/save-form' }).submit()
+        await dblWizard({ submitUrl: '/save-wizard' }).submit()
+    } finally { leavePage() }
+
+    assert.deepEqual(urls, ['/save-form', '/save-wizard'])
+})
+
+test('2. the spreadsheet import and the upload send their files to uploadUrl', async () => {
+    const urls = pageThatRecordsUrls({ id: 1, url: '/f/1' })
+    try {
+        const importer = dblSpreadsheetImport({ uploadUrl: '/import' })
+        importer.file = new Blob(['a,b'])
+        await importer.upload()
+
+        const upload = Object.assign(dblUpload({ uploadUrl: '/files' }), { $dispatch() {}, announce() {} })
+        await upload.send({ file: new Blob(['x']), name: 'x.txt', size: 1 })
+    } finally { leavePage() }
+
+    assert.deepEqual(urls, ['/import', '/files'])
 })

@@ -3,7 +3,7 @@
 
     @prop fields      — [ 'key' => ['type'=>'text', 'label'=>'...', 'cols'=>'col-span-6', ...] ]
     @prop values      — initial values object (JSON serializable)
-    @prop action      — POST endpoint URL (required for Axios mode)
+    @prop submitUrl   — endpoint that receives the values (required for Axios mode; the <form action> in 'form' mode)
     @prop method      — 'POST'|'PUT'|'PATCH'|'DELETE' (default POST)
     @prop mode        — 'alpine' (Axios, default) | 'form' (standard HTML POST)
     @prop submitLabel — button label
@@ -18,7 +18,7 @@
 @props([
     'fields'       => [],
     'values'       => [],
-    'action'       => '',
+    'submitUrl'    => '',
     'method'       => 'POST',
     'mode'         => 'alpine',
     'submitLabel'  => '',
@@ -32,7 +32,7 @@
 @if($mode === 'alpine')
     <div
         x-data="dblAutoForm({
-            action: '{{ $action }}',
+            submitUrl: '{{ $submitUrl }}',
             method: '{{ strtoupper($method) }}',
             {{-- (object) y no @js($values) a secas: en PHP un array asociativo VACIO se serializa
                  como [] —un array JS—, no como {}. x-model escribe values.email sin protestar,
@@ -99,7 +99,7 @@
         @endif
 
         <form
-            action="{{ $action }}"
+            action="{{ $submitUrl }}"
             method="{{ in_array(strtoupper($method), ['GET','POST']) ? strtoupper($method) : 'POST' }}"
             class="{{ $class }}"
         >

@@ -1,7 +1,7 @@
 {{--
     Tipo 3: lazy-load tabbed sections via Alpine + Axios.
 
-    @prop tabs   — [ ['label'=>'General', 'load-url'=>'/resource/1/general', 'icon'=>null] ]
+    @prop tabs   — [ ['label'=>'General', 'load_url'=>'/resource/1/general', 'icon'=>null] ]
     @prop active — initial active tab index (0-based)
 
     Server must return HTML string for each tab panel.
@@ -27,7 +27,7 @@ $styleClass = match($style) {
     'box' => 'tabs-box',
     default => 'tabs-lifted',
 };
-$tabsJson = json_encode(array_map(fn($t) => ['label' => $t['label'] ?? '', 'url' => $t['load-url'] ?? ''], $tabs), JSON_UNESCAPED_SLASHES);
+$tabsJson = json_encode(array_map(fn($t) => ['label' => $t['label'] ?? '', 'loadUrl' => $t['load_url'] ?? ''], $tabs), JSON_UNESCAPED_SLASHES);
 @endphp
 
 <div

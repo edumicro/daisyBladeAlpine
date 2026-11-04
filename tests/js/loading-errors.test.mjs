@@ -96,7 +96,7 @@ test('data-table: an answer that arrives after a newer request is ignored', asyn
 
 test('tabs-lazy: a tab that fails shows its message, stops loading, and retry brings the content', async () => {
     pageWithAxios(failure(404, '<p>nope</p>'), '<p>hello</p>')
-    const tabs = dblTabsLazy({ tabs: [{ url: '/tab-0' }], messages: { loadFailed: 'No se ha podido cargar el contenido' } })
+    const tabs = dblTabsLazy({ tabs: [{ loadUrl: '/tab-0' }], messages: { loadFailed: 'No se ha podido cargar el contenido' } })
 
     await tabs.init()
     assert.equal(tabs.isLoading(0), false)
@@ -111,7 +111,7 @@ test('tabs-lazy: a tab that fails shows its message, stops loading, and retry br
 
 test('tabs-lazy: clicking a tab whose request is still running does not ask again', async () => {
     const calls = pageWithAxios('<p>x</p>')
-    const tabs = dblTabsLazy({ tabs: [{ url: '/a' }, { url: '/b' }] })
+    const tabs = dblTabsLazy({ tabs: [{ loadUrl: '/a' }, { loadUrl: '/b' }] })
 
     const loading = tabs.select(1)
     await tabs.select(1)
@@ -133,7 +133,7 @@ function remoteSelect(config) {
 
 test('select remote: a failed request leaves a message and no options, and the retry button loads them', async () => {
     pageWithAxios(failure(500, {}), [{ value: 'a', label: 'A' }])
-    const select = remoteSelect({ url: '/options', messages: { loadFailed: 'No se han podido cargar las opciones' } })
+    const select = remoteSelect({ loadUrl: '/options', messages: { loadFailed: 'No se han podido cargar las opciones' } })
 
     await select.init()
     assert.equal(select.loading, false)
@@ -163,7 +163,7 @@ test('resource-details: the server message wins; without it the translated text,
 
 test('auto-form: a 422 fills the field errors; another failure shows the translated text, not the technical one', async () => {
     pageWithAxios(failure(422, { errors: { name: ['Required'] } }), failure(500, {}))
-    const form = dblAutoForm({ action: '/save', method: 'post', messages: { failed: 'Ha ocurrido un error' } })
+    const form = dblAutoForm({ submitUrl: '/save', method: 'post', messages: { failed: 'Ha ocurrido un error' } })
 
     await form.submit()
     assert.deepEqual(form.errors, { name: ['Required'] })
@@ -176,7 +176,7 @@ test('auto-form: a 422 fills the field errors; another failure shows the transla
 
 test('auto-form: a view published before 2.4 (no messages) keeps showing the error message of the client', async () => {
     pageWithAxios(failure(500, {}))
-    const form = dblAutoForm({ action: '/save', method: 'post' })
+    const form = dblAutoForm({ submitUrl: '/save', method: 'post' })
 
     await form.submit()
 

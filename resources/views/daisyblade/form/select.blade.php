@@ -2,7 +2,7 @@
     'name'           => '',
     'label'          => '',
     'options'        => [],
-    'optionsUrl'     => '',
+    'loadUrl'        => '',
     'dependsOn'      => '',
     'placeholder'    => '',
     'multiple'       => false,
@@ -30,16 +30,16 @@ foreach ($options as $optVal => $optLabel) {
 }
 @endphp
 
-{{-- With `options-url` the Alpine scope (dblSelectRemote) is this container, so the error message below can sit
+{{-- With `load-url` the Alpine scope (dblSelectRemote) is this container, so the error message below can sit
      next to the <select>; the factory finds the <select> inside it. --}}
 <div class="w-full {{ $containerClass }}"
-     @if($optionsUrl) x-data="dblSelectRemote(@js(['url' => $optionsUrl, 'value' => $value, 'dependsOn' => $dependsOn, 'disabled' => $disabled, 'messages' => ['loadFailed' => __('Could not load the options')]]))" @endif>
+     @if($loadUrl) x-data="dblSelectRemote(@js(['loadUrl' => $loadUrl, 'value' => $value, 'dependsOn' => $dependsOn, 'disabled' => $disabled, 'messages' => ['loadFailed' => __('Could not load the options')]]))" @endif>
     @if($label)
         <label class="mb-1 block text-sm font-medium" @if($name) for="{{ $name }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
 
-    @if($optionsUrl)
-        {{-- Remote select: Alpine's dblSelectRemote asks `options-url` for the options (again each time `depends-on` changes). --}}
+    @if($loadUrl)
+        {{-- Remote select: Alpine's dblSelectRemote asks `load-url` for the options (again each time `depends-on` changes). --}}
         <select
             :aria-busy="loading"
             x-on:change="remember()"

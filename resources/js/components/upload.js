@@ -95,7 +95,7 @@ export const dblUpload = (config = {}, deps = {}) => ({
             // Escalera de http.js: axios inyectado, `window.axios` o, si no hay, XMLHttpRequest (fetch no da el progreso).
             const { data } = await request({
                 method: 'post',
-                url: config.action,
+                url: config.uploadUrl,
                 data: body,
                 signal: controller.signal,
                 headers: { 'Content-Type': 'multipart/form-data' },

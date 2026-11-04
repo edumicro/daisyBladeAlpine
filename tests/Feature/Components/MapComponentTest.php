@@ -24,7 +24,7 @@ it('map renders with the defaults from config', function () {
 it('map passes props through as config', function () {
     $html = Blade::render(<<<'BLADE'
         <x-dbl::display.map driver="google" base="ign-pnoa" :center="[39.42, -0.38]" :zoom="12" height="30rem"
-            google-key="K" :layers="[['id' => 'ent', 'label' => 'Entidades', 'url' => '/ent.geojson', 'cluster' => true, 'color' => '#f00']]"
+            google-key="K" :layers="[['id' => 'ent', 'label' => 'Entidades', 'load_url' => '/ent.geojson', 'cluster' => true, 'color' => '#f00']]"
             :filters="['layers' => true, 'categories' => false]" />
     BLADE);
     $c = mapConfig($html);
@@ -35,7 +35,7 @@ it('map passes props through as config', function () {
         ->and($c['zoom'])->toEqual(12)
         ->and($c['googleKey'])->toBe('K')
         ->and($c['filters'])->toBe(['layers' => true, 'categories' => false])
-        ->and($c['layers'][0])->toMatchArray(['id' => 'ent', 'url' => '/ent.geojson', 'cluster' => true])
+        ->and($c['layers'][0])->toMatchArray(['id' => 'ent', 'load_url' => '/ent.geojson', 'cluster' => true])
         ->and($html)->toContain('height: 30rem');
 });
 
@@ -74,7 +74,7 @@ it('map exposes the optional name and listens for the focus event', function () 
 
 it('map keeps layers with per-point color and number untouched in the config', function () {
     $html = Blade::render(<<<'BLADE'
-        <x-dbl::display.map name="m" :layers="[['id' => 'a', 'label' => 'A', 'url' => '/a.geojson', 'cluster' => true, 'color' => '#2563eb']]" />
+        <x-dbl::display.map name="m" :layers="[['id' => 'a', 'label' => 'A', 'load_url' => '/a.geojson', 'cluster' => true, 'color' => '#2563eb']]" />
     BLADE);
     $c = mapConfig($html);
 

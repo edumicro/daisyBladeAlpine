@@ -107,7 +107,7 @@ it('maps the color of badge, progress, loading and radial progress to classes wr
 it('maps the tabs style, the menu badge color, the indicator position and the skeleton columns', function () {
     foreach (['lifted', 'bordered', 'boxed', 'lift', 'border', 'box'] as $style) {
         expect(Blade::render("<x-dbl::navigation.tabs :items=\"[['label' => 'A', 'content' => 'a']]\" style=\"{$style}\" />"))->toContain("tabs-{$style}")
-            ->and(Blade::render("<x-dbl::sections.tabs :tabs=\"[['label' => 'A', 'load-url' => '/a']]\" style=\"{$style}\" />"))->toContain("tabs-{$style}");
+            ->and(Blade::render("<x-dbl::sections.tabs :tabs=\"[['label' => 'A', 'load_url' => '/a']]\" style=\"{$style}\" />"))->toContain("tabs-{$style}");
     }
     expect(Blade::render('<x-dbl::navigation.tabs :items="[[\'label\' => \'A\', \'content\' => \'a\']]" />'))->toContain('tabs-lifted');
 
