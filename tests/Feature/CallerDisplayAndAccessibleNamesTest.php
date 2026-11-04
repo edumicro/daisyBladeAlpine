@@ -5,13 +5,13 @@ use Illuminate\Support\Facades\Blade;
 // ── alert and toast respect the `display:none` of the caller ───────────────────
 it('the alert does not write display on the root unless it is closing', function () {
     expect(Blade::render('<x-dbl::feedback.alert message="x" />'))
-        ->toContain("if (!open) \$root.style.display = 'none'")
+        ->toContain("if (!open) \$root.parentElement.style.display = 'none'")
         ->not->toContain("open ? ''");
 });
 
 it('the toast does not write display on the root unless it is closing', function () {
     expect(Blade::render('<x-dbl::feedback.toast message="x" />'))
-        ->toContain("if (!visible) \$root.style.display = 'none'")
+        ->toContain("if (!visible) \$root.parentElement.style.display = 'none'")
         ->not->toContain("visible ? ''");
 });
 
@@ -59,12 +59,14 @@ it('the buttons of the swap click the checkbox themselves (a button inside a lab
 });
 
 // ── navigation that dispatches events has an Alpine scope of its own ──────────
-it('pagination, dock and menu carry their own x-data, so $dispatch works outside any other scope', function () {
+it('pagination, dock and menu give an x-data to the buttons that $dispatch, not to the root that is the caller\'s', function () {
     $pagination = Blade::render('<x-dbl::navigation.pagination :meta="[\'current_page\' => 2, \'last_page\' => 5, \'total\' => 50]" />');
     $dock = Blade::render('<x-dbl::navigation.dock :items="[[\'label\' => \'A\', \'icon\' => \'heroicon-o-home\', \'action\' => \'go\']]" />');
     $menu = Blade::render('<x-dbl::navigation.menu :items="[[\'label\' => \'A\', \'action\' => \'go\']]" />');
 
-    expect($pagination)->toMatch('/<div x-data /')
-        ->and($dock)->toMatch('/<div x-data /')
-        ->and($menu)->toMatch('/<ul\s+x-data\s/');
+    expect($pagination)->toMatch('/<button type="button" x-data @click="\$dispatch\(/')
+        ->and($dock)->toMatch('/x-data @click="\$dispatch\(/')
+        ->and($menu)->toMatch('/x-data @click="\$dispatch\(/')
+        ->and($pagination)->not->toMatch('/<div x-data/')
+        ->and($menu)->not->toMatch('/<ul[^>]*x-data/');
 });

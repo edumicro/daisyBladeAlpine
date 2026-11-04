@@ -20,20 +20,21 @@ it('does not write @input or @focus twice on the text box of a searchable select
     expect($input[0])->toContain('@input="mine()"')->toContain('@focus="opened()"');
 });
 
-it('keeps the listeners of the searchable select on the box around the text box, as bubbling events', function () {
-    $html = Blade::render('<x-dbl::form.select name="city" searchable :options="[\'1\' => \'One\']" />');
+it('puts the text box OUTSIDE the scope of the component, so the x-ref and the data of the caller are theirs', function () {
+    $html = Blade::render('<x-dbl::form.select name="city" searchable :options="[\'1\' => \'One\']" x-ref="city" />');
 
-    preg_match('/<div class="relative"[^>]*x-on:input[^>]*>/', $html, $box);
-
-    expect($box)->not->toBeEmpty('the box around the text box has no listener')
-        ->and($box[0])->toContain('x-on:input.stop="typed($event.target.value)"')
-        ->and($box[0])->toContain('x-on:focusin="open = true"');   // focusin bubbles; focus does not
+    // The text box comes before the element that opens the scope of dblSelectSearch, and the scope closes after its own list.
+    expect(strpos($html, 'type="text"'))->toBeLessThan(strpos($html, 'x-data="dblSelectSearch'))
+        ->and($html)->toContain('x-ref="city"');
+    // The x-ref of the caller is on the text box, the one of the component (the hidden input) is inside the scope.
+    preg_match('/<input[^>]*type="text"[^>]*>/s', $html, $input);
+    expect($input[0])->toContain('x-ref="city"');
 });
 
 it('sends the x-model to the box with x-modelable (it holds the chosen key) and the rest of the attributes to the text box', function () {
     $html = Blade::render('<x-dbl::form.select name="c" searchable :options="[\'1\' => \'One\']" x-model.number="form.c" placeholder="Pick" autocomplete="off" @input="mine()" />');
 
-    preg_match('/<div x-data="dblSelectSearch[^>]*>/s', $html, $root);
+    preg_match('/<span[^>]*x-modelable[^>]*>/s', $html, $root);
     preg_match('/<input[^>]*type="text"[^>]*>/s', $html, $input);
 
     expect($root[0])->toContain('x-modelable="chosen"')->toContain('x-model.number="form.c"')

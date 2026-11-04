@@ -27,8 +27,9 @@ $iconSizeClass = match($iconSize) {
 $dirClass = $direction === 'vertical' ? 'flex-col' : 'flex-row';
 @endphp
 
-{{-- `x-data` makes the root an Alpine scope of its own, so the `$dispatch` of an item with `action` works outside any other scope. --}}
-<div x-data {{ $attributes->merge(['class' => "fixed {$posClass} p-4 z-40"]) }}>
+{{-- The root is the caller's element: it holds no Alpine attribute of ours. The buttons that `$dispatch` carry their own `x-data`,
+     so the order works outside any other scope without a scope around the root. --}}
+<div {{ $attributes->merge(['class' => "fixed {$posClass} p-4 z-40"]) }}>
     <div class="flex {{ $dirClass }} gap-2 bg-base-100 shadow-2xl rounded-full p-3 backdrop-blur-sm border border-base-300 {{ $barClass }}">
         @foreach($items as $item)
             <div class="relative group">
@@ -57,7 +58,7 @@ $dirClass = $direction === 'vertical' ? 'flex-col' : 'flex-row';
                 @else
                     <button
                         type="button"
-                        @if($item['action'] ?? false) @click="$dispatch(@js($item['action']))" @endif
+                        @if($item['action'] ?? false) x-data @click="$dispatch(@js($item['action']))" @endif
                         class="btn btn-ghost btn-sm btn-circle relative transition-all duration-200 hover:bg-primary hover:text-primary-content"
                         title="{{ $item['label'] ?? '' }}"
                     >

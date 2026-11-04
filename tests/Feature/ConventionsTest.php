@@ -758,7 +758,7 @@ it('8. does not listen to a window event without the prefix, unless it is a nati
 it('8. makes the native select announce dbl-select-changed with { name, value }, like the searchable and the remote ones', function () {
     $render = fn (string $blade) => Illuminate\Support\Facades\Blade::render($blade);
 
-    expect($render('<x-dbl::form.select name="a" :options="[1 => \'x\']" />'))->toContain("x-on:change=\"\$dispatch('dbl-select-changed', { name: 'a'")
+    expect($render('<x-dbl::form.select name="a" :options="[1 => \'x\']" />'))->toContain('dblSelectAnnouncer(')->toContain('\u0022name\u0022:\u0022a\u0022')
         ->and($render('<x-dbl::form.select name="a" :options="[1 => \'x\']" searchable />'))->toContain('dblSelectSearch(')->toContain('choose(item)')
         ->and($render('<x-dbl::form.select name="a" load-url="/o" />'))->toContain('dblSelectRemote(')->toContain('\u0022name\u0022:\u0022a\u0022');
 });

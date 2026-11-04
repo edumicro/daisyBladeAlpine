@@ -1,5 +1,5 @@
 @props(['href' => '/'])
 
-<a href="{{ $href }}" {{ $attributes->merge(['class' => 'font-extrabold tracking-tight']) }}>
+<a {{ $attributes->merge(['href' => $href, 'class' => 'font-extrabold tracking-tight']) }}>
     {{ $slot->isEmpty() ? config('app.name') : $slot }}
 </a>

@@ -22,42 +22,40 @@ $sizeClass = match($size) {
      y .modal-open. Con una estructura propia (fixed + flex + x-show), DaisyUI 5 deja la
      caja a opacidad 0 y el contenido queda invisible aunque esté en la página.
 
-     The root takes the attributes of the caller (`$attributes`), so it carries no Alpine attribute of ours but its
-     `x-data`: if the caller wrote the same one (`:class`, `@keydown.escape.window`...) the browser would keep only the
-     first of the two. What the component needs (the orders it listens to, the `modal-open` class) lives on the panel. --}}
-<div
-    @if($id) id="{{ $id }}" @endif
-    x-data="dblModal()"
-    {{ $attributes->merge(['class' => 'modal']) }}
->
-    {{-- Panel --}}
-    <div class="modal-box relative {{ $sizeClass }} w-11/12"
-        role="dialog" aria-modal="true" @if($title) aria-labelledby="{{ $titleId }}" @endif tabindex="-1" x-ref="panel"
-        {{-- `$root` is the .modal above: its `modal-open` class follows `open` (a class toggled, not a `:class`, so the caller's stay). --}}
-        x-effect="$root.classList.toggle('modal-open', open)"
-        @if($id)
-            @dbl-modal-open.window="if ($event.detail.id === @js($id)) show()"
-            @dbl-modal-close.window="if ($event.detail.id === @js($id)) hide()"
-        @endif
-        {{-- `closable="false"` means that neither Escape nor a click outside closes it: only the order `dbl-modal-close`. --}}
-        @if($closable) @keydown.escape.window="hide()" @endif
-    >
-        @if($closable)
-            <button
-                type="button"
-                class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-                @click="hide()"
-                aria-label="{{ __('Close') }}"
-            >✕</button>
-        @endif
+     The root takes the attributes of the caller (`$attributes`) and carries nothing of ours. The scope of the component is the
+     element inside it (`contents`: it takes no room, so the grid of `.modal` still lays out the box and the backdrop), and what the
+     component needs (the orders it listens to, the `modal-open` class of the root) lives on the panel. --}}
+<div {{ $attributes->merge(['id' => $id ?: null, 'class' => 'modal']) }}>
+    <div x-data="dblModal()" class="contents">
+        {{-- Panel --}}
+        <div class="modal-box relative {{ $sizeClass }} w-11/12"
+            role="dialog" aria-modal="true" @if($title) aria-labelledby="{{ $titleId }}" @endif tabindex="-1" x-ref="panel"
+            {{-- `$root.parentElement` is the .modal above: its `modal-open` class follows `open` (a class toggled, not a `:class`, so the caller's stay). --}}
+            x-effect="$root.parentElement.classList.toggle('modal-open', open)"
+            @if($id)
+                @dbl-modal-open.window="if ($event.detail.id === @js($id)) show()"
+                @dbl-modal-close.window="if ($event.detail.id === @js($id)) hide()"
+            @endif
+            {{-- `closable="false"` means that neither Escape nor a click outside closes it: only the order `dbl-modal-close`. --}}
+            @if($closable) @keydown.escape.window="hide()" @endif
+        >
+            @if($closable)
+                <button
+                    type="button"
+                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                    @click="hide()"
+                    aria-label="{{ __('Close') }}"
+                >✕</button>
+            @endif
 
-        @if($title)
-            <h3 id="{{ $titleId }}" class="font-bold text-lg mb-4">{{ $title }}</h3>
-        @endif
+            @if($title)
+                <h3 id="{{ $titleId }}" class="font-bold text-lg mb-4">{{ $title }}</h3>
+            @endif
 
-        {{ $slot }}
+            {{ $slot }}
+        </div>
+
+        {{-- Clic fuera para cerrar --}}
+        <div class="modal-backdrop" @if($closable) @click="hide()" @endif></div>
     </div>
-
-    {{-- Clic fuera para cerrar --}}
-    <div class="modal-backdrop" @if($closable) @click="hide()" @endif></div>
 </div>

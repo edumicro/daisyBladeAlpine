@@ -42,17 +42,17 @@ $controlId = $attributes->get('id', $name ?: null);
         </label>
     @endif
 
-    <textarea
-        placeholder="{{ $placeholder }}"
-        rows="{{ $rows }}"
-        @if($name) name="{{ $name }}" @endif
-        @if($disabled) disabled @endif
-        @if($readonly) readonly @endif
-        @if($required) required @endif
-        @if($maxLength > 0) maxlength="{{ $maxLength }}" @endif
-        {{ $attributes->merge(['id' => $controlId, 'class' => trim('textarea w-full ' . $sizeClass . ' '
-            . ($name && isset($errors) && $errors->has($name) ? 'textarea-error' : ''))]) }}
-    >{{ $value }}</textarea>
+    <textarea {{ $attributes->merge([
+        'placeholder' => $placeholder,
+        'rows' => $rows,
+        'name' => $name ?: null,
+        'disabled' => $disabled ?: null,
+        'readonly' => $readonly ?: null,
+        'required' => $required ?: null,
+        'maxlength' => $maxLength > 0 ? $maxLength : null,
+        'id' => $controlId,
+        'class' => trim('textarea w-full ' . $sizeClass . ' ' . ($name && isset($errors) && $errors->has($name) ? 'textarea-error' : '')),
+    ]) }}>{{ $value }}</textarea>
 
     @if($name && isset($errors))
         @error($name)

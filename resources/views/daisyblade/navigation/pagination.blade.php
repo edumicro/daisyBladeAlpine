@@ -30,8 +30,9 @@ if ($showFirstLast && $current < ($last - $window - 1)) {
 $pageUrl = fn(int $p) => $baseUrl ? ($baseUrl . (str_contains($baseUrl, '?') ? '&' : '?') . 'page=' . $p) : '#';
 @endphp
 
-{{-- `x-data` makes the root an Alpine scope of its own, so `$dispatch` in the buttons works outside any other scope (layout.app has none). --}}
-<div x-data {{ $attributes->merge(['class' => 'flex flex-col gap-4']) }}>
+{{-- The root is the caller's element: it holds no Alpine attribute of ours. Each button that `$dispatch`es carries its own `x-data`,
+     so the order works outside any other scope (layout.app has none) without a scope around the root. --}}
+<div {{ $attributes->merge(['class' => 'flex flex-col gap-4']) }}>
     @if($total > 0)
         <div class="text-sm text-base-content/70 text-center">
             {{ __('Showing') }}
@@ -45,7 +46,7 @@ $pageUrl = fn(int $p) => $baseUrl ? ($baseUrl . (str_contains($baseUrl, '?') ? '
             @if($baseUrl)
                 <a href="{{ $pageUrl(max(1, $current - 1)) }}" class="join-item btn btn-sm {{ $current <= 1 ? 'btn-disabled' : '' }}">‹ {{ __('Previous') }}</a>
             @else
-                <button type="button" @click="$dispatch('dbl-pagination-page-changed', { page: {{ max(1, $current - 1) }} })" @disabled($current <= 1) class="join-item btn btn-sm">‹ {{ __('Previous') }}</button>
+                <button type="button" x-data @click="$dispatch('dbl-pagination-page-changed', { page: {{ max(1, $current - 1) }} })" @disabled($current <= 1) class="join-item btn btn-sm">‹ {{ __('Previous') }}</button>
             @endif
         @endif
 
@@ -56,7 +57,7 @@ $pageUrl = fn(int $p) => $baseUrl ? ($baseUrl . (str_contains($baseUrl, '?') ? '
                 @if($baseUrl)
                     <a href="{{ $pageUrl($page) }}" class="join-item btn btn-sm {{ $page === $current ? 'btn-active' : '' }}">{{ $page }}</a>
                 @else
-                    <button type="button" @click="$dispatch('dbl-pagination-page-changed', { page: {{ $page }} })" class="join-item btn btn-sm {{ $page === $current ? 'btn-active' : '' }}">{{ $page }}</button>
+                    <button type="button" x-data @click="$dispatch('dbl-pagination-page-changed', { page: {{ $page }} })" class="join-item btn btn-sm {{ $page === $current ? 'btn-active' : '' }}">{{ $page }}</button>
                 @endif
             @endif
         @endforeach
@@ -65,7 +66,7 @@ $pageUrl = fn(int $p) => $baseUrl ? ($baseUrl . (str_contains($baseUrl, '?') ? '
             @if($baseUrl)
                 <a href="{{ $pageUrl(min($last, $current + 1)) }}" class="join-item btn btn-sm {{ $current >= $last ? 'btn-disabled' : '' }}">{{ __('Next') }} ›</a>
             @else
-                <button type="button" @click="$dispatch('dbl-pagination-page-changed', { page: {{ min($last, $current + 1) }} })" @disabled($current >= $last) class="join-item btn btn-sm">{{ __('Next') }} ›</button>
+                <button type="button" x-data @click="$dispatch('dbl-pagination-page-changed', { page: {{ min($last, $current + 1) }} })" @disabled($current >= $last) class="join-item btn btn-sm">{{ __('Next') }} ›</button>
             @endif
         @endif
     </div>

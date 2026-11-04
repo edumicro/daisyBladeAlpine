@@ -44,17 +44,20 @@ $controlId = $attributes->get('id', $name ?: null);
         @endif
 
         <input
-            type="{{ $type }}"
-            placeholder="{{ $placeholder }}"
-            @if($value !== null) value="{{ $value }}" @endif
-            @if($name) name="{{ $name }}" @endif
-            @if($disabled) disabled @endif
-            @if($readonly) readonly @endif
-            @if($required) required @endif
-            {{ $attributes->merge(['id' => $controlId, 'class' => trim('input w-full ' . $sizeClass . ' '
-                . ($icon && $iconSide === 'left' ? 'pl-10 ' : '')
-                . ($icon && $iconSide === 'right' ? 'pr-10 ' : '')
-                . ($error ? 'input-error' : ($name && isset($errors) && $errors->has($name) ? 'input-error' : '')))]) }}
+            {{ $attributes->merge([
+                'type' => $type,
+                'placeholder' => $placeholder,
+                'value' => $value,
+                'name' => $name ?: null,
+                'disabled' => $disabled ?: null,
+                'readonly' => $readonly ?: null,
+                'required' => $required ?: null,
+                'id' => $controlId,
+                'class' => trim('input w-full ' . $sizeClass . ' '
+                    . ($icon && $iconSide === 'left' ? 'pl-10 ' : '')
+                    . ($icon && $iconSide === 'right' ? 'pr-10 ' : '')
+                    . ($error ? 'input-error' : ($name && isset($errors) && $errors->has($name) ? 'input-error' : ''))),
+            ]) }}
         />
 
         @if($icon && $iconSide === 'right')

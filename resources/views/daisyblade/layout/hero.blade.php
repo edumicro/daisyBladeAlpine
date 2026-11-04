@@ -14,10 +14,7 @@ $heroClasses    = trim("hero {$minHeight}");
 $contentClasses = trim("hero-content text-center {$contentClass}");
 @endphp
 
-<div
-    {{ $attributes->merge(['class' => $heroClasses]) }}
-    @if($bgImage) style="background-image: url({{ $bgImage }});" @endif
->
+<div {{ $attributes->merge(['class' => $heroClasses])->style($bgImage ? ["background-image: url({$bgImage})"] : []) }}>
     @if($overlay && $bgImage)
         <div class="{{ $overlayClass }}"></div>
     @endif

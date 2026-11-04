@@ -18,8 +18,10 @@ function openingTagWith(string $html, string $needle): string
 it('repeater: an x-on:input of the caller is the only x-on:input of the root', function () {
     $html = Blade::render('<x-dbl::form.repeater name="r" :fields="[[\'key\' => \'a\']]" x-on:input="mine()" />');
 
-    expect(substr_count(openingTagWith($html, 'dblRepeater'), 'x-on:input='))->toBe(1)
-        ->and(openingTagWith($html, 'dblRepeater'))->toContain('mine()');
+    // The caller's listener is on the outer element (theirs); the scope of the component is the element inside, with its own.
+    expect(openingTagWith($html, 'mine()'))->toContain('mine()')->not->toContain('x-data')
+        ->and(substr_count(openingTagWith($html, 'mine()'), 'x-on:input='))->toBe(1)
+        ->and(openingTagWith($html, 'dblRepeater'))->toContain('x-on:input="notify()"');
 });
 
 it('repeater: the rows still tell the component that they changed, from the element inside', function () {
@@ -38,19 +40,22 @@ it('repeater: an x-effect of the caller is the only x-effect of the root, and th
 it('modal: a :class of the caller is the only :class of the root', function () {
     $html = Blade::render('<x-dbl::actions.modal id="m" ::class="{ big: true }">x</x-dbl::actions.modal>');
 
-    expect(preg_match_all('/\s:class=/', openingTagWith($html, 'dblModal')))->toBe(1);
+    expect(preg_match_all('/\s:class=/', openingTagWith($html, 'big: true')))->toBe(1)
+        ->and(openingTagWith($html, 'big: true'))->not->toContain('x-data');
 });
 
 it('alert: an x-show of the caller is the only x-show of the root', function () {
     $html = Blade::render('<x-dbl::feedback.alert message="a" x-show="mine" />');
 
-    expect(substr_count(openingTagWith($html, 'open: true'), 'x-show='))->toBe(1);
+    expect(substr_count(openingTagWith($html, 'x-show="mine"'), 'x-show='))->toBe(1)
+        ->and(openingTagWith($html, 'x-show="mine"'))->not->toContain('x-data');
 });
 
 it('toast: an x-show of the caller is the only x-show of the root', function () {
     $html = Blade::render('<x-dbl::feedback.toast message="a" x-show="mine" />');
 
-    expect(substr_count(openingTagWith($html, 'dblToastSingle'), 'x-show='))->toBe(1);
+    expect(substr_count(openingTagWith($html, 'x-show="mine"'), 'x-show='))->toBe(1)
+        ->and(openingTagWith($html, 'x-show="mine"'))->not->toContain('x-data');
 });
 
 it('upload: an x-on:drop of the caller is the only x-on:drop of the drop zone', function () {
@@ -74,8 +79,11 @@ it('sidebar, map, flowchart and data-table: the caller can listen to the same or
     $flowchart = Blade::render('<x-dbl::display.flowchart x-on:dbl-flowchart-set.window="mine()" />');
     $table = Blade::render('<x-dbl::display.data-table load-url="/r" :columns="[]" @dbl-filters-applied.window="mine()" />');
 
-    expect(substr_count(openingTagWith($sidebar, 'dblSidebar'), '@dbl-sidebar-toggle.window'))->toBe(1)
-        ->and(substr_count(openingTagWith($map, 'dblMap'), 'x-on:dbl-map-focus.window'))->toBe(1)
-        ->and(substr_count(openingTagWith($flowchart, 'dblFlowchart'), 'x-on:dbl-flowchart-set.window'))->toBe(1)
-        ->and(substr_count(openingTagWith($table, 'dblDataTable'), '@dbl-filters-applied.window'))->toBe(1);
+    // Each one of the caller's is on an element without x-data (theirs); the component's own is on another element.
+    expect(substr_count(openingTagWith($sidebar, '@dbl-sidebar-toggle.window="mine()"'), '@dbl-sidebar-toggle.window'))->toBe(1)
+        ->and(substr_count(openingTagWith($map, 'x-on:dbl-map-focus.window="mine()"'), 'x-on:dbl-map-focus.window'))->toBe(1)
+        ->and(substr_count(openingTagWith($flowchart, 'x-on:dbl-flowchart-set.window="mine()"'), 'x-on:dbl-flowchart-set.window'))->toBe(1)
+        ->and(substr_count(openingTagWith($table, '@dbl-filters-applied.window="mine()"'), '@dbl-filters-applied.window'))->toBe(1)
+        ->and(openingTagWith($sidebar, 'mine()'))->not->toContain('x-data')
+        ->and(openingTagWith($map, 'mine()'))->not->toContain('x-data');
 });

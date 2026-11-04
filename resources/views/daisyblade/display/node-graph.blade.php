@@ -178,21 +178,21 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
 };
 @endphp
 
-<div
-    x-data="{}"
-    {{ $attributes->merge(['class' => 'relative']) }}
->
-    @if($label)
-        <div class="mb-4 pb-3 border-b border-base-300">
-            <h3 class="font-semibold text-base">{{ $label }}</h3>
-        </div>
-    @endif
+{{-- The root is the caller's element; the scope of the component is the element inside it. --}}
+<div {{ $attributes->merge(['class' => 'relative']) }}>
+    <div x-data>
+        @if($label)
+            <div class="mb-4 pb-3 border-b border-base-300">
+                <h3 class="font-semibold text-base">{{ $label }}</h3>
+            </div>
+        @endif
 
-    <div class="{{ $treeClass }}">
-        @forelse($roots as $root)
-            {!! $renderNode($root) !!}
-        @empty
-            <div class="text-center py-8 text-base-content/40 text-sm">{{ __('No nodes') }}</div>
-        @endforelse
+        <div class="{{ $treeClass }}">
+            @forelse($roots as $root)
+                {!! $renderNode($root) !!}
+            @empty
+                <div class="text-center py-8 text-base-content/40 text-sm">{{ __('No nodes') }}</div>
+            @endforelse
+        </div>
     </div>
 </div>

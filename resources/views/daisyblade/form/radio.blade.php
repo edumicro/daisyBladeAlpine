@@ -54,13 +54,15 @@ $sizeClass = match($size) {
         @foreach($options as $optVal => $optLabel)
             <label class="flex w-full cursor-pointer items-center justify-start gap-3 py-1">
                 <input
-                    type="radio"
-                    value="{{ $optVal }}"
-                    @if($name) name="{{ $name }}" @endif
-                    @if($value !== null && (string)$value === (string)$optVal) checked @endif
-                    @if($disabled) disabled @endif
-                    @if($required) required @endif
-                    {{ ($loop->first ? $attributes : $attributes->except('id'))->merge(['class' => "radio {$colorClass} {$sizeClass}"]) }}
+                    {{ ($loop->first ? $attributes : $attributes->except('id'))->merge([
+                        'type' => 'radio',
+                        'value' => $optVal,
+                        'name' => $name ?: null,
+                        'checked' => ($value !== null && (string) $value === (string) $optVal) ?: null,
+                        'disabled' => $disabled ?: null,
+                        'required' => $required ?: null,
+                        'class' => "radio {$colorClass} {$sizeClass}",
+                    ]) }}
                 />
                 <span class="text-sm">{{ $optLabel }}</span>
             </label>

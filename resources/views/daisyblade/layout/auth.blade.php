@@ -4,7 +4,7 @@
 ])
 
 <!DOCTYPE html>
-<html data-theme="{{ $theme }}" lang="{{ str_replace('_', '-', app()->getLocale()) }}" {{ $attributes }}>
+<html {{ $attributes->merge(['data-theme' => $theme, 'lang' => str_replace('_', '-', app()->getLocale())]) }}>
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -16,7 +16,8 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body class="antialiased min-h-screen bg-base-200 flex items-center justify-center p-4">
+{{-- `x-data` on the body: the page-wide scope of the caller (see layout.app). --}}
+<body x-data class="antialiased min-h-screen bg-base-200 flex items-center justify-center p-4">
 
     <x-dbl::feedback.toast position="end" vertical="top" />
 

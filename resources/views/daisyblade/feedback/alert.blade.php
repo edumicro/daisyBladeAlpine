@@ -12,30 +12,29 @@ $alertClass = match($type) { 'success'=>'alert-success','warning'=>'alert-warnin
 $defaultIcon = $icon ?: match($type) { 'success'=>'heroicon-o-check-circle','warning'=>'heroicon-o-exclamation-triangle','error'=>'heroicon-o-x-circle', default=>'heroicon-o-information-circle' };
 @endphp
 
-{{-- The root takes the attributes of the caller, so it carries no Alpine attribute of ours but `x-data`: a caller's own
-     `x-show` would be a second one and the browser would keep only the first. Closing is done from the box inside. --}}
-<div
-    x-data="{ open: true }"
-    {{ $attributes->merge(['class' => "alert {$alertClass}"]) }}
->
-    <div class="flex items-start gap-3 w-full {{ $contentClass }}"
-         {{-- Only CLOSING writes `display`: writing '' when it starts would wipe the `x-show="false"` or `style="display:none"` of the caller. --}}
-         x-effect="if (!open) $root.style.display = 'none'">
-        <x-dynamic-component :component="$defaultIcon" class="w-6 h-6 flex-shrink-0" />
+{{-- The root takes the attributes of the caller and carries nothing of ours: a caller's own `x-show`, `x-ref` or `$root` are
+     theirs. The scope of the component is the element inside it. Closing hides that inner element, never the root. --}}
+<div {{ $attributes->merge(['class' => "alert {$alertClass}"]) }}>
+    <div x-data="{ open: true }" class="contents">
+        <div class="flex items-start gap-3 w-full {{ $contentClass }}"
+             {{-- Only CLOSING writes `display`: writing '' when it starts would wipe the `x-show="false"` or `style="display:none"` of the caller. --}}
+             x-effect="if (!open) $root.parentElement.style.display = 'none'">
+            <x-dynamic-component :component="$defaultIcon" class="w-6 h-6 flex-shrink-0" />
 
-        <div class="flex-1">
-            @if($title)
-                <h3 class="font-bold">{{ $title }}</h3>
+            <div class="flex-1">
+                @if($title)
+                    <h3 class="font-bold">{{ $title }}</h3>
+                @endif
+                <div class="text-sm">{{ $message ?: $slot }}</div>
+            </div>
+
+            @if($closable)
+                <button type="button" @click="open = false" class="btn btn-ghost btn-sm btn-circle" aria-label="{{ __('Close') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
             @endif
-            <div class="text-sm">{{ $message ?: $slot }}</div>
         </div>
-
-        @if($closable)
-            <button type="button" @click="open = false" class="btn btn-ghost btn-sm btn-circle" aria-label="{{ __('Close') }}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                </svg>
-            </button>
-        @endif
     </div>
 </div>

@@ -178,13 +178,29 @@ const dblSelectSearch = (config = {}) => ({
     },
     get isEmpty() { return this.flatList.filter(item => item.type === 'option').length === 0 },
     // The text box of this mode. It takes the attributes of the caller (x-model, @input...), so the component finds it by its type.
-    get textBox() { return this.$root?.querySelector('input[type="text"]') ?? null },
+    get textBox() { return this.$root?.parentElement?.querySelector('input[type="text"]') ?? null },
     // The chosen KEY: what the `x-model` of the caller reads and writes (`x-modelable="chosen"` in the view). '' = nothing chosen.
     // `shown` is the key whose label the text box shows now: when `chosen` is another one, it was changed from outside.
     chosen: config.chosen ?? '',
     shown: String(config.chosen ?? ''),
     starting: true,   // true while the page starts: x-modelable copies the model into `chosen` a moment AFTER the first sync()
-    init() { this.$nextTick(() => { this.starting = false }) },
+    init() {
+        this.$nextTick(() => { this.starting = false })
+        this.listenToTheTextBox()
+    },
+    // The text box is the caller's control and lives OUTSIDE this scope (so that their `x-ref`, `$root` and data stay theirs): the
+    // component finds it beside its own element and listens to it from here. Typing, focus and Escape reach it as plain DOM events.
+    listenToTheTextBox() {
+        const box = this.textBox
+        if (!box) return
+        box.addEventListener('input', event => this.typed(event.target.value))
+        box.addEventListener('focusin', () => { this.open = true })
+        box.addEventListener('keydown', event => { if (event.key === 'Escape') this.open = false })
+    },
+    // A click anywhere in the page (the window hears them all) closes the list, except in the text box and the list themselves.
+    closeWhenOutside(event) {
+        if (!this.$root.parentElement.contains(event.target)) this.open = false
+    },
     // `chosen` IS the model of the caller (x-modelable): this is how the shared rule of modelBinding.js reads and writes it.
     get binding() { return modelBinding({ get: () => this.chosen, set: key => { this.chosen = key } }) },
     // Keeps the text box and the hidden input in step with `chosen` (the view calls it from an x-effect).
@@ -219,14 +235,6 @@ const dblSelectSearch = (config = {}) => ({
             if (this.$refs.value) this.$refs.value.value = ''
             this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: '' })
         }
-        this.tellTheForm()
-    },
-    // The native `input` of the text box is stopped at the box around it (otherwise the `x-model` of this scope, which also
-    // listens to `input`, would take the TYPED TEXT as the model). A form that listens to `input` (autosave, "dirty") would
-    // hear nothing, so this sends it a new `input` from the PARENT of the scope's element: it rises from there to the form,
-    // and it never passes through the element that holds the `x-model`.
-    tellTheForm() {
-        this.$root?.parentElement?.dispatchEvent(new Event('input', { bubbles: true }))
     },
     // The user chose an option: the model gets its key, the text box shows its label, the hidden input (x-ref="value") gets the key.
     choose(item) {
@@ -244,7 +252,6 @@ const dblSelectSearch = (config = {}) => ({
         }
         if (this.$refs.value) this.$refs.value.value = item.key
         this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: item.key })
-        this.tellTheForm()
     },
 })
 
@@ -266,6 +273,17 @@ const dblCharacterCounter = (config = {}) => ({
         if (!this.ready || !this.textarea) return
         const model = modelBinding(modelOfElement(this.textarea))
         this.typed = String(model.current(this.textarea.value) ?? '').length
+    },
+})
+
+// form.select, native mode: announces `dbl-select-changed` { name, value } when its <select> changes. Its scope is a hidden element
+// BESIDE the <select> (never around it, so the `x-ref` and data of the caller stay theirs); the window hears every `change`.
+const dblSelectAnnouncer = (config = {}) => ({
+    get field() { return this.$root.parentElement.querySelector('select') },
+    announce(event) {
+        const field = this.field
+        if (event.target !== field) return    // the `change` of any other control of the page
+        this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: field.multiple ? [...field.selectedOptions].map(option => option.value) : field.value })
     },
 })
 
@@ -840,7 +858,7 @@ const dblListEditor = (config = {}) => ({
 
 const _all = {
     dblModal, dblToast, dblToastSingle, dblTabs, dblSteps, dblCarousel, dblTextRotate, dblRepeater, dblSelectSearch,
-    dblNavbar, dblSidebar, dblSidebarTree, dblCharacterCounter,
+    dblNavbar, dblSidebar, dblSidebarTree, dblCharacterCounter, dblSelectAnnouncer,
     dblDataTable, dblAutoForm, dblWizard,
     dblSelectRemote, dblResourceDetails, dblTabsLazy, dblSpreadsheetImport,
     dblKvEditor, dblListEditor,
@@ -874,7 +892,7 @@ if (typeof window !== 'undefined') {
 export {
     registerDaisyBlade,
     dblModal, dblToast, dblToastSingle, dblTabs, dblSteps, dblCarousel, dblTextRotate, dblRepeater, dblSelectSearch,
-    dblNavbar, dblSidebar, dblSidebarTree, dblCharacterCounter,
+    dblNavbar, dblSidebar, dblSidebarTree, dblCharacterCounter, dblSelectAnnouncer,
     dblDataTable, dblAutoForm, dblWizard,
     dblSelectRemote, dblResourceDetails, dblTabsLazy, dblSpreadsheetImport,
     dblKvEditor, dblListEditor,

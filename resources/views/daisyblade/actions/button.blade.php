@@ -39,10 +39,7 @@ $sizeClass = match($size) {
 @endphp
 
 @if($href)
-    <a
-        href="{{ $href }}"
-        {{ $attributes->merge(['class' => "btn {$colorClass} {$sizeClass}" . ($iconOnly ? ' btn-circle' : '')]) }}
-    >
+    <a {{ $attributes->merge(['href' => $href, 'class' => "btn {$colorClass} {$sizeClass}" . ($iconOnly ? ' btn-circle' : '')]) }}>
         @if($icon && $iconPosition === 'left' && !$iconOnly)
             <x-dynamic-component :component="$icon" class="w-5 h-5" />
         @elseif($icon && $iconOnly)
@@ -54,11 +51,11 @@ $sizeClass = match($size) {
         @endif
     </a>
 @else
-    <button
-        type="{{ $type }}"
-        @disabled($disabled || $loading)
-        {{ $attributes->merge(['class' => "btn {$colorClass} {$sizeClass}" . ($iconOnly ? ' btn-circle' : '') . ($loading ? ' btn-loading' : '')]) }}
-    >
+    <button {{ $attributes->merge([
+        'type' => $type,
+        'disabled' => ($disabled || $loading) ?: null,
+        'class' => "btn {$colorClass} {$sizeClass}" . ($iconOnly ? ' btn-circle' : '') . ($loading ? ' btn-loading' : ''),
+    ]) }}>
         @if($loading)
             <span class="loading loading-spinner loading-sm"></span>
         @elseif($icon && $iconPosition === 'left' && !$iconOnly)

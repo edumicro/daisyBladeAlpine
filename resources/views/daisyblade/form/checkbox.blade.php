@@ -49,12 +49,16 @@ $checked = filter_var($value, FILTER_VALIDATE_BOOLEAN);
 
     <label class="flex w-full cursor-pointer items-center justify-start gap-3 py-1">
         <input
-            type="checkbox"
-            @if($name) name="{{ $name }}" value="1" @endif
-            @if($disabled) disabled @endif
-            @if($required) required @endif
-            @checked($checked)
-            {{ $attributes->merge(['id' => $attributes->get('id', $name ?: null), 'class' => "checkbox {$colorClass} {$sizeClass}"]) }}
+            {{ $attributes->merge([
+                'type' => 'checkbox',
+                'name' => $name ?: null,
+                'value' => $name ? '1' : null,
+                'disabled' => $disabled ?: null,
+                'required' => $required ?: null,
+                'checked' => $checked ?: null,
+                'id' => $attributes->get('id', $name ?: null),
+                'class' => "checkbox {$colorClass} {$sizeClass}",
+            ]) }}
         />
         @if($label)
             <span class="text-sm font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>

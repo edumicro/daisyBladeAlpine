@@ -66,51 +66,51 @@ $config = [
 @endphp
 
 @if($mode === 'alpine')
-    <div
-        x-data="dblAutoForm(@js($config))"
-        {{ $attributes }}
-    >
-        @if($label)
-            <h3 class="text-lg font-semibold mb-4">{{ $label }}</h3>
-        @endif
+{{-- The root is the caller's element; the scope of the component is the element inside it. --}}
+    <div {{ $attributes }}>
+    <div x-data="dblAutoForm(@js($config))">
+            @if($label)
+                <h3 class="text-lg font-semibold mb-4">{{ $label }}</h3>
+            @endif
 
-        {{-- Success banner --}}
-        @if($successMsg)
-            <div x-show="success" x-cloak class="alert alert-success mb-4">
-                <x-heroicon-o-check-circle class="w-5 h-5" />
-                <span>{{ $successMsg }}</span>
-            </div>
-        @endif
+            {{-- Success banner --}}
+            @if($successMsg)
+                <div x-show="success" x-cloak class="alert alert-success mb-4">
+                    <x-heroicon-o-check-circle class="w-5 h-5" />
+                    <span>{{ $successMsg }}</span>
+                </div>
+            @endif
 
-        {{-- Global error --}}
-        <div x-show="globalError" x-cloak class="alert alert-error mb-4">
-            <x-heroicon-o-x-circle class="w-5 h-5" />
-            <span x-text="globalError"></span>
-        </div>
-
-        <form @submit.prevent="submit" class="{{ $formClass }}">
-            <div class="grid grid-cols-12 gap-4">
-                <x-dbl::form.fields :fields="$fields" mode="alpine" alpine-data="values" alpine-errors="errors" />
+            {{-- Global error --}}
+            <div x-show="globalError" x-cloak class="alert alert-error mb-4">
+                <x-heroicon-o-x-circle class="w-5 h-5" />
+                <span x-text="globalError"></span>
             </div>
 
-            {{ $slot }}
+            <form @submit.prevent="submit" class="{{ $formClass }}">
+                <div class="grid grid-cols-12 gap-4">
+                    <x-dbl::form.fields :fields="$fields" mode="alpine" alpine-data="values" alpine-errors="errors" />
+                </div>
 
-            <div class="flex items-center gap-3 mt-6">
-                <button
-                    type="submit"
-                    :disabled="loading"
-                    class="btn btn-primary"
-                >
-                    <span x-show="loading" class="loading loading-spinner loading-sm" x-cloak></span>
-                    {{ $submitLabel ?: __('Save') }}
-                </button>
+                {{ $slot }}
 
-                @if($resetLabel)
-                    <button type="reset" class="btn btn-ghost">{{ $resetLabel }}</button>
-                @endif
-            </div>
-        </form>
+                <div class="flex items-center gap-3 mt-6">
+                    <button
+                        type="submit"
+                        :disabled="loading"
+                        class="btn btn-primary"
+                    >
+                        <span x-show="loading" class="loading loading-spinner loading-sm" x-cloak></span>
+                        {{ $submitLabel ?: __('Save') }}
+                    </button>
+
+                    @if($resetLabel)
+                        <button type="reset" class="btn btn-ghost">{{ $resetLabel }}</button>
+                    @endif
+                </div>
+            </form>
     </div>
+</div>
 @else
     {{-- Standard HTML form mode --}}
     <div {{ $attributes }}>

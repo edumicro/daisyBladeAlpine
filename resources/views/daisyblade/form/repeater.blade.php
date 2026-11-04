@@ -55,15 +55,12 @@
     $bind = fn (string $target, array $defaults = []) => Bindings::render($defaults, $events[$target] ?? []);
 @endphp
 
-{{-- The outer element takes the attributes of the caller, so it carries no Alpine attribute of ours but `x-data`: an `x-on:input`
-     or an `x-effect` of the caller would be a second one and the browser keeps only the first. What the component needs on
-     its "root" (the `input` that tells the rows changed, the sync into the parent scope, the `events['root']` of the caller)
-     goes on the element inside, which holds everything the component draws. --}}
+{{-- The outer element takes the attributes of the caller and carries nothing of ours: an `x-on:input`, an `x-effect` or an `x-ref` of
+     the caller are theirs. The element inside holds the scope of the component and everything it draws: its "root" (the
+     `input` that tells the rows changed, the sync into the parent scope, the `events['root']` of the caller). --}}
+<div {{ $attributes }}>
 <div
     x-data="dblRepeater(@js(['name' => $name, 'rows' => $rows, 'emptyRow' => (object) $emptyRow, 'min' => (int) $min, 'max' => (int) $max]))"
-    {{ $attributes->merge(['class' => 'space-y-2']) }}
->
-<div
     @if($mode === 'alpine') x-effect="{{ $alpineData }}[@js($name)] = rows" @endif
     {{ $bind('root', ['input' => 'notify()']) }}
     class="space-y-2"

@@ -57,101 +57,101 @@ $config = [
 ];
 @endphp
 
-<div
-    x-data="dblWizard(@js($config))"
-    {{ $attributes->merge(['class' => 'space-y-6']) }}
->
-    {{-- Steps indicator --}}
-    <ul class="steps w-full">
-        @foreach($steps as $i => $step)
-            <li
-                :data-content="step > {{ $i }} ? '✓' : '{{ $i + 1 }}'"
-                :class="{
-                    'step-success': step > {{ $i }},
-                    'step-primary': step === {{ $i }}
-                }"
-                class="step"
-            >
-                <div class="flex flex-col gap-0.5 text-left">
-                    <span class="text-sm font-medium leading-tight">{{ $step['label'] ?? '' }}</span>
-                    @if(!empty($step['description']))
-                        <span class="text-xs text-base-content/50">{{ $step['description'] }}</span>
-                    @endif
-                </div>
-            </li>
-        @endforeach
-    </ul>
+{{-- The root is the caller's element; the scope of the component is the element inside it. --}}
+<div {{ $attributes }}>
+    <div x-data="dblWizard(@js($config))" class="space-y-6">
+        {{-- Steps indicator --}}
+        <ul class="steps w-full">
+            @foreach($steps as $i => $step)
+                <li
+                    :data-content="step > {{ $i }} ? '✓' : '{{ $i + 1 }}'"
+                    :class="{
+                        'step-success': step > {{ $i }},
+                        'step-primary': step === {{ $i }}
+                    }"
+                    class="step"
+                >
+                    <div class="flex flex-col gap-0.5 text-left">
+                        <span class="text-sm font-medium leading-tight">{{ $step['label'] ?? '' }}</span>
+                        @if(!empty($step['description']))
+                            <span class="text-xs text-base-content/50">{{ $step['description'] }}</span>
+                        @endif
+                    </div>
+                </li>
+            @endforeach
+        </ul>
 
-    {{-- Global error --}}
-    <div x-show="Object.keys(errors).length > 0 || globalError" x-cloak class="alert alert-error">
-        <x-heroicon-o-x-circle class="w-5 h-5 flex-shrink-0" />
-        <div>
-            <template x-if="globalError">
-                <p x-text="globalError"></p>
-            </template>
-            <template x-if="!globalError && Object.keys(errors).length">
-                <p>{{ __('Please correct the errors below.') }}</p>
-            </template>
-        </div>
-    </div>
-
-    {{-- Step panels --}}
-    @foreach($steps as $i => $step)
-        <div x-show="step === {{ $i }}" x-cloak class="card bg-base-100 border border-base-300 shadow-sm">
-            <div class="card-body">
-                @if(!empty($step['label']))
-                    <h3 class="card-title text-base">{{ $step['label'] }}</h3>
-                @endif
-                @if(!empty($step['description']))
-                    <p class="text-sm text-base-content/60 mb-2">{{ $step['description'] }}</p>
-                @endif
-
-                <div class="grid grid-cols-12 gap-4">
-                    <x-dbl::form.fields :fields="$step['schema'] ?? []" mode="alpine" alpine-data="data" alpine-errors="errors" />
-                </div>
+        {{-- Global error --}}
+        <div x-show="Object.keys(errors).length > 0 || globalError" x-cloak class="alert alert-error">
+            <x-heroicon-o-x-circle class="w-5 h-5 flex-shrink-0" />
+            <div>
+                <template x-if="globalError">
+                    <p x-text="globalError"></p>
+                </template>
+                <template x-if="!globalError && Object.keys(errors).length">
+                    <p>{{ __('Please correct the errors below.') }}</p>
+                </template>
             </div>
         </div>
-    @endforeach
 
-    {{-- Navigation --}}
-    <div class="flex items-center justify-between">
-        <button
-            type="button"
-            @click="prev()"
-            :disabled="step === 0"
-            class="btn btn-ghost btn-sm"
-        >
-            <x-heroicon-o-arrow-left class="w-4 h-4" />
-            {{ __('Back') }}
-        </button>
+        {{-- Step panels --}}
+        @foreach($steps as $i => $step)
+            <div x-show="step === {{ $i }}" x-cloak class="card bg-base-100 border border-base-300 shadow-sm">
+                <div class="card-body">
+                    @if(!empty($step['label']))
+                        <h3 class="card-title text-base">{{ $step['label'] }}</h3>
+                    @endif
+                    @if(!empty($step['description']))
+                        <p class="text-sm text-base-content/60 mb-2">{{ $step['description'] }}</p>
+                    @endif
 
-        <span class="text-sm text-base-content/50" x-text="`${step + 1} / {{ $stepCount }}`"></span>
+                    <div class="grid grid-cols-12 gap-4">
+                        <x-dbl::form.fields :fields="$step['schema'] ?? []" mode="alpine" alpine-data="data" alpine-errors="errors" />
+                    </div>
+                </div>
+            </div>
+        @endforeach
 
-        {{-- Next (not last step) --}}
-        <button
-            type="button"
-            x-show="step < {{ $stepCount - 1 }}"
-            @click="next()"
-            :disabled="loading"
-            class="btn btn-primary btn-sm"
-        >
-            <span x-show="loading" class="loading loading-spinner loading-xs" x-cloak></span>
-            {{ __('Next') }}
-            <x-heroicon-o-arrow-right class="w-4 h-4" />
-        </button>
+        {{-- Navigation --}}
+        <div class="flex items-center justify-between">
+            <button
+                type="button"
+                @click="prev()"
+                :disabled="step === 0"
+                class="btn btn-ghost btn-sm"
+            >
+                <x-heroicon-o-arrow-left class="w-4 h-4" />
+                {{ __('Back') }}
+            </button>
 
-        {{-- Submit (last step) --}}
-        <button
-            type="button"
-            x-show="step === {{ $stepCount - 1 }}"
-            x-cloak
-            @click="submit()"
-            :disabled="loading"
-            class="btn btn-success btn-sm"
-        >
-            <span x-show="loading" class="loading loading-spinner loading-xs" x-cloak></span>
-            <x-heroicon-o-check class="w-4 h-4" />
-            {{ $submitLabel ?: __('Finish') }}
-        </button>
+            <span class="text-sm text-base-content/50" x-text="`${step + 1} / {{ $stepCount }}`"></span>
+
+            {{-- Next (not last step) --}}
+            <button
+                type="button"
+                x-show="step < {{ $stepCount - 1 }}"
+                @click="next()"
+                :disabled="loading"
+                class="btn btn-primary btn-sm"
+            >
+                <span x-show="loading" class="loading loading-spinner loading-xs" x-cloak></span>
+                {{ __('Next') }}
+                <x-heroicon-o-arrow-right class="w-4 h-4" />
+            </button>
+
+            {{-- Submit (last step) --}}
+            <button
+                type="button"
+                x-show="step === {{ $stepCount - 1 }}"
+                x-cloak
+                @click="submit()"
+                :disabled="loading"
+                class="btn btn-success btn-sm"
+            >
+                <span x-show="loading" class="loading loading-spinner loading-xs" x-cloak></span>
+                <x-heroicon-o-check class="w-4 h-4" />
+                {{ $submitLabel ?: __('Finish') }}
+            </button>
+        </div>
     </div>
 </div>

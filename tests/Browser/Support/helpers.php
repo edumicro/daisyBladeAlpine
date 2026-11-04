@@ -94,7 +94,7 @@ import '/_assets/js/daisyblade.js'
 {$registers}})
 </script>
 <script defer src="/_assets/node/alpinejs/dist/cdn.min.js"></script>
-</head><body>{$body}</body></html>
+</head><body x-data>{$body}</body></html>
 HTML;
 }
 

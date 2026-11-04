@@ -9,7 +9,7 @@
     'contentClass' => '',
 ])
 
-<div {{ $attributes->merge(['class' => 'group relative']) }} style="perspective:1000px">
+<div {{ $attributes->merge(['class' => 'group relative'])->style(['perspective:1000px']) }}>
     <div
         class="relative w-full h-96 rounded-xl overflow-hidden {{ $shadow ? 'shadow-lg' : '' }} transition-all duration-500"
         style="transform-style:preserve-3d;transition:transform .6s cubic-bezier(.23,1,.32,1)"

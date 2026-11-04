@@ -44,7 +44,7 @@ $animClass = match($animation) {
 
 {{-- Everything the caller writes goes to the root; the binding of the value (x-model, wire:model) goes to the checkbox. --}}
 <label {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => "swap swap-animate {$animClass}"]) }}>
-    <input type="checkbox" @disabled($disabled) {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }} />
+    <input {{ $attributes->whereStartsWith(['x-model', 'wire:model'])->merge(['type' => 'checkbox', 'disabled' => $disabled ?: null]) }} />
 
     {{-- A <button> inside a <label> is interactive content: the label does not pass its click on to the checkbox. So each button
          clicks the checkbox itself (plain `onclick`, so it works outside any Alpine scope), and it leaves the keyboard order

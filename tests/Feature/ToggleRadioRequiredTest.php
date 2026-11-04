@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Blade;
 it('writes required on the toggle input, as the checkbox does', function () {
     $html = Blade::render('<x-dbl::form.toggle name="on" label="On" required />');
 
-    expect($html)->toMatch('/<input[^>]*type="checkbox"[^>]*\srequired[\s>\/]/s');
+    expect($html)->toMatch('/<input[^>]*type="checkbox"[^>]*\srequired(?:=|[\s>\/])/s');
 });
 
 it('paints the asterisk on the label of a required toggle, as the checkbox does', function () {
@@ -26,7 +26,7 @@ it('writes required on every radio of a required group', function () {
 
     expect($radios[0])->toHaveCount(2);
     foreach ($radios[0] as $radio) {
-        expect($radio)->toMatch('/\srequired[\s>\/]/');
+        expect($radio)->toMatch('/\srequired(?:=|[\s>\/])/');
     }
 });
 

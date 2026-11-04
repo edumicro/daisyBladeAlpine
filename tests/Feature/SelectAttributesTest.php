@@ -62,6 +62,7 @@ it('listens to the window only in the remote mode', function () {
     $native = Blade::render('<x-dbl::form.select name="city" :options="[\'a\' => \'A\']" depends-on="country" />');
     $searchable = Blade::render('<x-dbl::form.select name="city" searchable :options="[\'a\' => \'A\']" />');
 
-    expect($native)->not->toContain('onChange')->not->toContain('.window')
-        ->and($searchable)->not->toContain('onChange')->not->toContain('.window');
+    // The native select only announces its own change; the searchable one only closes its list on a click.
+    expect($native)->not->toContain('onChange')->not->toContain('dblSelectRemote')
+        ->and($searchable)->not->toContain('onChange')->not->toContain('x-on:change.window');
 });

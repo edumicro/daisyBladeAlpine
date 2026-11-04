@@ -76,33 +76,33 @@ $sizeClass = match($size) {
 };
 @endphp
 
-<div
-    x-data="dblTextRotate(@js(['texts' => array_values($texts), 'duration' => (int) $duration, 'autoRotate' => (bool) $autoRotate]))"
-    {{ $attributes }}
->
-    @if($label)
-        <p class="text-sm font-medium text-base-content/70 text-center mb-4">{{ $label }}</p>
-    @endif
+{{-- The root is the caller's element; the scope of the component is the element inside it. --}}
+<div {{ $attributes }}>
+    <div x-data="dblTextRotate(@js(['texts' => array_values($texts), 'duration' => (int) $duration, 'autoRotate' => (bool) $autoRotate]))">
+        @if($label)
+            <p class="text-sm font-medium text-base-content/70 text-center mb-4">{{ $label }}</p>
+        @endif
 
-    <div class="relative h-20 flex items-center justify-center">
-        <template x-for="(text, i) in texts" :key="i">
-            <div
-                class="absolute inset-0 flex items-center justify-center transition-opacity duration-500"
-                :class="{ 'opacity-100': i === current, 'opacity-0': i !== current }"
-            >
-                <span class="{{ $sizeClass }} {{ $bold ? 'font-bold' : '' }} {{ $textColorClass }} text-center px-4 {{ $textClass }}" x-text="text.text ?? text"></span>
-            </div>
-        </template>
-    </div>
+        <div class="relative h-20 flex items-center justify-center">
+            <template x-for="(text, i) in texts" :key="i">
+                <div
+                    class="absolute inset-0 flex items-center justify-center transition-opacity duration-500"
+                    :class="{ 'opacity-100': i === current, 'opacity-0': i !== current }"
+                >
+                    <span class="{{ $sizeClass }} {{ $bold ? 'font-bold' : '' }} {{ $textColorClass }} text-center px-4 {{ $textClass }}" x-text="text.text ?? text"></span>
+                </div>
+            </template>
+        </div>
 
-    <div class="flex justify-center gap-2 mt-4">
-        <template x-for="(text, i) in texts" :key="i">
-            <button
-                type="button"
-                @click="current = i"
-                :class="i === current ? '{{ $bgColorClass }} w-8' : 'bg-base-300 w-2'"
-                class="h-2 rounded-full transition-all duration-300"
-            ></button>
-        </template>
+        <div class="flex justify-center gap-2 mt-4">
+            <template x-for="(text, i) in texts" :key="i">
+                <button
+                    type="button"
+                    @click="current = i"
+                    :class="i === current ? '{{ $bgColorClass }} w-8' : 'bg-base-300 w-2'"
+                    class="h-2 rounded-full transition-all duration-300"
+                ></button>
+            </template>
+        </div>
     </div>
 </div>

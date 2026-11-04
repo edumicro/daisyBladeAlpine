@@ -38,50 +38,50 @@ $config = [
 ];
 @endphp
 
-<div
-    x-data="dblTabsLazy(@js($config))"
-    {{ $attributes->merge(['class' => 'space-y-0']) }}
->
-    {{-- Tab headers --}}
-    <div role="tablist" class="tabs {{ $styleClass }} w-full">
+{{-- The root is the caller's element; the scope of the component is the element inside it. --}}
+<div {{ $attributes->merge(['class' => 'space-y-0']) }}>
+    <div x-data="dblTabsLazy(@js($config))">
+        {{-- Tab headers --}}
+        <div role="tablist" class="tabs {{ $styleClass }} w-full">
+            @foreach($tabs as $i => $tab)
+                <button
+                    type="button"
+                    role="tab"
+                    class="tab gap-2"
+                    :class="{ 'tab-active': isActive({{ $i }}) }"
+                    :aria-selected="isActive({{ $i }})"
+                    @click="select({{ $i }})"
+                >
+                    @if(!empty($tab['icon']))
+                        <x-dynamic-component :component="$tab['icon']" class="w-4 h-4" />
+                    @endif
+                    {{ $tab['label'] ?? '' }}
+                    @if(!empty($tab['badge']))
+                        <span class="badge badge-sm">{{ $tab['badge'] }}</span>
+                    @endif
+                </button>
+            @endforeach
+        </div>
+
+        {{-- Tab panels --}}
         @foreach($tabs as $i => $tab)
-            <button
-                type="button"
-                role="tab"
-                class="tab gap-2"
-                :class="{ 'tab-active': isActive({{ $i }}) }"
-                :aria-selected="isActive({{ $i }})"
-                @click="select({{ $i }})"
+            <div
+                x-show="isActive({{ $i }})"
+                x-cloak
+                class="bg-base-100 border border-base-300 border-t-0 rounded-b-box p-6 {{ $panelClass }}"
             >
-                @if(!empty($tab['icon']))
-                    <x-dynamic-component :component="$tab['icon']" class="w-4 h-4" />
-                @endif
-                {{ $tab['label'] ?? '' }}
-                @if(!empty($tab['badge']))
-                    <span class="badge badge-sm">{{ $tab['badge'] }}</span>
-                @endif
-            </button>
+                <div x-show="isLoading({{ $i }})" class="flex justify-center py-8">
+                    <div class="loading loading-spinner loading-md"></div>
+                </div>
+                {{-- The load failed: a message and a retry button instead of an empty panel. Inline display:none because
+                     the package cannot count on the host defining [x-cloak]. --}}
+                <div x-show="hasError({{ $i }}) && !isLoading({{ $i }})" style="display: none" role="alert" class="alert alert-error">
+                    <x-heroicon-o-x-circle class="w-5 h-5" />
+                    <span x-text="errors[{{ $i }}]"></span>
+                    <button type="button" @click="retry({{ $i }})" class="btn btn-ghost btn-xs">{{ __('Retry') }}</button>
+                </div>
+                <div x-show="!isLoading({{ $i }}) && !hasError({{ $i }})" x-html="contents[{{ $i }}] ?? ''"></div>
+            </div>
         @endforeach
     </div>
-
-    {{-- Tab panels --}}
-    @foreach($tabs as $i => $tab)
-        <div
-            x-show="isActive({{ $i }})"
-            x-cloak
-            class="bg-base-100 border border-base-300 border-t-0 rounded-b-box p-6 {{ $panelClass }}"
-        >
-            <div x-show="isLoading({{ $i }})" class="flex justify-center py-8">
-                <div class="loading loading-spinner loading-md"></div>
-            </div>
-            {{-- The load failed: a message and a retry button instead of an empty panel. Inline display:none because
-                 the package cannot count on the host defining [x-cloak]. --}}
-            <div x-show="hasError({{ $i }}) && !isLoading({{ $i }})" style="display: none" role="alert" class="alert alert-error">
-                <x-heroicon-o-x-circle class="w-5 h-5" />
-                <span x-text="errors[{{ $i }}]"></span>
-                <button type="button" @click="retry({{ $i }})" class="btn btn-ghost btn-xs">{{ __('Retry') }}</button>
-            </div>
-            <div x-show="!isLoading({{ $i }}) && !hasError({{ $i }})" x-html="contents[{{ $i }}] ?? ''"></div>
-        </div>
-    @endforeach
 </div>

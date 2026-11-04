@@ -41,13 +41,9 @@ $controlId = $attributes->get('id', $name ?: null);
 {{-- The main element of a form control is the control itself: everything the caller writes (class, x-model,
      wire:model, x-on:*, data-*...) goes to the <select> (to the text box, in `searchable` mode), and the box around
      it takes its classes from `wrapper-class`.
-     The native select announces its change as `dbl-select-changed`, like the other two (this box is the root it is
-     dispatched from). The remote select has its Alpine scope in an element of its own, further down (see there). --}}
-<div class="w-full {{ $wrapperClass }}"
-     @if(! $loadUrl && ! $searchable)
-         x-data
-         x-on:change="$dispatch('dbl-select-changed', { name: @js($name), value: $event.target.multiple ? [...$event.target.selectedOptions].map(option => option.value) : $event.target.value })"
-     @endif>
+     The three modes announce a change as `dbl-select-changed`. None of them has a scope AROUND the control (it would hide the
+     `x-ref`, `$root` and data of the caller): the scope of each is an element beside it, further down (see there). --}}
+<div class="w-full {{ $wrapperClass }}">
     @if($label)
         <label class="mb-1 block text-sm font-medium" @if($controlId) for="{{ $controlId }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
@@ -60,14 +56,14 @@ $controlId = $attributes->get('id', $name ?: null);
              For the same reason it carries no Alpine attribute of ours: the caller's `x-on:change` or `:disabled` would
              be a second copy of the same attribute, and the browser keeps only the first. What Alpine needs from the
              component is written on the element below. --}}
-        <select
-            @if($name) name="{{ $name }}{{ $multiple ? '[]' : '' }}" @endif
-            @if($multiple) multiple @endif
-            @if($disabled) disabled @endif
-            @if($required) required @endif
-            {{ $attributes->merge(['id' => $controlId, 'class' => trim('select w-full ' . $sizeClass . ' '
-                . ($name && isset($errors) && $errors->has($name) ? 'select-error' : ''))]) }}
-        >
+        <select {{ $attributes->merge([
+            'name' => $name ? $name . ($multiple ? '[]' : '') : null,
+            'multiple' => $multiple ?: null,
+            'disabled' => $disabled ?: null,
+            'required' => $required ?: null,
+            'id' => $controlId,
+            'class' => trim('select w-full ' . $sizeClass . ' ' . ($name && isset($errors) && $errors->has($name) ? 'select-error' : '')),
+        ]) }}>
             @if(!$multiple && $placeholder) <option value="">{{ $placeholder }}</option> @endif
             {{-- What the server already knows (for example the saved value): shown until the JS brings the real options, or if it never does. --}}
             @foreach($options as $optVal => $optLabel)
@@ -88,79 +84,77 @@ $controlId = $attributes->get('id', $name ?: null);
             </p>
         </div>
     @elseif($searchable)
-        {{-- Alpine searchable combobox — soporta flat {k:v} y grouped {group:{k:v}} --}}
+        {{-- Searchable combobox. Flat {k:v} and grouped {group:{k:v}} options. --}}
         @php
         // The `x-model` of the caller (with its modifiers) is NOT for the text box: like on a native <select>, it holds the KEY
-        // that is chosen. It goes on the box around everything, which is also the Alpine scope, paired with `x-modelable`
-        // (that is why the tag below does not hold `$attributes`: it only gets the model). Everything else the caller writes
-        // (placeholder, autocomplete, @input, @focus...) goes to the text box.
+        // that is chosen. It goes on a hidden element inside the scope of the component, paired with `x-modelable`. Everything else
+        // the caller writes (id, x-ref, placeholder, autocomplete, @input, @focus...) goes to the text box.
         $modelAttributes = $attributes->whereStartsWith('x-model');
         $boxAttributes = $attributes->whereDoesntStartWith('x-model');
         @endphp
-        <div x-data="dblSelectSearch(@js(['name' => $name, 'search' => $selectedLabel, 'chosen' => $selected[0] ?? '', 'options' => $options]))"
-             x-modelable="chosen" {{ $modelAttributes }} class="relative" @click.outside="open = false">
-            {{-- The text box is the control of this mode: it takes the attributes of the caller. So it carries none of ours that
-                 the caller could also write, since the browser keeps only the first of two equal attributes and the caller's
-                 would vanish: its own `@input` and `@focus` would be exactly that. They go on the box around it instead:
-                 `input` bubbles up to here, and so does `focusin` (`focus` does not). The text is written from the box
-                 around it (the x-effect), not with :value nor x-model. The model of the caller holds the chosen KEY
-                 (`''` while nothing is chosen, as a native <select>), and the text box shows its label. --}}
-            {{-- Escape closes the list. The `input` stops here (the x-model of the box above would take the typed text as the key)
-                 and typed() / choose() send the form a new one that carries the chosen key. --}}
-            <div class="relative" x-on:input.stop="typed($event.target.value)" x-on:focusin="open = true"
-                 x-on:keydown.escape="open = false"
-                 x-effect="sync()">
-                <input
-                    type="text"
-                    value="{{ $selectedLabel }}"
-                    placeholder="{{ $placeholder ?: __('Search...') }}"
-                    @if($disabled) disabled @endif
-                    @if($required) required @endif
-                    {{ $boxAttributes->merge(['id' => $controlId, 'class' => "input w-full {$sizeClass}"]) }}
-                />
+        <div class="relative">
+            {{-- The text box is the control of this mode, and it is OUTSIDE the scope of the component, as in the remote select: a scope
+                 around it would hide the `x-ref`, the `$root` and the data of the caller. dblSelectSearch finds it in this box and listens
+                 to it (typing, focus, Escape). Its text is written by the component (the x-effect below), not with :value nor x-model.
+                 The model of the caller holds the chosen KEY (`''` while nothing is chosen, as a native <select>); the box shows its label. --}}
+            <div class="relative">
+                <input {{ $boxAttributes->merge([
+                    'type' => 'text',
+                    'value' => $selectedLabel,
+                    'placeholder' => $placeholder ?: __('Search...'),
+                    'disabled' => $disabled ?: null,
+                    'required' => $required ?: null,
+                    'id' => $controlId,
+                    'class' => "input w-full {$sizeClass}",
+                ]) }} />
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/40">
                     <x-heroicon-o-chevron-down class="w-4 h-4" />
                 </div>
             </div>
 
-            <div x-show="open" x-cloak class="absolute z-50 mt-1 w-full bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                <template x-for="item in flatList" :key="item.type + ':' + (item.key ?? item.label)">
-                    <div>
-                        <div
-                            x-show="item.type === 'group'"
-                            :class="item.first ? 'pt-1' : 'border-t border-base-200 mt-1 pt-1'"
-                            class="px-3 pb-0.5 text-xs font-semibold text-base-content/40 uppercase tracking-wide"
-                            x-text="item.label"
-                        ></div>
-                        <button
-                            x-show="item.type === 'option'"
-                            type="button"
-                            @click="choose(item)"
-                            class="w-full text-left px-3 py-2 hover:bg-primary/10 text-sm"
-                            :class="{ 'pl-5': isGrouped }"
-                            x-text="item.label"
-                        ></button>
-                    </div>
-                </template>
-                <template x-if="isEmpty">
-                    <div class="px-3 py-4 text-sm text-base-content/50 text-center">{{ __('No results') }}</div>
-                </template>
-            </div>
+            <div x-data="dblSelectSearch(@js(['name' => $name, 'search' => $selectedLabel, 'chosen' => $selected[0] ?? '', 'options' => $options]))"
+                 x-effect="sync()" x-on:click.window="closeWhenOutside($event)">
+                <span {{ $modelAttributes->merge(['x-modelable' => 'chosen', 'hidden' => true]) }}></span>
 
-            @if($name)
-                <input type="hidden" x-ref="value" name="{{ $name }}" value="{{ $selected[0] ?? '' }}" @if($disabled) disabled @endif />
-            @endif
+                <div x-show="open" x-cloak class="absolute z-50 mt-1 w-full bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <template x-for="item in flatList" :key="item.type + ':' + (item.key ?? item.label)">
+                        <div>
+                            <div
+                                x-show="item.type === 'group'"
+                                :class="item.first ? 'pt-1' : 'border-t border-base-200 mt-1 pt-1'"
+                                class="px-3 pb-0.5 text-xs font-semibold text-base-content/40 uppercase tracking-wide"
+                                x-text="item.label"
+                            ></div>
+                            <button
+                                x-show="item.type === 'option'"
+                                type="button"
+                                @click="choose(item)"
+                                class="w-full text-left px-3 py-2 hover:bg-primary/10 text-sm"
+                                :class="{ 'pl-5': isGrouped }"
+                                x-text="item.label"
+                            ></button>
+                        </div>
+                    </template>
+                    <template x-if="isEmpty">
+                        <div class="px-3 py-4 text-sm text-base-content/50 text-center">{{ __('No results') }}</div>
+                    </template>
+                </div>
+
+                @if($name)
+                    <input type="hidden" x-ref="value" name="{{ $name }}" value="{{ $selected[0] ?? '' }}" @if($disabled) disabled @endif />
+                @endif
+            </div>
         </div>
     @else
         {{-- Native select --}}
-        <select
-            @if($name) name="{{ $name }}{{ $multiple ? '[]' : '' }}" @endif
-            @if($multiple) multiple @endif
-            @if($disabled) disabled @endif
-            @if($required) required @endif
-            {{ $attributes->merge(['id' => $controlId, 'class' => trim('select w-full ' . $sizeClass . ' '
-                . ($name && isset($errors) && $errors->has($name) ? 'select-error' : ''))]) }}
-        >
+        <select {{ $attributes->merge([
+            'name' => $name ? $name . ($multiple ? '[]' : '') : null,
+            'multiple' => $multiple ?: null,
+            'disabled' => $disabled ?: null,
+            'required' => $required ?: null,
+            'id' => $controlId,
+            'class' => trim('select w-full ' . $sizeClass . ' ' . ($name && isset($errors) && $errors->has($name) ? 'select-error' : '')),
+        ]) }}>
             @if(!$multiple && $placeholder)
                 <option value="">{{ $placeholder }}</option>
             @endif
@@ -177,6 +171,8 @@ $controlId = $attributes->get('id', $name ?: null);
                 @endif
             @endforeach
         </select>
+        {{-- Announces the change of the <select> above (it finds it in its parent). Beside it, not around it. --}}
+        <span hidden x-data="dblSelectAnnouncer(@js(['name' => $name]))" x-on:change.window="announce($event)"></span>
     @endif
 
     @if($name && isset($errors))

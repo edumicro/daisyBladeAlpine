@@ -19,31 +19,34 @@ $styleClass = match($style) {
 };
 @endphp
 
-<div x-data="dblTabs(@js(['active' => (int) $active]))" {{ $attributes }}>
-    <div role="tablist" class="tabs {{ $styleClass }}">
+{{-- The root is the caller's element; the scope of the component is the element inside (`contents`: it takes no room of its own). --}}
+<div {{ $attributes }}>
+    <div x-data="dblTabs(@js(['active' => (int) $active]))" class="contents">
+        <div role="tablist" class="tabs {{ $styleClass }}">
+            @foreach($items as $i => $item)
+                <button
+                    type="button"
+                    role="tab"
+                    class="tab gap-2"
+                    :class="{ 'tab-active': isActive({{ $i }}) }"
+                    :aria-selected="isActive({{ $i }})"
+                    @click="select({{ $i }})"
+                >
+                    @if(!empty($item['icon']))
+                        <x-dynamic-component :component="$item['icon']" class="w-4 h-4" />
+                    @endif
+                    {{ $item['label'] ?? __('Tab :number', ['number' => $i + 1]) }}
+                    @if(!empty($item['badge']))
+                        <span class="badge badge-sm">{{ $item['badge'] }}</span>
+                    @endif
+                </button>
+            @endforeach
+        </div>
+
         @foreach($items as $i => $item)
-            <button
-                type="button"
-                role="tab"
-                class="tab gap-2"
-                :class="{ 'tab-active': isActive({{ $i }}) }"
-                :aria-selected="isActive({{ $i }})"
-                @click="select({{ $i }})"
-            >
-                @if(!empty($item['icon']))
-                    <x-dynamic-component :component="$item['icon']" class="w-4 h-4" />
-                @endif
-                {{ $item['label'] ?? __('Tab :number', ['number' => $i + 1]) }}
-                @if(!empty($item['badge']))
-                    <span class="badge badge-sm">{{ $item['badge'] }}</span>
-                @endif
-            </button>
+            <div x-show="isActive({{ $i }})" x-cloak class="pt-4">
+                {!! $item['content'] ?? '' !!}
+            </div>
         @endforeach
     </div>
-
-    @foreach($items as $i => $item)
-        <div x-show="isActive({{ $i }})" x-cloak class="pt-4">
-            {!! $item['content'] ?? '' !!}
-        </div>
-    @endforeach
 </div>

@@ -10,7 +10,7 @@ $maskClass = 'mask mask-' . $shape . ($half ? ' mask-' . $half : '');
 @endphp
 
 @if($src)
-    <img src="{{ $src }}" alt="{{ $alt }}" {{ $attributes->merge(['class' => $maskClass]) }} />
+    <img {{ $attributes->merge(['src' => $src, 'alt' => $alt, 'class' => $maskClass]) }} />
 @else
     <div {{ $attributes->merge(['class' => $maskClass]) }}>
         {{ $slot }}

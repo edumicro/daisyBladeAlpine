@@ -556,7 +556,7 @@ it('gives no dependency to a remote select that depends on none', function () {
 it('ignores depends-on on selects that do not load their options from a url', function () {
     $html = Blade::render('<x-dbl::form.select name="city" :options="[\'a\' => \'A\']" depends-on="country_code" />');
 
-    expect($html)->not->toContain('dblSelectRemote')->not->toContain('.window');
+    expect($html)->not->toContain('dblSelectRemote')->not->toContain('depends');
 });
 
 it('remote select javascript is syntactically valid', function () {

@@ -26,8 +26,10 @@ it('a searchable select that is neither has neither', function () {
     expect(searchableTextBox(''))->not->toContain('disabled')->not->toContain('required');
 });
 
-it('Escape closes the list of a searchable select', function () {
+// Escape closes the list, and a click outside too: both are done by dblSelectSearch (its listeners on the text box and the window),
+// and walked in the browser (SelectBrowserTest). The view only gives the window listener.
+it('closes the list of a searchable select with a click anywhere else: the window listener is on the scope', function () {
     $html = Blade::render('<x-dbl::form.select name="c" searchable :options="[\'1\' => \'One\']" />');
 
-    expect($html)->toContain('x-on:keydown.escape="open = false"');
+    expect($html)->toContain('x-on:click.window="closeWhenOutside($event)"');
 });

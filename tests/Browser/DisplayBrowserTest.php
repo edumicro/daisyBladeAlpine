@@ -91,7 +91,7 @@ it('calendar: after changing month, one day is reachable with Tab (roving tabind
 
 it('calendar: a late failure of April does not spoil May, which was already loaded', function () {
     $page = calendarPage('calendar-race');
-    $page->script("window.__d = Alpine.\$data(document.querySelector('.dbl-calendar'))");
+    $page->script("window.__d = Alpine.\$data(document.querySelector('[x-data^=\"dblCalendar\"]'))");
     $aprilStart = $page->script("(() => { const d = window.__d, c = d.cursor; d.cursor = new Date(2026, 3, 1); const k = d.grid[0].date; d.cursor = c; return k })()");
     $page->script("window.__net.delay['start=$aprilStart'] = 500; window.__net.fail['start=$aprilStart'] = true");
 

@@ -5,7 +5,7 @@
 ])
 
 <!DOCTYPE html>
-<html data-theme="{{ $theme }}" lang="{{ $lang }}" {{ $attributes }}>
+<html {{ $attributes->merge(['data-theme' => $theme, 'lang' => $lang]) }}>
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -17,7 +17,9 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body class="antialiased">
+{{-- `x-data` on the body: the page-wide scope of the caller. The components do not give their root a scope of their own (it would
+     hide the `x-ref` and the data of the caller), so the `@click`, `x-show`... the caller writes on a component need one above. --}}
+<body x-data class="antialiased">
 
     {{-- Global toast notifications — dispatch 'dbl-toast-show' from anywhere --}}
     <x-dbl::feedback.toast position="end" vertical="top" />

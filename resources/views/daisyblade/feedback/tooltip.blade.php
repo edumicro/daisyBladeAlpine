@@ -23,7 +23,7 @@ $colorClass = match($color) {
 };
 @endphp
 
-<div {{ $attributes->merge(['class' => "tooltip {$posClass}"]) }} data-tip="{{ $text }}">
+<div {{ $attributes->merge(['data-tip' => $text, 'class' => "tooltip {$posClass}"]) }}>
     @if($slot->isNotEmpty())
         {{ $slot }}
     @elseif($display === 'icon')
