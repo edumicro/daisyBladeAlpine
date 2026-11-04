@@ -16,7 +16,7 @@
             @endphp
 
             @if($hasChildren)
-                <li x-data="dbSidebarTree()">
+                <li x-data="dblSidebarTree()">
                     <button
                         type="button"
                         class="flex justify-between {{ $isActive ? 'active' : '' }}"

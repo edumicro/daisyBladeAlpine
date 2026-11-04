@@ -19,7 +19,7 @@
 ])
 
 <div
-    x-data="dbSpreadsheetImport({
+    x-data="dblSpreadsheetImport({
         uploadUrl:   '{{ $uploadUrl }}',
         templateUrl: '{{ $templateUrl }}',
         chunkSize:   {{ (int)$chunkSize }},

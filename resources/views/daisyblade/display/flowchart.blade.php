@@ -89,8 +89,8 @@
     $uid = 'dbf-' . \Illuminate\Support\Str::random(8);   // único por render: dos diagramas iguales no comparten ids
 @endphp
 
-<div {{ $attributes->merge(['class' => 'db-flowchart min-w-0 max-w-full ' . $containerClass]) }}
-     x-data="dbFlowchart(JSON.parse($el.dataset.config))"
+<div {{ $attributes->merge(['class' => 'dbl-flowchart min-w-0 max-w-full ' . $containerClass]) }}
+     x-data="dblFlowchart(JSON.parse($el.dataset.config))"
      x-on:dbl-flowchart.window="onWindowEvent($event.detail)"
      data-config="{{ json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) }}">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -109,11 +109,11 @@
 
     <style>
         /* El asa de crear flechas solo se ve con el puntero encima o con la caja enfocada; en táctil, siempre. */
-        .db-flowchart .db-flowchart-handle { opacity: 0; transition: opacity .12s }
-        .db-flowchart [data-node]:hover .db-flowchart-handle,
-        .db-flowchart [data-node]:focus .db-flowchart-handle,
-        .db-flowchart .db-flowchart-handle:focus-visible { opacity: 1 }
-        @media (hover: none) { .db-flowchart .db-flowchart-handle { opacity: 1 } }
+        .dbl-flowchart .dbl-flowchart-handle { opacity: 0; transition: opacity .12s }
+        .dbl-flowchart [data-node]:hover .dbl-flowchart-handle,
+        .dbl-flowchart [data-node]:focus .dbl-flowchart-handle,
+        .dbl-flowchart .dbl-flowchart-handle:focus-visible { opacity: 1 }
+        @media (hover: none) { .dbl-flowchart .dbl-flowchart-handle { opacity: 1 } }
     </style>
 
     <div class="relative">
@@ -212,7 +212,7 @@
                     </div>
                     <span class="badge badge-xs badge-neutral absolute -top-2 left-2" x-show="n.badge" x-text="n.badge"></span>
                     @if($editable)
-                        <span class="db-flowchart-handle absolute -bottom-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] leading-none text-primary-content"
+                        <span class="dbl-flowchart-handle absolute -bottom-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] leading-none text-primary-content"
                               style="touch-action:none; cursor:crosshair; z-index:5"
                               x-bind:style="linking?.from === n.key ? 'opacity:1' : ''"
                               aria-hidden="true"

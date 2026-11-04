@@ -20,7 +20,7 @@ $sizeClass = match($size) {
      caja a opacidad 0 y el contenido queda invisible aunque esté en la página. --}}
 <div
     @if($id) id="{{ $id }}" @endif
-    x-data="dbModal()"
+    x-data="dblModal()"
     @if($id)
         @open-modal.window="if ($event.detail.id === '{{ $id }}') show()"
         @close-modal.window="if ($event.detail.id === '{{ $id }}') hide()"

@@ -93,7 +93,7 @@ const DRAG_THRESHOLD = 4   // px que hay que mover antes de que un clic sea un a
 const KEY_STEP = 10        // px por pulsación de flecha; con Shift, un paso de rejilla
 const ARROWS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']
 
-export const dbFlowchart = (config = {}) => ({
+export const dblFlowchart = (config = {}) => ({
     editable: !!config.editable,
     name: config.name ?? '',
     grid: config.grid ?? 0,
@@ -440,5 +440,5 @@ export const dbFlowchart = (config = {}) => ({
 })
 
 export function registerFlowchart(Alpine) {
-    Alpine.data('dbFlowchart', config => dbFlowchart(config))
+    Alpine.data('dblFlowchart', config => dblFlowchart(config))
 }

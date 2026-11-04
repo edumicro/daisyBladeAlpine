@@ -177,10 +177,10 @@ it('table with striped=true contains table-zebra', function () {
 
 // ── display/data-table ────────────────────────────────────────────────────────
 
-it('data-table contains dbDataTable and load-url', function () {
+it('data-table contains dblDataTable and load-url', function () {
     $html = Blade::render('<x-dbl::display.data-table load-url="/api/products" :columns="[]" />');
     expect($html)
-        ->toContain('dbDataTable')
+        ->toContain('dblDataTable')
         ->toContain('/api/products')
         ->toContain('x-data')
         ->not->toContain('wire:');
@@ -378,7 +378,7 @@ it('tree shows label heading', function () {
 it('resource-details contains Alpine factory and load-url', function () {
     $html = Blade::render('<x-dbl::display.resource-details load-url="/api/products/1" />');
     expect($html)
-        ->toContain('dbResourceDetails')
+        ->toContain('dblResourceDetails')
         ->toContain('/api/products/1')
         ->toContain('x-data')
         ->not->toContain('wire:');

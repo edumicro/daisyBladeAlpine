@@ -46,9 +46,9 @@ it('modal renders slot content', function () {
     expect($html)->toContain('Contenido del modal');
 });
 
-it('modal has x-data with dbModal', function () {
+it('modal has x-data with dblModal', function () {
     $html = Blade::render('<x-dbl::actions.modal title="T" />');
-    expect($html)->toContain('x-data')->toContain('dbModal');
+    expect($html)->toContain('x-data')->toContain('dblModal');
 });
 
 it('modal has no wire: attributes', function () {

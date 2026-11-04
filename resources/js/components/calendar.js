@@ -64,7 +64,7 @@ export function groupByDay(events) {
 
 const intlLocale = l => (l === 'ca' ? 'ca-ES' : (l || 'es').replace('_', '-'))
 
-export const dbCalendar = (config = {}, deps = {}) => ({
+export const dblCalendar = (config = {}, deps = {}) => ({
     locale: intlLocale(config.locale),
     weekStartsOn: config.weekStartsOn ?? 1,
     view: 'month',
@@ -193,5 +193,5 @@ export const dbCalendar = (config = {}, deps = {}) => ({
 })
 
 export function registerCalendar(Alpine, deps = {}) {
-    Alpine.data('dbCalendar', config => dbCalendar(config, deps))
+    Alpine.data('dblCalendar', config => dblCalendar(config, deps))
 }

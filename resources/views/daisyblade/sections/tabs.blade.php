@@ -31,7 +31,7 @@ $tabsJson = json_encode(array_map(fn($t) => ['label' => $t['label'] ?? '', 'url'
 @endphp
 
 <div
-    x-data="dbTabsLazy({ active: {{ (int)$active }}, tabs: {{ $tabsJson }}, messages: @js(['loadFailed' => __('Could not load the content')]) })"
+    x-data="dblTabsLazy({ active: {{ (int)$active }}, tabs: {{ $tabsJson }}, messages: @js(['loadFailed' => __('Could not load the content')]) })"
     {{ $attributes->merge(['class' => "space-y-0 {$containerClass}"]) }}
 >
     {{-- Tab headers --}}

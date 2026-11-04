@@ -1,4 +1,4 @@
-// Componente <x-dbl::display.map>: factory Alpine `dbMap` + registerMap(Alpine, deps).
+// Componente <x-dbl::display.map>: factory Alpine `dblMap` + registerMap(Alpine, deps).
 //
 // Las librerías NO se importan aquí: la app las inyecta en registerMap, así el paquete no
 // arrastra maplibre-gl ni Google en el bundle de quien no use el mapa.
@@ -16,7 +16,7 @@ let deps = {}
 
 const emptyCollection = { type: 'FeatureCollection', features: [] }
 
-export const dbMap = (config = {}) => {
+export const dblMap = (config = {}) => {
     // El adaptador y los datos crudos viven en la clausura, fuera del proxy reactivo de Alpine
     // (envolver objetos de MapLibre/Google en un Proxy los rompe).
     let adapter = null
@@ -51,7 +51,7 @@ export const dbMap = (config = {}) => {
                 }
             } catch (e) {
                 // The user gets a translated message; what went wrong (a missing library or key, for the developer) goes to the console.
-                console.error('dbMap: could not start the map', e)
+                console.error('dblMap: could not start the map', e)
                 this.error = config.labels?.init_failed ?? 'The map could not be loaded.'
                 resolveReady(false)
                 return
@@ -91,7 +91,7 @@ export const dbMap = (config = {}) => {
         makeAdapter() {
             const opts = { googleKey: config.googleKey, labels: config.labels }
             if (config.driver === 'google') return createGoogleAdapter(deps, opts)
-            if (!deps.maplibregl) throw new Error('dbMap: falta { maplibregl } en registerMap()')
+            if (!deps.maplibregl) throw new Error('dblMap: falta { maplibregl } en registerMap()')
             return createMapLibreAdapter(deps, opts)
         },
 
@@ -172,5 +172,5 @@ export const dbMap = (config = {}) => {
 
 export function registerMap(Alpine, injected = {}) {
     deps = injected
-    Alpine.data('dbMap', dbMap)
+    Alpine.data('dblMap', dblMap)
 }

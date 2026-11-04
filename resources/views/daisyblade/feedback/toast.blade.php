@@ -58,7 +58,7 @@ $typeClass = match($type) {
 @else
     {{-- Event-driven toast container --}}
     <div
-        x-data="dbToast()"
+        x-data="dblToast()"
         @notify.window="add($event.detail.message, $event.detail.type ?? 'info', $event.detail.duration ?? {{ $duration }})"
         class="toast {{ $verticalClass }} {{ $positionClass }} z-50 pointer-events-none"
     >

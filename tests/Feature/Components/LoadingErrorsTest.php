@@ -32,7 +32,7 @@ it('puts the Alpine scope of the remote select on its container, so the error ca
     $html = Blade::render('<x-dbl::form.select name="city" options-url="/cities" />');
 
     // x-data comes before the <select>, on the container; the <select> itself has none.
-    $dataAt = strpos($html, 'x-data="dbSelectRemote');
+    $dataAt = strpos($html, 'x-data="dblSelectRemote');
     $selectAt = strpos($html, '<select');
     expect($dataAt)->not->toBeFalse()
         ->and($dataAt)->toBeLessThan($selectAt)
@@ -43,7 +43,7 @@ it('puts the Alpine scope of the remote select on its container, so the error ca
 it('keeps the other selects without any Alpine scope on the container', function () {
     $native = Blade::render('<x-dbl::form.select name="x" :options="[\'a\' => \'A\']" />');
 
-    expect($native)->not->toContain('dbSelectRemote')->not->toContain('x-show="error"');
+    expect($native)->not->toContain('dblSelectRemote')->not->toContain('x-show="error"');
 });
 
 // ── data-table listens to both filter bars ────────────────────────────────────

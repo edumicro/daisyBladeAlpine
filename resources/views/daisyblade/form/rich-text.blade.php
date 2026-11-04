@@ -29,25 +29,25 @@
 @once
     <style>
         /* Tailwind (preflight) borra el estilo de titulos, listas, citas y tablas: se devuelve aqui. */
-        .db-rich-text-content { min-height: 10rem; padding: .75rem; outline: none; }
-        .db-rich-text-content > * + * { margin-top: .5rem; }
-        .db-rich-text-content h2 { font-size: 1.5rem; font-weight: 700; }
-        .db-rich-text-content h3 { font-size: 1.25rem; font-weight: 600; }
-        .db-rich-text-content ul { list-style: disc; padding-left: 1.5rem; }
-        .db-rich-text-content ol { list-style: decimal; padding-left: 1.5rem; }
-        .db-rich-text-content blockquote { border-left: 4px solid var(--color-base-300); padding-left: .75rem; opacity: .8; }
-        .db-rich-text-content a { color: var(--color-primary); text-decoration: underline; }
-        .db-rich-text-content img { max-width: 100%; height: auto; }
-        .db-rich-text-content table { border-collapse: collapse; width: 100%; }
-        .db-rich-text-content th, .db-rich-text-content td { border: 1px solid var(--color-base-300); padding: .25rem .5rem; }
-        .db-rich-text-content th { background: var(--color-base-200); }
-        .db-rich-text-content p.is-editor-empty:first-child::before {
+        .dbl-rich-text-content { min-height: 10rem; padding: .75rem; outline: none; }
+        .dbl-rich-text-content > * + * { margin-top: .5rem; }
+        .dbl-rich-text-content h2 { font-size: 1.5rem; font-weight: 700; }
+        .dbl-rich-text-content h3 { font-size: 1.25rem; font-weight: 600; }
+        .dbl-rich-text-content ul { list-style: disc; padding-left: 1.5rem; }
+        .dbl-rich-text-content ol { list-style: decimal; padding-left: 1.5rem; }
+        .dbl-rich-text-content blockquote { border-left: 4px solid var(--color-base-300); padding-left: .75rem; opacity: .8; }
+        .dbl-rich-text-content a { color: var(--color-primary); text-decoration: underline; }
+        .dbl-rich-text-content img { max-width: 100%; height: auto; }
+        .dbl-rich-text-content table { border-collapse: collapse; width: 100%; }
+        .dbl-rich-text-content th, .dbl-rich-text-content td { border: 1px solid var(--color-base-300); padding: .25rem .5rem; }
+        .dbl-rich-text-content th { background: var(--color-base-200); }
+        .dbl-rich-text-content p.is-editor-empty:first-child::before {
             content: attr(data-placeholder); float: left; height: 0; pointer-events: none; opacity: .5;
         }
     </style>
 @endonce
 
-<div class="w-full {{ $containerClass }}" x-data="dbRichText(@js($config))">
+<div class="w-full {{ $containerClass }}" x-data="dblRichText(@js($config))">
     @if($label)
         <label class="mb-1 flex items-center justify-between gap-2 text-sm font-medium"
                @if($name) for="{{ $name }}-editor" @endif>

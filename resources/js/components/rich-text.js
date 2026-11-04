@@ -16,7 +16,7 @@ import { request } from '../http.js'
 // Solo se aceptan enlaces http(s) y mailto. El servidor debe volver a comprobarlo al sanear.
 const SAFE_URL = /^(https?:\/\/|mailto:)/i
 
-export const dbRichText = (config = {}, deps = {}) => {
+export const dblRichText = (config = {}, deps = {}) => {
     // El editor vive en el cierre, NO en `this`: Alpine envolvería el editor en un Proxy
     // y Tiptap dejaría de funcionar bien.
     let editor = null
@@ -50,7 +50,7 @@ export const dbRichText = (config = {}, deps = {}) => {
                 content: this.$refs.input.value,   // HTML inicial, escrito por Blade en el hidden
                 editorProps: {
                     attributes: {
-                        class: 'db-rich-text-content',
+                        class: 'dbl-rich-text-content',
                         role: 'textbox',
                         'aria-multiline': 'true',
                         'aria-label': config.label || labels.editor || '',
@@ -152,5 +152,5 @@ export const dbRichText = (config = {}, deps = {}) => {
 
 // Registra el componente Alpine con las dependencias ya inyectadas.
 export function registerRichText(Alpine, deps) {
-    Alpine.data('dbRichText', (config) => dbRichText(config, deps))
+    Alpine.data('dblRichText', (config) => dblRichText(config, deps))
 }

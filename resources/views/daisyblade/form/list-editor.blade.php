@@ -11,7 +11,7 @@
 $placeholder = $placeholder !== '' ? $placeholder : __('Type and press Enter or comma…');
 @endphp
 
-<div x-data="dbListEditor({ items: {{ \Illuminate\Support\Js::from(array_values((array) $value)) }} })" class="{{ $class }}">
+<div x-data="dblListEditor({ items: {{ \Illuminate\Support\Js::from(array_values((array) $value)) }} })" class="{{ $class }}">
 
     @if($label)
     <div class="mb-1 text-sm font-medium">{{ $label }}</div>

@@ -14,7 +14,7 @@ it('map renders with the defaults from config', function () {
     $html = Blade::render('<x-dbl::display.map />');
     $c = mapConfig($html);
 
-    expect($html)->toContain('x-data="dbMap(')->toContain('height: 24rem')
+    expect($html)->toContain('x-data="dblMap(')->toContain('height: 24rem')
         ->and($c['driver'])->toBe('maplibre')
         ->and($c['base'])->toBe('osm')
         ->and($c['picker'])->toBeFalse()

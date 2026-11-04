@@ -1,8 +1,8 @@
 import test, { beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { dbCalendar } from '../../resources/js/components/calendar.js'
-import { dbMap, registerMap } from '../../resources/js/components/map.js'
-import { dbUpload } from '../../resources/js/components/upload.js'
+import { dblCalendar } from '../../resources/js/components/calendar.js'
+import { dblMap, registerMap } from '../../resources/js/components/map.js'
+import { dblUpload } from '../../resources/js/components/upload.js'
 
 // The optional components call the server through the shared ladder (http.js). These tests check, from each
 // component, that the injected client is used, that fetch works when there is none, and that other domains
@@ -38,7 +38,7 @@ const withAlpine = (component, extra = {}) => Object.assign(component, { $dispat
 test('calendar: asks with the injected axios and hands it the range', async () => {
     const seen = []
     const axios = { get: async (url, config) => { seen.push({ url, params: config.params }); return { data: [{ id: 1, title: 'A', start: '2026-10-05' }] } } }
-    const calendar = withAlpine(dbCalendar({ loadUrl: '/events', initialDate: '2026-10-05' }, { axios }))
+    const calendar = withAlpine(dblCalendar({ loadUrl: '/events', initialDate: '2026-10-05' }, { axios }))
 
     calendar.init()
     await new Promise(resolve => setTimeout(resolve))
@@ -51,7 +51,7 @@ test('calendar: asks with the injected axios and hands it the range', async () =
 
 test('calendar: without axios it uses fetch, and a 500 puts it in the error state (with retry)', async () => {
     fakeFetch('boom', 500, 'text/plain')
-    const calendar = withAlpine(dbCalendar({ loadUrl: '/events?x=1', initialDate: '2026-10-05' }))
+    const calendar = withAlpine(dblCalendar({ loadUrl: '/events?x=1', initialDate: '2026-10-05' }))
 
     calendar.init()
     await new Promise(resolve => setTimeout(resolve))
@@ -70,7 +70,7 @@ const mapConfig = { labels: { layer_failed: 'Capa no cargada', search_failed: 'B
 test('map: a layer of our own goes through the injected axios, one of another domain through fetch (no Laravel headers)', async () => {
     const axiosCalls = []
     registerMap({ data() {} }, { axios: { get: async (url, config) => { axiosCalls.push({ url, headers: config.headers }); return { data: { type: 'FeatureCollection', features: [] } } } } })
-    const map = withAlpine(dbMap(mapConfig))
+    const map = withAlpine(dblMap(mapConfig))
 
     await map.load(layer('/api/own.geojson'))
     await map.load(layer('https://tiles.example.org/public.geojson'))
@@ -86,7 +86,7 @@ test('map: a layer of our own goes through the injected axios, one of another do
 
 test('map: a layer that fails shows the translated message; the geocoder reads `data` and reports its failure', async () => {
     registerMap({ data() {} }, {})
-    const map = withAlpine(dbMap(mapConfig))
+    const map = withAlpine(dblMap(mapConfig))
 
     fakeFetch('nope', 404, 'text/plain')
     await map.load(layer('/missing.geojson'))
@@ -110,7 +110,7 @@ test('map: when it cannot start the user sees the translated message, and the de
     const realConsoleError = console.error
     console.error = (...args) => errors.push(args)
     try {
-        const map = withAlpine(dbMap({ ...mapConfig, layers: [] }), { $refs: { canvas: {} } })
+        const map = withAlpine(dblMap({ ...mapConfig, layers: [] }), { $refs: { canvas: {} } })
         await map.init()
 
         assert.equal(map.error, 'No se ha podido cargar el mapa.')
@@ -133,7 +133,7 @@ class XhrFake {
     reply(status, text) { Object.assign(this, { status, statusText: '', responseText: text }); this.onload() }
 }
 
-const uploader = (extra = {}) => withAlpine(dbUpload({ action: '/upload', multiple: true, messages: { failed: 'Falló', cancelled: 'Cancelado' }, ...extra }))
+const uploader = (extra = {}) => withAlpine(dblUpload({ action: '/upload', multiple: true, messages: { failed: 'Falló', cancelled: 'Cancelado' }, ...extra }))
 const newItem = (upload) => upload.makeItem({ name: 'a.pdf', size: 3, file: new Blob(['abc']), status: 'uploading' })
 
 test('upload: without axios the file goes by XMLHttpRequest, with progress, and a 422 gives the message of the server', async () => {

@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Blade;
 it('signature renders canvas and hidden input with name', function () {
     $html = Blade::render('<x-dbl::form.signature name="firma" />');
     expect($html)->toContain('<canvas')->toContain('type="hidden"')->toContain('name="firma"')
-        ->toContain('dbSignature(');
+        ->toContain('dblSignature(');
 });
 
 it('signature renders label, signer and description', function () {

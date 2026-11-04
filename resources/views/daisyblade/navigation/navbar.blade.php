@@ -3,7 +3,7 @@
     'class' => '',
 ])
 
-<div x-data="dbNavbar()" class="navbar bg-base-100 shadow-sm {{ $class }}">
+<div x-data="dblNavbar()" class="navbar bg-base-100 shadow-sm {{ $class }}">
 
     <div class="navbar-start">
         @isset($start)

@@ -31,7 +31,7 @@
 
 @if($mode === 'alpine')
     <div
-        x-data="dbAutoForm({
+        x-data="dblAutoForm({
             action: '{{ $action }}',
             method: '{{ strtoupper($method) }}',
             {{-- (object) y no @js($values) a secas: en PHP un array asociativo VACIO se serializa

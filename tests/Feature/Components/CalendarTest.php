@@ -6,7 +6,7 @@ it('renders the calendar wired to its load url', function () {
     $html = Blade::render('<x-dbl::display.calendar load-url="/api/events" initial-date="2026-10-08" initial-view="list" />');
 
     expect($html)
-        ->toContain('x-data="dbCalendar(')
+        ->toContain('x-data="dblCalendar(')
         ->toContain('\\u0022loadUrl\\u0022:\\u0022')
         ->toContain('2026-10-08')
         ->toContain('aria-live="polite"')

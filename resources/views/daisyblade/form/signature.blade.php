@@ -15,7 +15,7 @@
     ];
 @endphp
 
-<div x-data="dbSignature({{ \Illuminate\Support\Js::from($config) }})"
+<div x-data="dblSignature({{ \Illuminate\Support\Js::from($config) }})"
      class="w-full {{ $class }}">
 
     @if($label)

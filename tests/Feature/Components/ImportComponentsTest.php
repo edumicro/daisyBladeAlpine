@@ -19,9 +19,9 @@ it('spreadsheet with template-url shows download link', function () {
     expect($html)->toContain('/templates/products.xlsx');
 });
 
-it('spreadsheet has x-data with dbSpreadsheetImport', function () {
+it('spreadsheet has x-data with dblSpreadsheetImport', function () {
     $html = Blade::render('<x-dbl::import.spreadsheet upload-url="/import" />');
-    expect($html)->toContain('dbSpreadsheetImport')->toContain('x-data');
+    expect($html)->toContain('dblSpreadsheetImport')->toContain('x-data');
 });
 
 it('spreadsheet has no wire: attributes', function () {

@@ -65,7 +65,7 @@
 @endphp
 
 <div {{ $attributes->merge(['class' => 'w-full space-y-2']) }}
-     x-data="dbMap(JSON.parse($el.dataset.config))"
+     x-data="dblMap(JSON.parse($el.dataset.config))"
      x-on:dbl-map-focus.window="onFocusEvent($event.detail)"
      data-config="{{ json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) }}">
 

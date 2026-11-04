@@ -11,16 +11,35 @@ const http = options => request(options, injectedDeps)
 // `fallback` (English) is for views that do not pass them, such as a copy published before 2.4.
 const messageOf = (config, key, fallback) => config.messages?.[key] ?? fallback
 
+// ── localStorage: the `dbl_` keys ───────────────────────────────────────────
+
+/**
+ * Reads a localStorage key of the 3.x line (`dbl_sidebar`).
+ * The 2.x line wrote the same keys with the prefix `db_` instead of `dbl_`. If only the old key exists,
+ * its value is moved to the new key once (and the old key removed), so nobody loses what was saved.
+ * `storage` is a parameter so the function can be tested without a browser.
+ */
+const readStored = (storage, key) => {
+    const current = storage.getItem(key)
+    if (current !== null) return current
+    const legacyKey = key.replace(/^dbl_/, 'db_')
+    const legacy = storage.getItem(legacyKey)
+    if (legacy === null) return null
+    storage.setItem(key, legacy)
+    storage.removeItem(legacyKey)
+    return legacy
+}
+
 // ── Tipo 2: local Alpine state, no server calls ────────────────────────────
 
-const dbModal = (config = {}) => ({
+const dblModal = (config = {}) => ({
     open: config.open ?? false,
     show() { this.open = true },
     hide() { this.open = false },
     toggle() { this.open = !this.open },
 })
 
-const dbToast = (config = {}) => ({
+const dblToast = (config = {}) => ({
     toasts: [],
     add(message, type = 'info', duration = 4000) {
         const id = Date.now()
@@ -32,34 +51,34 @@ const dbToast = (config = {}) => ({
     },
 })
 
-const dbTabs = (config = {}) => ({
+const dblTabs = (config = {}) => ({
     active: config.default ?? '',
     select(tab) { this.active = tab },
     isActive(tab) { return this.active === tab },
 })
 
-const dbNavbar = (config = {}) => ({
+const dblNavbar = (config = {}) => ({
     open: false,
     toggle() { this.open = !this.open },
     close() { this.open = false },
 })
 
-const dbSidebar = (config = {}) => ({
+const dblSidebar = (config = {}) => ({
     open: config.open ?? window.innerWidth >= 1024,
     init() {
         if (config.persistent ?? true) {
-            const saved = localStorage.getItem('db_sidebar')
+            const saved = readStored(localStorage, 'dbl_sidebar')
             if (saved !== null) this.open = saved === 'true'
         }
     },
     toggle() {
         this.open = !this.open
-        if (config.persistent ?? true) localStorage.setItem('db_sidebar', this.open)
+        if (config.persistent ?? true) localStorage.setItem('dbl_sidebar', this.open)
     },
     close() { this.open = false },
 })
 
-const dbSidebarTree = (config = {}) => ({
+const dblSidebarTree = (config = {}) => ({
     expanded: {},
     toggle(key) { this.expanded[key] = !this.expanded[key] },
     isOpen(key) { return !!this.expanded[key] },
@@ -67,7 +86,7 @@ const dbSidebarTree = (config = {}) => ({
 
 // ── Tipo 3: Alpine + Axios ────────────────────────────────────────────────
 
-// Pure helpers of dbSelectRemote (tested with `node --test tests/js/select-remote.test.mjs`).
+// Pure helpers of dblSelectRemote (tested with `node --test tests/js/select-remote.test.mjs`).
 
 /** Whatever we were given (nothing, one value, a list) -> list of texts, without the empty ones. */
 const toTexts = value => [].concat(value ?? []).map(String).filter(text => text !== '')
@@ -83,7 +102,7 @@ const stillOffered = (selected, options) => selected.filter(text => options.some
  * With `dependsOn` (the `name` of another control) it asks again each time that control changes,
  * sending its value as a param named like the control: `?country_code=ES`.
  */
-const dbSelectRemote = (config = {}) => ({
+const dblSelectRemote = (config = {}) => ({
     options: [],
     loading: false,
     search: '',
@@ -151,7 +170,7 @@ const dbSelectRemote = (config = {}) => ({
                 this.options = []
                 this.error = messageOf(config, 'loadFailed', 'Could not load the options')
             }
-            console.error('dbSelectRemote: could not load the options', error)
+            console.error('dblSelectRemote: could not load the options', error)
             return false
         } finally {
             // Only the newest request decides when the loading is over: an old one finishing late must not end it early.
@@ -170,7 +189,7 @@ const dbSelectRemote = (config = {}) => ({
     labelFor(val) { return this.options.find(o => (o.value ?? o.id) == val)?.label ?? val ?? '' },
 })
 
-const dbResourceDetails = (config = {}) => ({
+const dblResourceDetails = (config = {}) => ({
     resource: null, loading: true, error: null,
     get displayData() {
         if (!this.resource) return {}
@@ -185,13 +204,13 @@ const dbResourceDetails = (config = {}) => ({
             this.resource = data.data ?? data
         } catch (e) {
             this.error = e.response?.data?.message ?? messageOf(config, 'loadFailed', 'Error loading resource')
-            console.error('dbResourceDetails: could not load the resource', e)
+            console.error('dblResourceDetails: could not load the resource', e)
         } finally { this.loading = false }
     },
     refresh() { return this.load() },
 })
 
-const dbTabsLazy = (config = {}) => ({
+const dblTabsLazy = (config = {}) => ({
     active: config.active ?? 0,
     tabs: config.tabs ?? [],
     contents: {},
@@ -212,7 +231,7 @@ const dbTabsLazy = (config = {}) => ({
         } catch (error) {
             // A translated message and a retry button in the tab; the technical detail goes to the console.
             this.errors = { ...this.errors, [index]: messageOf(config, 'loadFailed', 'Could not load the content') }
-            console.error('dbTabsLazy: could not load the tab', error)
+            console.error('dblTabsLazy: could not load the tab', error)
         } finally {
             this.loading = { ...this.loading, [index]: false }
         }
@@ -223,7 +242,7 @@ const dbTabsLazy = (config = {}) => ({
     hasError(i) { return !!this.errors[i] },
 })
 
-const dbSpreadsheetImport = (config = {}) => ({
+const dblSpreadsheetImport = (config = {}) => ({
     file: null, step: 'upload',
     headers: [], preview: [], totalRows: 0,
     progress: 0, loading: false, error: null, result: null,
@@ -253,7 +272,7 @@ const dbSpreadsheetImport = (config = {}) => ({
     },
 })
 
-const dbDataTable = (config = {}) => ({
+const dblDataTable = (config = {}) => ({
     rows: [], meta: {}, loading: true,
     error: '',          // message when the rows could not be loaded ('' = all fine)
     lastRequest: 0,     // number of the newest load(): an older answer arriving late is ignored
@@ -280,7 +299,7 @@ const dbDataTable = (config = {}) => ({
             this.rows = []
             this.meta = {}
             this.error = messageOf(config, 'loadFailed', 'Could not load the data')
-            console.error('dbDataTable: could not load the rows', error)
+            console.error('dblDataTable: could not load the rows', error)
         } finally {
             // Whatever happened, the newest load() ends the loading: the spinner never stays on forever.
             if (request === this.lastRequest) this.loading = false
@@ -333,7 +352,7 @@ const dbDataTable = (config = {}) => ({
     goTo(p) { this.page = p; this.load() },
 })
 
-const dbAutoForm = (config = {}) => ({
+const dblAutoForm = (config = {}) => ({
     values: config.values ?? {},
     errors: {},
     globalError: '',
@@ -351,7 +370,7 @@ const dbAutoForm = (config = {}) => ({
                 this.errors = e.response.data.errors ?? {}
             } else {
                 this.globalError = e.response?.data?.message ?? messageOf(config, 'failed', e.message ?? 'An error occurred')
-                console.error('dbAutoForm: the form could not be sent', e)
+                console.error('dblAutoForm: the form could not be sent', e)
             }
         } finally { this.loading = false }
     },
@@ -360,12 +379,12 @@ const dbAutoForm = (config = {}) => ({
     reset() { this.errors = {}; this.globalError = ''; this.success = false },
 })
 
-const dbWizard = (config = {}) => {
-    const key = `db_wizard_${config.userId ?? 'guest'}_${config.formId ?? 'wizard'}_v${config.schemaVersion ?? 1}`
+const dblWizard = (config = {}) => {
+    const key = `dbl_wizard_${config.userId ?? 'guest'}_${config.formId ?? 'wizard'}_v${config.schemaVersion ?? 1}`
     return {
         step: 0, data: {}, errors: {}, globalError: '', loading: false,
         init() {
-            const saved = localStorage.getItem(key)
+            const saved = readStored(localStorage, key)
             if (saved) { try { const p = JSON.parse(saved); this.step = p.step ?? 0; this.data = { ...this.data, ...p.data } } catch {} }
         },
         save() { localStorage.setItem(key, JSON.stringify({ step: this.step, data: this.data })) },
@@ -384,14 +403,14 @@ const dbWizard = (config = {}) => {
                     this.errors = e.response.data.errors ?? {}
                 } else {
                     this.globalError = e.response?.data?.message ?? messageOf(config, 'failed', e.message ?? 'An error occurred')
-                    console.error('dbWizard: the form could not be sent', e)
+                    console.error('dblWizard: the form could not be sent', e)
                 }
             } finally { this.loading = false }
         },
     }
 }
 
-const dbKvEditor = (config = {}) => ({
+const dblKvEditor = (config = {}) => ({
     rows: (config.rows ?? []).map((r, i) => ({ ...r, id: i })),
 
     init() {
@@ -438,7 +457,7 @@ const dbKvEditor = (config = {}) => ({
     },
 })
 
-const dbListEditor = (config = {}) => ({
+const dblListEditor = (config = {}) => ({
     items: config.items ?? [],
     draft: '',
 
@@ -461,10 +480,10 @@ const dbListEditor = (config = {}) => ({
 // ── Registration ───────────────────────────────────────────────────────────
 
 const _all = {
-    dbModal, dbToast, dbTabs, dbNavbar, dbSidebar, dbSidebarTree,
-    dbDataTable, dbAutoForm, dbWizard,
-    dbSelectRemote, dbResourceDetails, dbTabsLazy, dbSpreadsheetImport,
-    dbKvEditor, dbListEditor,
+    dblModal, dblToast, dblTabs, dblNavbar, dblSidebar, dblSidebarTree,
+    dblDataTable, dblAutoForm, dblWizard,
+    dblSelectRemote, dblResourceDetails, dblTabsLazy, dblSpreadsheetImport,
+    dblKvEditor, dblListEditor,
 }
 
 function _register(Alpine) {
@@ -494,9 +513,9 @@ if (typeof window !== 'undefined') {
 // ESM export for Vite / import
 export {
     registerDaisyBlade,
-    dbModal, dbToast, dbTabs, dbNavbar, dbSidebar, dbSidebarTree,
-    dbDataTable, dbAutoForm, dbWizard,
-    dbSelectRemote, dbResourceDetails, dbTabsLazy, dbSpreadsheetImport,
-    dbKvEditor, dbListEditor,
-    toTexts, dependencyParams, stillOffered,
+    dblModal, dblToast, dblTabs, dblNavbar, dblSidebar, dblSidebarTree,
+    dblDataTable, dblAutoForm, dblWizard,
+    dblSelectRemote, dblResourceDetails, dblTabsLazy, dblSpreadsheetImport,
+    dblKvEditor, dblListEditor,
+    toTexts, dependencyParams, stillOffered, readStored,
 }

@@ -18,7 +18,7 @@
                        dispatch `sidebar-toggle` on window.
       class          — extra classes for the <aside>
 
-    `dbSidebar()` starts it open from 1024px up and remembers the last choice in localStorage.
+    `dblSidebar()` starts it open from 1024px up and remembers the last choice in localStorage.
 --}}
 @props([
     'collapsible'    => true,
@@ -37,7 +37,7 @@
 
      Solo cuando es plegable: con `collapsible => false` la barra esta fija a proposito, y dejarle
      el escuchador permitiria cerrarla desde fuera, que es justo lo que esa opcion promete evitar. --}}
-<div x-data="dbSidebar()" @if($collapsible) @sidebar-toggle.window="toggle()" @endif>
+<div x-data="dblSidebar()" @if($collapsible) @sidebar-toggle.window="toggle()" @endif>
 
     @if($collapsible && $floatingToggle)
         {{-- The way back in once it is closed.

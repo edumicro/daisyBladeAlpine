@@ -17,7 +17,7 @@ it('renders the flowchart with its nodes and edges as config', function () use (
     $html = Blade::render('<x-dbl::display.flowchart :nodes="$nodes" :edges="$edges" />', compact('nodes', 'edges'));
     $c = flowchartConfig($html);
 
-    expect($html)->toContain('x-data="dbFlowchart(JSON.parse($el.dataset.config))"')
+    expect($html)->toContain('x-data="dblFlowchart(JSON.parse($el.dataset.config))"')
         ->and($c['nodes'])->toHaveCount(2)
         ->and($c['nodes'][1]['x'])->toBe(300)
         ->and($c['edges'][0]['label'])->toBe('genera')
@@ -142,9 +142,9 @@ it('passes fit to the component and renders the zoom buttons with translated lab
 it('shows the link handle only on hover or focus, and always on touch screens', function () {
     $html = Blade::render('<x-dbl::display.flowchart editable />');
 
-    expect($html)->toContain('.db-flowchart .db-flowchart-handle { opacity: 0')
+    expect($html)->toContain('.dbl-flowchart .dbl-flowchart-handle { opacity: 0')
         ->and($html)->toContain('@media (hover: none)')
-        ->and($html)->toContain('db-flowchart-handle absolute');
+        ->and($html)->toContain('dbl-flowchart-handle absolute');
 });
 
 it('gives every rendered chart its own help id', function () use ($nodes, $edges) {

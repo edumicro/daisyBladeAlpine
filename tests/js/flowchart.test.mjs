@@ -6,7 +6,7 @@ import {
 } from '../../resources/js/components/flowchart/geometry.js'
 import { responder, provisionalEdge, finalizeEdge, samePos } from '../../resources/js/components/flowchart/protocol.js'
 import { fitScale, centerOffset } from '../../resources/js/components/flowchart.js'
-import { normalize, visible, variantColor, fmt, dbFlowchart } from '../../resources/js/components/flowchart.js'
+import { normalize, visible, variantColor, fmt, dblFlowchart } from '../../resources/js/components/flowchart.js'
 
 const box = (x, y) => ({ x, y, w: NODE_W, h: NODE_H })
 const overlap = (a, b) => {
@@ -317,7 +317,7 @@ const make = (cfg, listener = () => {}) => {
             return !ev.defaultPrevented
         },
     }
-    const c = Object.assign(dbFlowchart(cfg), {
+    const c = Object.assign(dblFlowchart(cfg), {
         $root: root,
         $nextTick: fn => fn(),
         $refs: { canvas: { getBoundingClientRect: () => ({ left: 0, top: 0 }) } },

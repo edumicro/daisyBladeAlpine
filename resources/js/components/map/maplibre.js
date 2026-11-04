@@ -17,7 +17,7 @@ export function createMapLibreAdapter({ maplibregl }, { labels = {} } = {}) {
     let numbered = new Map()  // id de capa -> [maplibregl.Marker] (puntos con número, DOM)
     let ready = null
 
-    const sid = (id) => `db-${id}`
+    const sid = (id) => `dbl-${id}`
     const layerIds = (id) => [`${sid(id)}-clusters`, `${sid(id)}-count`, `${sid(id)}-points`, `${sid(id)}-icon`]
 
     function openPopup(coordinates, properties) {

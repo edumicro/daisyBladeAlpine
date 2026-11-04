@@ -24,9 +24,9 @@ it('toast with autoClose=true includes duration in config', function () {
     expect($html)->toContain('3000');
 });
 
-it('toast without message uses event-driven mode with dbToast', function () {
+it('toast without message uses event-driven mode with dblToast', function () {
     $html = Blade::render('<x-dbl::feedback.toast />');
-    expect($html)->toContain('dbToast');
+    expect($html)->toContain('dblToast');
 });
 
 it('toast without message listens to notify event', function () {

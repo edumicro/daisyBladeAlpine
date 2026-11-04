@@ -4,13 +4,13 @@
 //
 //   registerSignature(Alpine, { SignaturePad })
 //
-// Alpine: x-data="dbSignature({ required: true })"
+// Alpine: x-data="dblSignature({ required: true })"
 // La vista debe tener un <canvas x-ref="canvas"> y un <input type="hidden" x-ref="input">.
 
 const INK = '#111111'        // trazo oscuro...
 const PAPER = '#ffffff'      // ...sobre blanco, también en modo oscuro: el PDF es blanco
 
-const dbSignature = (config = {}, deps = {}) => ({
+const dblSignature = (config = {}, deps = {}) => ({
     pad: null,
     empty: true,
     error: false,
@@ -90,7 +90,7 @@ const dbSignature = (config = {}, deps = {}) => ({
 })
 
 function registerSignature(Alpine, deps) {
-    Alpine.data('dbSignature', (config = {}) => dbSignature(config, deps))
+    Alpine.data('dblSignature', (config = {}) => dblSignature(config, deps))
 }
 
-export { dbSignature, registerSignature }
+export { dblSignature, registerSignature }

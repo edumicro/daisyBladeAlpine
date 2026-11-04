@@ -1,13 +1,13 @@
 import { request, isCanceled } from '../http.js'
 
 /**
- * dbUpload — subida de ficheros para <x-dbl::form.upload>.
+ * dblUpload — subida de ficheros para <x-dbl::form.upload>.
  *
  * Cada fichero es un "item" con un estado: 'done' | 'uploading' | 'error'.
  * Los existentes nacen 'done'; los nuevos pasan por validar -> subir -> done/error.
  * Contrato del servidor: ver docs/components/upload.md.
  */
-export const dbUpload = (config = {}, deps = {}) => ({
+export const dblUpload = (config = {}, deps = {}) => ({
     items: [],
     dragging: false,
     status: '',          // texto para el aria-live
@@ -161,5 +161,5 @@ export const dbUpload = (config = {}, deps = {}) => ({
 })
 
 export function registerUpload(Alpine, deps = {}) {
-    Alpine.data('dbUpload', config => dbUpload(config, deps))
+    Alpine.data('dblUpload', config => dblUpload(config, deps))
 }

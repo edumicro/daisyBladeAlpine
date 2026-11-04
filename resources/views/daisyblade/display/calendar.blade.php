@@ -17,7 +17,7 @@ $config = [
 ];
 @endphp
 
-<div {{ $attributes->merge(['class' => 'db-calendar']) }} x-data="dbCalendar(@js($config))">
+<div {{ $attributes->merge(['class' => 'dbl-calendar']) }} x-data="dblCalendar(@js($config))">
     {{-- Barra: navegación + cambio de vista --}}
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div class="join">

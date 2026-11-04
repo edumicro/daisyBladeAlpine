@@ -66,10 +66,10 @@ it('textarea renders label', function () {
     expect($html)->toContain('Descripción');
 });
 
-/** Config que el Blade pasa a `dbSelectRemote(...)`, leída del HTML renderizado. */
+/** Config que el Blade pasa a `dblSelectRemote(...)`, leída del HTML renderizado. */
 function remoteSelectConfig(string $html): array
 {
-    preg_match("/dbSelectRemote\\(JSON\\.parse\\('(.*?)'\\)\\)/", $html, $found);
+    preg_match("/dblSelectRemote\\(JSON\\.parse\\('(.*?)'\\)\\)/", $html, $found);
 
     return json_decode(json_decode('"'.$found[1].'"'), true);
 }
@@ -92,7 +92,7 @@ it('select renders placeholder', function () {
 it('select with options-url uses Alpine remote factory', function () {
     $html = Blade::render('<x-dbl::form.select name="x" :options="[]" options-url="/api/categories" />');
     // `@js` escapes the slashes inside the JSON, so the URL is read back from the factory config.
-    expect($html)->toContain('dbSelectRemote')->toContain('x-data')
+    expect($html)->toContain('dblSelectRemote')->toContain('x-data')
         ->and(remoteSelectConfig($html))->toMatchArray(['url' => '/api/categories']);
 });
 
@@ -159,7 +159,7 @@ it('auto-form renders form with schema, factory and action', function () {
     );
     expect($html)
         ->toContain('Título')
-        ->toContain('dbAutoForm')
+        ->toContain('dblAutoForm')
         ->toContain('/products')
         ->not->toContain('wire:');
 });
@@ -385,7 +385,7 @@ it('rich-text writes the initial HTML into the hidden input', function () {
         ->toContain('type="hidden"')
         ->toContain('name="body"')
         ->toContain('value="&lt;p&gt;Hola &lt;b&gt;mundo&lt;/b&gt;&lt;/p&gt;"')
-        ->toContain('x-data="dbRichText(');
+        ->toContain('x-data="dblRichText(');
 });
 
 it('rich-text passes its props as editor configuration', function () {
@@ -492,7 +492,7 @@ it('does not listen to other controls when the remote select depends on none', f
 it('ignores depends-on on selects that do not load their options from a url', function () {
     $html = Blade::render('<x-dbl::form.select name="city" :options="[\'a\' => \'A\']" depends-on="country_code" />');
 
-    expect($html)->not->toContain('dbSelectRemote')->not->toContain('x-on:change.window');
+    expect($html)->not->toContain('dblSelectRemote')->not->toContain('x-on:change.window');
 });
 
 it('remote select javascript is syntactically valid', function () {

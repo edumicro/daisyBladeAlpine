@@ -4,12 +4,12 @@ use Illuminate\Support\Facades\Blade;
 
 // ── form/upload ───────────────────────────────────────────────────────────────
 
-it('upload renders a file input with label and the dbUpload factory', function () {
+it('upload renders a file input with label and the dblUpload factory', function () {
     $html = Blade::render('<x-dbl::form.upload name="acta" label="Acta firmada" action="/files" />');
 
     expect($html)->toContain('type="file"')
         ->toContain('Acta firmada')
-        ->toContain('dbUpload(')
+        ->toContain('dblUpload(')
         ->toContain('/files')
         ->toContain('aria-live="polite"')
         ->not->toContain('wire:');

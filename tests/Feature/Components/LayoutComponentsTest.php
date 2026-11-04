@@ -18,9 +18,9 @@ it('sidebar has aside element', function () {
     expect($html)->toContain('<aside');
 });
 
-it('sidebar has x-data with dbSidebar', function () {
+it('sidebar has x-data with dblSidebar', function () {
     $html = Blade::render('<x-dbl::navigation.sidebar />');
-    expect($html)->toContain('dbSidebar');
+    expect($html)->toContain('dblSidebar');
 });
 
 it('sidebar has no wire: attributes', function () {

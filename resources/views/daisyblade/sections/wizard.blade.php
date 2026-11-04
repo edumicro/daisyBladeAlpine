@@ -37,7 +37,7 @@ foreach ($steps as $step) {
 @endphp
 
 <div
-    x-data="dbWizard({
+    x-data="dblWizard({
         action:        '{{ $action }}',
         method:        '{{ strtoupper($method) }}',
         userId:        '{{ $userId }}',
@@ -45,7 +45,7 @@ foreach ($steps as $step) {
         schemaVersion: {{ $schemaVersion }},
         messages:      @js(['failed' => __('An error occurred')]),
     })"
-    {{-- Alpine already calls dbWizard's init() (it restores the saved progress) before x-init runs. --}}
+    {{-- Alpine already calls dblWizard's init() (it restores the saved progress) before x-init runs. --}}
     x-init="Object.assign(data, @js($initValues))"
     {{ $attributes->merge(['class' => "space-y-6 {$containerClass}"]) }}
 >

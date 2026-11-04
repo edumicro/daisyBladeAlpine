@@ -15,9 +15,9 @@ it('wizard renders step labels', function () {
     expect($html)->toContain('Datos personales')->toContain('Confirmación');
 });
 
-it('wizard has x-data with dbWizard', function () {
+it('wizard has x-data with dblWizard', function () {
     $html = Blade::render('<x-dbl::sections.wizard :steps="[]" action="/x" />');
-    expect($html)->toContain('dbWizard');
+    expect($html)->toContain('dblWizard');
 });
 
 it('wizard includes formId in config', function () {
@@ -58,12 +58,12 @@ it('sections tabs renders tab labels', function () {
     expect($html)->toContain('Información')->toContain('Historial');
 });
 
-it('sections tabs has x-data with dbTabsLazy', function () {
+it('sections tabs has x-data with dblTabsLazy', function () {
     $html = Blade::render(
         '<x-dbl::sections.tabs :tabs="$tabs" />',
         ['tabs' => [['label' => 'Tab', 'load-url' => '/x']]]
     );
-    expect($html)->toContain('dbTabsLazy');
+    expect($html)->toContain('dblTabsLazy');
 });
 
 it('sections tabs includes load-urls in config', function () {
