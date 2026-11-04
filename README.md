@@ -661,14 +661,53 @@ Published views in `resources/views/vendor/daisyblade/` take precedence over pac
 
 ## Testing
 
+One-time setup (browser tests only):
+
 ```bash
-composer test
-# or, one at a time
-vendor/bin/pest
-node --test tests/js/*.test.mjs
+composer install
+npm install                 # Alpine, Tailwind, DaisyUI, MapLibre and Playwright, for the tests only
+npx playwright install chromium
 ```
 
-`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 561 Pest tests (2261 assertions) and 242 JavaScript tests, all green. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
+Then:
+
+```bash
+composer test               # everything: the three lines below, in this order
+composer test:php           # Pest: Unit + Feature (components, translations, install command)
+composer test:browser       # Pest + a real Chromium: tests/Browser
+composer test:js            # node --test tests/js/*.test.mjs (HTTP client, errors, dates, map, flowchart)
+```
+
+Currently 561 Pest tests (2261 assertions), 65 browser tests (60 green, 5 pending) and 242 JavaScript tests. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
+
+### Browser tests (`tests/Browser`)
+
+They answer the question the other tests cannot: *does it work in a real browser, with the real Alpine?* Every test renders ONE page with the real Blade views of the package (through Testbench), loads the real `daisyblade.js`, real Alpine 3.14, Tailwind and DaisyUI (all from `node_modules`, so no network is needed; MapLibre is the real library too), opens it in Chromium and asserts what a user would see.
+
+**Why the Pest browser plugin.** The repository already runs on Pest 4 and Testbench, and `pestphp/pest-plugin-browser` (Playwright underneath) is the standard, supported way to do browser tests in that stack: the same `it(...)` syntax, the same `composer` command, routes registered inside the test itself, and the Laravel app of the test is the server. The alternative considered was `puppeteer-core` with the system Chrome in a separate Node script; it works too, but it needs its own runner, its own server and its own reporting. It stays as the fallback if the plugin ever stops working.
+
+**How a test reads.**
+
+```php
+it('checkbox: checked follows the x-model and clicking it updates the model', function () {
+    $page = visit(browserPage('choice-checkbox', <<<'BLADE'
+        <div id="scope" x-data="{ agree: true }"><x-dbl::form.checkbox name="agree" x-model="agree" /></div>
+        BLADE));
+
+    $page->click('input[type=checkbox]');
+
+    expect($page->script(alpineData('#scope', 'agree')))->toBeFalse();
+});
+```
+
+- `browserPage($name, $blade, ['modules' => ['map']])` registers the page and gives back its URL (helpers in `tests/Browser/Support/helpers.php`). `modules` lists the optional components to register with Alpine (`calendar`, `flowchart`, `map`, `upload`, `signature`).
+- The fake server (`/options`, `/rowsA`, `/cal`, `/geo/a`, `/upload-html`, ...) lives in the same file. `window.__net` in every page records each `fetch` and lets a test delay (`__net.delay['start=2026-03-30'] = 500`) or fail one.
+- `readPage($page, $js, $until)` waits until the page shows what the test expects (components load their data after painting); `pause()` is only for things that must NOT happen.
+- A test per behaviour; the name says what it protects. Findings of the attack rounds are named in the header comment of each file.
+
+**Pending tests.** A test for a known, not yet fixed defect is written in full and marked `->skip('Pending: <report>, <finding>. Activate when fixed.')`. Whoever fixes the defect deletes the `->skip(...)` line and the test must go green. Today: sidebar `collapsible=false` (2), pagination page 1, calendar roving tabindex and calendar race.
+
+**Caveats.** `attach()` of the plugin needs a local Playwright server, so files are chosen with `chooseFile()` (a real `File` set on the input). A bare selector such as `'input'` is read as *text*; write `input[type=text]`.
 
 ---
 
