@@ -22,8 +22,12 @@
 //
 //   - Every request asks for JSON: `Accept: application/json` and, on the same domain, `X-Requested-With`. With them Laravel
 //     answers by itself a 401 / 419 / 422 in JSON instead of redirecting to the login page.
-//   - A redirect, or a 2xx body that is not JSON, is a CONTRACT ERROR (`ContractError`, `isContractError()`), with a clear
-//     warning in the console for the developer. It is never taken as data: a login page is not an empty list.
+//   - The contract looks at WHAT ARRIVED, never at where it came from: no URL is compared, so a `baseURL`, a `<base href>`
+//     or a redirect that ends in valid JSON cannot confuse it. An answer is good when its `Content-Type` is the one the
+//     component asks for (JSON, or `text/html` in the lazy tabs) AND its form is the expected one (see `answerRules`).
+//     A login page that a session expired sends to a request for JSON is HTML, so it fails by its type.
+//   - Anything else is a CONTRACT ERROR (`ContractError`, `isContractError()`), with a clear warning in the console for the
+//     developer. It is never taken as data: a login page is not an empty list.
 //   - An empty answer (a 204) only counts where the component says so with `answer: 'json-or-empty'`.
 //   - The FORM of the JSON is checked by one function per component, in `answerShapes` at the end of this file.
 
@@ -128,9 +132,12 @@ function encodeBody(data, headers) {
     return JSON.stringify(data)
 }
 
-/** Text of a response -> JSON when it is JSON (by content type, or because it is an object or a list), else the text. */
-function parseBody(text, contentType) {
-    if (text === '') return ''
+/**
+ * Text of a response -> JSON when it is JSON (by content type, or because it is an object or a list), else the text.
+ * An answer that the component wants as HTML (`keepAsText`) is never parsed: a fragment such as "[Draft] <b>x</b>" is text.
+ */
+function parseBody(text, contentType, keepAsText) {
+    if (text === '' || keepAsText) return text
     if (/json/i.test(contentType ?? '') || /^\s*[[{]/.test(text)) {
         try { return JSON.parse(text) } catch { return text }
     }
@@ -160,14 +167,13 @@ function networkError(cause, settings) {
 }
 
 /**
- * The server did not keep the contract (see the top of this file): it redirected, or its answer is not the JSON the component
- * needs. `reason` says which one (redirected | not-json | empty | not-html | shape). The developer gets a warning in the
+ * The server did not keep the contract (see the top of this file): its answer is not of the type and form the component
+ * needs. `reason` says which one (not-json | empty | not-html | shape). The developer gets a warning in the
  * console that names the endpoint, because the user only sees a generic "could not load".
  */
 function contractError(reason, settings, detail = '') {
     const causes = {
-        redirected: 'answered with a redirect (an expired session going to the login page? a controller that does back()?)',
-        'not-json': 'did not answer JSON',
+        'not-json': 'did not answer JSON (an expired session answering with the login page? a controller that does back()?)',
         empty: 'answered with an empty body (a 204) and this component does not accept that',
         'not-html': 'did not answer an HTML fragment',
         shape: detail,
@@ -198,49 +204,59 @@ export function isCanceled(error, client) {
     return !!(client?.isCancel?.(error) || error?.code === 'ERR_CANCELED')
 }
 
-/** The origin and the path of a URL, without the query: what tells a redirect apart from the same endpoint. */
-function placeOf(url) {
-    try {
-        const parsed = new URL(String(url), globalThis.location?.href ?? 'http://localhost/')
-        return parsed.origin + parsed.pathname
-    } catch {
-        return String(url)
-    }
-}
+// ── The contract: type and form of the answer ──────────────────────────────
 
-/** True when the answer came from another URL than the one asked for (a client that follows redirects does not say it). */
-const cameFromElsewhere = (askedUrl, answeredUrl) => !!answeredUrl && placeOf(askedUrl) !== placeOf(answeredUrl)
+/** `application/json` and its relatives (`application/problem+json`, `application/vnd.api+json`), with or without `; charset`. */
+const isJsonType = type => /^application\/([\w.-]+\+)?json\b/i.test(type)
+
+/** `text/html`, with or without `; charset`. */
+const isHtmlType = type => /^text\/html\b/i.test(type)
+
+const isObjectOrList = data => data !== null && typeof data === 'object'
+
+/** A fragment of HTML is a piece of a page: a whole document (`<!doctype>`, `<html>`) is a page, such as the login one. */
+const isHtmlFragment = data => typeof data === 'string' && !/^\s*(<!doctype|<html)/i.test(data)
+
+/**
+ * Pattern "table of rules": what each kind of `answer` accepts, written once and chosen by name, so that checking an
+ * answer is the same sequence of steps for all of them (emptiness, type, form) with no branch per kind.
+ *
+ *   isRightType   the `Content-Type` that the component asks for
+ *   isRightForm   the form of the body (a JSON object or list; a piece of HTML)
+ *   emptyReason   what an empty body (a 204) is: a ContractError of that reason, or null when the component accepts it
+ *   failure       the reason of the ContractError when the type or the form is wrong
+ */
+const answerRules = {
+    json: { isRightType: isJsonType, isRightForm: isObjectOrList, emptyReason: 'empty', failure: 'not-json' },
+    'json-or-empty': { isRightType: isJsonType, isRightForm: isObjectOrList, emptyReason: null, failure: 'not-json' },
+    html: { isRightType: isHtmlType, isRightForm: isHtmlFragment, emptyReason: 'not-html', failure: 'not-html' },
+}
 
 /**
  * The contract (see the top of this file) applied to a 2xx answer, whichever client brought it.
- * `redirected` is what each client knows about it. Returns the response, with `data` ready for `answerShapes`.
+ * `contentType` is what the client knows about the type: a text, or `undefined` for a client that does not say it (an
+ * injected axios without headers), and then the form of the body is the only judge. Returns the response, with `data` ready
+ * for `answerShapes`.
  */
-function acceptAnswer(response, settings, redirected) {
-    if (redirected) throw contractError('redirected', settings)
-
-    const kind = settings.answer ?? 'json'
+function acceptAnswer(response, settings, contentType) {
+    const rule = answerRules[settings.answer ?? 'json']
     const { data } = response
-    const isEmpty = data === '' || data === undefined || data === null
 
-    if (kind === 'html') {
-        if (typeof data !== 'string' || isEmpty) throw contractError('not-html', settings)
-        return response
-    }
-    if (isEmpty) {
-        if (kind !== 'json-or-empty') throw contractError('empty', settings)
+    if (data === '' || data === undefined || data === null) {
+        if (rule.emptyReason) throw contractError(rule.emptyReason, settings)
         // An accepted empty answer reads as an object without fields, so the callers never test for null.
         return { ...response, data: {} }
     }
-    // A text body (HTML page, "OK") stays a string in `data`; the JSON that we want is an object or a list.
-    if (typeof data !== 'object') throw contractError('not-json', settings)
+    const typeIsWrong = contentType !== undefined && !rule.isRightType(contentType)
+    if (typeIsWrong || !rule.isRightForm(data)) throw contractError(rule.failure, settings)
     return response
 }
 
 /** The same result and the same failures for fetch and XMLHttpRequest. */
-function settle({ status, statusText, text, contentType, headers, redirected }, settings) {
-    const response = { data: parseBody(text, contentType), status, statusText, headers }
+function settle({ status, statusText, text, contentType, headers }, settings) {
+    const response = { data: parseBody(text, contentType, settings.answer === 'html'), status, statusText, headers }
     if (status < 200 || status >= 300) throw httpError(response, settings)
-    return acceptAnswer(response, settings, redirected)
+    return acceptAnswer(response, settings, contentType ?? '')
 }
 
 // ── Clients ─────────────────────────────────────────────────────────────────
@@ -253,7 +269,9 @@ async function viaClient(client, settings) {
     const { method, url, params, data, signal, onUploadProgress } = settings
     // axios already adds `X-Requested-With` in a Laravel app, but a client injected by hand may not.
     const headers = buildHeaders(settings, false)
-    const options = compact({ params, headers, signal, onUploadProgress })
+    // An HTML fragment must reach us as text: axios would try to read "[1] item" as JSON.
+    const responseType = settings.answer === 'html' ? 'text' : undefined
+    const options = compact({ params, headers, signal, onUploadProgress, responseType })
 
     let response
     if (typeof client[method] === 'function') {
@@ -265,9 +283,11 @@ async function viaClient(client, settings) {
         const full = compact({ method, url, data, ...options })
         response = await (typeof client.request === 'function' ? client.request(full) : client(full))
     }
-    // axios leaves the URL that finally answered in `request.responseURL`.
-    return acceptAnswer(response, settings, cameFromElsewhere(joinUrl(url, params), response?.request?.responseURL))
+    return acceptAnswer(response, settings, headerOf(response?.headers, 'content-type'))
 }
+
+/** A header of an axios answer (`AxiosHeaders` has `get`, a plain object has the lower-case name), or undefined. */
+const headerOf = (headers, name) => headers?.get?.(name) ?? headers?.[name]
 
 /** Headers for every client: the contract's, the Laravel ones if same-origin, then the caller's. */
 function buildHeaders(settings, crossOrigin) {
@@ -302,7 +322,6 @@ async function viaFetch(settings, crossOrigin) {
         text: await response.text(),
         contentType: response.headers.get('content-type'),
         headers: Object.fromEntries(response.headers.entries()),
-        redirected: response.redirected,
     }, settings)
 }
 
@@ -347,7 +366,6 @@ function viaXhr(settings) {
                     text: xhr.responseText ?? '',
                     contentType: xhr.getResponseHeader('content-type'),
                     headers: parseRawHeaders(xhr.getAllResponseHeaders?.() ?? ''),
-                    redirected: cameFromElsewhere(joinUrl(settings.url, settings.params), xhr.responseURL),
                 }, settings))
             } catch (error) { reject(error) }
         }

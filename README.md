@@ -633,7 +633,7 @@ The `action` of a `navigation.menu` or `navigation.dock` item is the name of the
 Every component that talks to your server does it through one function, `request()` of `resources/js/http.js`, under one contract (the whole of it, with the shape each component expects, is in **`docs/contrato.md`**):
 
 - **Requests ask for JSON** (`Accept: application/json` and `X-Requested-With`), so Laravel answers a missing session with a JSON `401`/`419` and a failed validation with a `422`, instead of redirecting.
-- **A redirect, or a body that is not JSON** (an HTML page, a plain `OK`), is a `ContractError`: the component shows its generic message and the browser console says `DaisyBlade: the endpoint /api/x did not answer JSON. See docs/contrato.md`. A controller that ends in `back()` or `redirect()` does not keep the contract, the importer's included.
+- **A body that is not JSON** (an HTML page such as the login one, a plain `OK`, JSON with another `Content-Type`) is a `ContractError`; no URL is ever compared, so `axios.defaults.baseURL` or a `<base href>` are harmless: the component shows its generic message and the browser console says `DaisyBlade: the endpoint /api/x did not answer JSON. See docs/contrato.md`. A controller that ends in `back()` or `redirect()` to an HTML page does not keep the contract, the importer's included.
 - **An empty answer (`204`)** only counts where the component says so (delete and reorder in upload, auto-form, wizard).
 - **The shape of the JSON** is checked in one function per component (`answerShapes` in `http.js`).
 

@@ -181,9 +181,27 @@ test('headers given by the caller win, whatever the case of their names', async 
 
 // ── Responses and errors with the shape of axios ───────────────────────────
 
-test('a JSON answer comes back as an object even with another content type', async () => {
+test('a body that looks like JSON but comes with another content type is a contract error: the type is what counts', async () => {
     fakeFetch({ status: 200, body: '{"a":1}', type: 'text/plain' })
-    assert.deepEqual((await request({ url: '/odd' })).data, { a: 1 })
+    await assert.rejects(request({ url: '/odd' }), error => isContractError(error) && error.reason === 'not-json')
+})
+
+test('JSON content types with a charset or a suffix (+json) are JSON', async () => {
+    for (const type of ['application/json; charset=utf-8', 'application/problem+json', 'application/vnd.api+json']) {
+        fakeFetch({ status: 200, body: '{"a":1}', type })
+        assert.deepEqual((await request({ url: '/ok' })).data, { a: 1 })
+    }
+})
+
+test('an HTML fragment that looks like JSON ("[1] item") stays text, and a whole HTML page is not a fragment', async () => {
+    fakeFetch({ status: 200, body: '[1] <b>item</b>', type: 'text/html; charset=utf-8' })
+    assert.equal((await request({ url: '/tab', answer: 'html' })).data, '[1] <b>item</b>')
+
+    fakeFetch({ status: 200, body: '<!DOCTYPE html><html><body>login</body></html>', type: 'text/html' })
+    await assert.rejects(request({ url: '/tab', answer: 'html' }), error => isContractError(error) && error.reason === 'not-html')
+
+    fakeFetch({ status: 200, body: '{"message":"x"}', type: 'application/json' })
+    await assert.rejects(request({ url: '/tab', answer: 'html' }), error => isContractError(error) && error.reason === 'not-html')
 })
 
 test('an HTML fragment is only accepted where the component asks for `answer: html`, and then Accept says so', async () => {
@@ -224,22 +242,33 @@ test('plain text with a 200 is a contract error, and the console tells the devel
     assert.match(logged[0], /docs\/contrato\.md/)
 })
 
-test('a redirect is a contract error, with fetch, XMLHttpRequest and axios', async () => {
+test('no URL is compared: a redirect that ends in valid JSON is accepted, one that ends in the login page fails by its type', async () => {
     const silenced = console.error
     console.error = () => {}
     try {
-        // fetch says it by itself
+        // fetch follows a redirect to JSON: good, whatever URL answered.
         globalThis.fetch = async () => Object.defineProperty(new Response('{"ok":true}', { status: 200, headers: { 'content-type': 'application/json' } }), 'redirected', { value: true })
-        await assert.rejects(request({ url: '/api/users' }), error => isContractError(error) && error.reason === 'redirected')
+        assert.deepEqual((await request({ url: '/api/users' })).data, { ok: true })
 
-        // axios leaves the final URL in request.responseURL
-        const redirectedAxios = { get: async () => ({ data: { ok: true }, status: 200, request: { responseURL: 'https://app.test/login' } }) }
-        await assert.rejects(request({ url: '/api/users' }, { axios: redirectedAxios }), error => isContractError(error) && error.reason === 'redirected')
+        // ...and to the login page: HTML, so not JSON.
+        globalThis.fetch = async () => Object.defineProperty(new Response('<html>login</html>', { status: 200, headers: { 'content-type': 'text/html' } }), 'redirected', { value: true })
+        await assert.rejects(request({ url: '/api/users' }), error => isContractError(error) && error.reason === 'not-json')
 
-        // the same endpoint (with the query string axios writes in its own way) is not a redirect
-        const sameAxios = { get: async () => ({ data: { ok: true }, status: 200, request: { responseURL: 'https://app.test/api/users?page=2' } }) }
-        assert.deepEqual((await request({ url: '/api/users', params: { page: 2 } }, { axios: sameAxios })).data, { ok: true })
+        // axios with a baseURL ('/api') answers from another URL than the one asked for: it is nobody's business.
+        const axiosWithBaseUrl = { get: async () => ({ data: { ok: true }, status: 200, headers: { 'content-type': 'application/json' }, request: { responseURL: 'https://app.test/api/users' } }) }
+        assert.deepEqual((await request({ url: '/users' }, { axios: axiosWithBaseUrl })).data, { ok: true })
+
+        // axios says the type: HTML data is refused by type even if axios had parsed it into an object.
+        const axiosWithHtml = { get: async () => ({ data: { fake: 1 }, status: 200, headers: { 'content-type': 'text/html' } }) }
+        await assert.rejects(request({ url: '/users' }, { axios: axiosWithHtml }), error => isContractError(error) && error.reason === 'not-json')
     } finally { console.error = silenced }
+})
+
+test('an HTML request through axios asks for text, so that axios does not parse a fragment as JSON', async () => {
+    const calls = []
+    const axios = { get: async (url, options) => { calls.push(options); return { data: '[1] item', status: 200 } } }
+    assert.equal((await request({ url: '/tab', answer: 'html' }, { axios })).data, '[1] item')
+    assert.equal(calls[0].responseType, 'text')
 })
 
 test('a 422 fails with error.response.status and error.response.data, like axios', async () => {
