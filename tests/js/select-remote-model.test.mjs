@@ -23,7 +23,7 @@ const OPTIONS = [{ value: '1', label: 'One' }, { value: '2', label: 'Two' }, { v
 /** A <select> with x-model: `model.value` is what the bound variable holds, as Alpine's `_x_model` reads it. */
 function selectWithModel(config, model) {
     const field = fakeSelect({ _x_model: { get: () => model.value, set: value => { model.value = value } } })
-    const select = Object.assign(dblSelectRemote(config), { $root: rootBesides(field), $nextTick: async () => {}, $dispatch() {} })
+    const select = Object.assign(dblSelectRemote(config), { $root: rootBesides(field), $nextTick: async () => {}, $watch() {}, $dispatch() {} })
     return { select, field }
 }
 
@@ -94,7 +94,7 @@ test('a <select> with x-model is read again at every load: a model changed from 
 test('a <select> without x-model keeps working from the value prop', async () => {
     pageWithAxios(OPTIONS)
     const field = fakeSelect()   // no `_x_model`: nobody bound a model to it
-    const select = Object.assign(dblSelectRemote({ loadUrl: '/options', name: 'city', value: '2' }), { $root: rootBesides(field), $nextTick: async () => {} })
+    const select = Object.assign(dblSelectRemote({ loadUrl: '/options', name: 'city', value: '2' }), { $root: rootBesides(field), $nextTick: async () => {}, $watch() {} })
 
     await select.init()
 

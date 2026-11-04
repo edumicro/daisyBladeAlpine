@@ -76,3 +76,20 @@ test('the searchable select applies the same rule: its `chosen` is the model', (
     search.sync()
     assert.equal(search.chosen, '2')
 })
+
+test('observe: the control is told of every change of the model, not just the first; without a model there is nothing to observe', () => {
+    let model = 'a'
+    const watchers = []
+    const watch = (getter, callback) => watchers.push({ getter, callback })
+    const heard = []
+
+    modelBinding({ get: () => model, set: value => { model = value } }).observe(watch, value => heard.push(value))
+    assert.equal(watchers.length, 1)
+    assert.equal(watchers[0].getter(), 'a')         // what Alpine tracks is the model itself
+    watchers[0].callback('b')
+    watchers[0].callback('c')
+    assert.deepEqual(heard, ['b', 'c'])
+
+    modelBinding(null).observe(watch, () => {})
+    assert.equal(watchers.length, 1)
+})

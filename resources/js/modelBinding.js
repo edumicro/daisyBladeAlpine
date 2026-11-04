@@ -10,7 +10,9 @@
 //      is shown and the model RECEIVES it (the typical edit form: the model starts empty and the saved value comes from the view).
 //   2. A value that is not among the options is never erased or changed: the control keeps it (the select keeps an option for it).
 //      Only the reload caused by the control it depends on may empty it, because then the old value really is out of date.
-//   3. A change of the model from outside is always shown.
+//   3. A change of the model from outside is always shown, whenever it happens: the control OBSERVES its model for as long as it
+//      lives (`observe()`), not only while it starts. A form that loads its record by fetch sets the model seconds after the
+//      page was drawn.
 //   4. What the user chooses is written to the model, and the control announces `dbl-<component>-changed`.
 //
 // Tested once in node (tests/js/model-binding.test.mjs) and once in the browser (tests/Browser/SelectBrowserTest.php).
@@ -43,6 +45,16 @@ export function modelBinding(access) {
             if (!isEmptyValue(model)) return model
             if (!isEmptyValue(valueOfTheView) && access) access.set(valueOfTheView)
             return isEmptyValue(valueOfTheView) ? model : valueOfTheView
+        },
+
+        /**
+         * Rule 3, for as long as the control lives: calls `onChange(value)` after every change of the model.
+         * `watch` is the `$watch` of the component (Alpine follows whatever `get()` reads, so it must be called inside Alpine's
+         * scope). A control without a model has nothing to observe.
+         */
+        observe(watch, onChange) {
+            if (!access) return
+            watch(() => access.get(), onChange)
         },
 
         /** Rule 4: the user chose `value`: it goes to the model. */

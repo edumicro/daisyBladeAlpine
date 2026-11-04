@@ -37,7 +37,7 @@ Una respuesta que no es JSON (por ejemplo la página de login a la que redirige 
 
 ## Con `depends-on`
 
-1. Al cargar y **cada vez que el otro control lanza `change`**, pide `load-url` añadiendo su valor
+1. Al cargar y **cada vez que cambia el valor del otro control**, pide `load-url` añadiendo su valor
    como parámetro con **el nombre de ese control**: `/location/regions?country_code=PT`.
 2. Si lo elegido ya no está entre las opciones nuevas, el select se **vacía y lanza `change`**
    (así se entera un tercer desplegable que dependa de este).
@@ -46,7 +46,9 @@ Una respuesta que no es JSON (por ejemplo la página de login a la que redirige 
 4. Si dos respuestas se cruzan (el usuario cambia deprisa), solo cuenta la de la última petición.
 5. Si la petición falla, no se toca lo elegido (las opciones que traía el servidor siguen ahí si es la primera carga). Bajo el select sale un mensaje traducido con un botón **Reintentar** (el detalle técnico va a la consola), y el select no se queda cargando: `aria-busy` vuelve a `false`.
 
-El otro control puede ser cualquier cosa que lance `change` y tenga `name` (un `<select>`, un `<input>`).
+Se sigue el **valor** del otro control, no su evento: si tiene modelo (`x-model`), el select se entera de cualquier cambio del modelo (el usuario, tu código o un
+formulario de edición que rellena país y región al cargar) y pide una sola vez; si no tiene modelo, se entera por el `change` del usuario. Un valor que no cambia no recarga.
+El otro control puede ser cualquier cosa que tenga `name` (un `<select>`, un `<input>`).
 Su valor es el que el formulario enviaría: con un grupo de `form.radio` es el del radio **marcado** (sin ninguno marcado está vacío y el select espera); con un `form.checkbox` o `form.toggle` es `1` si está marcado y `0` si no.
 Un selector `searchable` guarda su valor en un `<input type="hidden">` que no lanza `change`, así que no sirve como origen.
 
@@ -57,7 +59,7 @@ El select con `load-url`, el `searchable` y el contador del `textarea` siguen **
 
 1. Al arrancar manda el **modelo** si tiene valor. Si está vacío (`null`, `''`, `[]`), se enseña el `value` de la vista y **el modelo lo recibe**.
 2. Un valor que **no está entre las opciones** no se borra ni se cambia: el select lo conserva (con la etiqueta que escribió el servidor, o con el propio valor). Solo lo vacía el cambio del control del que depende (`depends-on`).
-3. Un cambio del modelo desde fuera siempre se refleja.
+3. Un cambio del modelo desde fuera siempre se refleja, **cuando ocurra**: el control observa su modelo mientras viva (`observe()`), no solo al arrancar (una ficha que se carga por `fetch` rellena el modelo segundos después de pintar la página).
 4. Lo que el usuario elige se escribe en el modelo y se anuncia con `dbl-select-changed`.
 
 ## Evento

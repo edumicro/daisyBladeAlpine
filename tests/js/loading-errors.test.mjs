@@ -125,7 +125,7 @@ test('tabs-lazy: clicking a tab whose request is still running does not ask agai
 
 /** The parts of Alpine that dblSelectRemote uses, around a fake <select>. */
 function remoteSelect(config) {
-    return Object.assign(dblSelectRemote(config), { $root: rootBesides(fakeSelect()), $nextTick: async () => {} })
+    return Object.assign(dblSelectRemote(config), { $root: rootBesides(fakeSelect()), $nextTick: async () => {}, $watch() {} })
 }
 
 test('select remote: a failed request leaves a message and no options, and the retry button loads them', async () => {

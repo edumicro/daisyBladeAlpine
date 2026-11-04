@@ -29,7 +29,7 @@ afterEach(() => { console.error = realConsoleError; delete globalThis.window; de
 function remoteSelect(config, field = fakeSelect()) {
     const events = []
     const select = Object.assign(dblSelectRemote(config), {
-        $root: rootBesides(field), $nextTick: async () => {}, $dispatch: (name, detail) => events.push({ name, detail }),
+        $root: rootBesides(field), $nextTick: async () => {}, $watch() {}, $dispatch: (name, detail) => events.push({ name, detail }),
     })
     return { select, field, events }
 }

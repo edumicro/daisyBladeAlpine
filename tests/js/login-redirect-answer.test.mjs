@@ -21,7 +21,7 @@ afterEach(() => { console.error = realConsoleError; delete globalThis.window; de
 
 /** A remote select with its <select> beside the element that carries the x-data. */
 function remoteSelect(config) {
-    return Object.assign(dblSelectRemote(config), { $root: rootBesides(fakeSelect()), $nextTick: async () => {} })
+    return Object.assign(dblSelectRemote(config), { $root: rootBesides(fakeSelect()), $nextTick: async () => {}, $watch() {} })
 }
 
 test('select remote: an HTML answer (login page) is an error with retry, not an empty list', async () => {

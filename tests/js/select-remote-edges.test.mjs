@@ -22,7 +22,7 @@ afterEach(() => { console.error = realConsoleError; delete globalThis.window; de
 // ── A remote select as the Blade mounts it: the <select> sits beside the element that carries the Alpine scope ──
 
 const selectWith = (config, field = fakeSelect()) =>
-    Object.assign(dblSelectRemote(config), { $root: rootBesides(field), $nextTick: async () => {} })
+    Object.assign(dblSelectRemote(config), { $root: rootBesides(field), $nextTick: async () => {}, $watch() {} })
 
 // ── syncField: what the x-effect of the container does to the <select> ──
 

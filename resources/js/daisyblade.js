@@ -1,7 +1,7 @@
 'use strict'
 
 import { request, joinUrl, latestOnly, answerShapes } from './http.js'
-import { modelBinding, modelOfElement } from './modelBinding.js'
+import { modelBinding, modelOfElement, isEmptyValue } from './modelBinding.js'
 import { withConfig } from './factoryConfig.js'
 
 // Every server call of this file goes through request() (see http.js): the client injected with
@@ -333,6 +333,9 @@ const dblSidebarTree = () => ({
 /** Whatever we were given (nothing, one value, a list) -> list of texts, without the empty ones. */
 const toTexts = value => [].concat(value ?? []).map(String).filter(text => text !== '')
 
+/** The value a model gives to the select that depends on it: '' when empty, a list of texts, or a text. */
+const valueOfModel = value => (isEmptyValue(value) ? '' : (Array.isArray(value) ? value.map(String) : String(value)))
+
 /** Query-string params that carry the value of the control we depend on, under that control's name. */
 const dependencyParams = (name, value) => (name ? { [name]: value } : {})
 
@@ -354,6 +357,7 @@ const dblSelectRemote = withConfig({ name: '', loadUrl: '', multiple: false, val
     latest: latestOnly(),               // only the newest request counts (see latestOnly in http.js)
     disabledByUs: false,                // true while the <select> is disabled because of `waiting` or `disabled`
     starting: null,                     // the first load of init() while it runs (null the rest of the time)
+    loadedFor: null,                    // the value of the control we depend on for which the options were last asked (see followTheParent)
 
     // Alpine calls init() by itself when the component starts: load the options the first time.
     // A view published with 2.3 also has `x-init="init()"`, so Alpine calls it a second time while the first call is
@@ -364,7 +368,40 @@ const dblSelectRemote = withConfig({ name: '', loadUrl: '', multiple: false, val
         if (this.starting) return this.starting
         this.starting = this.loadAndShow()
         try { await this.starting } finally { this.starting = null }
+        // The whole page has started by now (the model of this <select> and the one of the control we depend on exist).
+        this.followTheModel()
+        this.followTheParent()
     },
+
+    // Rule 3 of modelBinding.js, for as long as we live: whenever the model of this <select> changes (a form that fills its
+    // record after loading, a "clear" button), the control shows it. A value that the options do not offer is kept (rule 2).
+    followTheModel() {
+        modelBinding(modelOfElement(this.field)).observe(this.$watch.bind(this), value => {
+            const shown = toTexts(value)
+            if (JSON.stringify(shown) === JSON.stringify(this.selected)) return   // the user's own choice came back as the model
+            this.selected = shown
+            this.showOptions()
+            if (!this.selected.length) this.field.value = ''   // nothing chosen: no option of the browser's own pick
+        })
+    },
+
+    // `depends-on` follows the VALUE of the control we depend on, not its `change` event: when the user chooses, when the page
+    // changes its model and when code does. If that control has a model, Alpine tells us; if it has none, the `change` event
+    // of the user is the only notice there is (see onDependencyChange), and it comes here as well.
+    // A change that happened while the first load was running is caught here too.
+    followTheParent() {
+        if (!config.dependsOn) return
+        this.$watch(() => this.dependencyKey(), () => this.reloadIfTheParentChanged())
+        this.reloadIfTheParentChanged()
+    },
+
+    // The same value twice is not a change: the `change` event and the model of the parent both announce one change.
+    reloadIfTheParentChanged() {
+        if (this.dependencyKey() !== this.loadedFor) return this.reload()
+    },
+
+    // The value of the control we depend on, as a text that can be compared (a list is written as JSON).
+    dependencyKey() { return JSON.stringify(this.dependencyValue()) },
 
     // The <select> itself. It is NOT inside the element that carries our x-data but right before it, as its sibling
     // (see form/select.blade.php for why), so we look for it in the parent, which holds no other <select>.
@@ -378,6 +415,9 @@ const dblSelectRemote = withConfig({ name: '', loadUrl: '', multiple: false, val
     dependencyValue() {
         if (!config.dependsOn) return null
         const controls = [...(this.field.form ?? document).querySelectorAll(`[name="${config.dependsOn}"]`)]
+        // A control with a model is followed through it (rule 3 of modelBinding.js): reading it inside Alpine's watch tracks it.
+        const parentModel = controls.map(modelOfElement).find(Boolean)
+        if (parentModel) return valueOfModel(modelBinding(parentModel).current())
         const sent = controls.filter(control => !['radio', 'checkbox'].includes(control.type) || control.checked)
         // When several controls send the name (hidden 0 + checked checkbox), the last one wins, as in a submitted form.
         return sent[sent.length - 1]?.value ?? ''
@@ -394,7 +434,7 @@ const dblSelectRemote = withConfig({ name: '', loadUrl: '', multiple: false, val
     // Every control of the page fires `change`: reload only for the one we depend on.
     onDependencyChange(event) {
         if (!config.dependsOn) return    // we depend on nothing: a control without a name must not match ''
-        if (event.target.name === config.dependsOn && event.target.form === this.field.form) this.reload()
+        if (event.target.name === config.dependsOn && event.target.form === this.field.form) this.reloadIfTheParentChanged()
     },
 
     // Keep the <select> in step with our state. Our element runs this from its `x-effect`, so it runs again
@@ -441,6 +481,7 @@ const dblSelectRemote = withConfig({ name: '', loadUrl: '', multiple: false, val
 
     // Ask for the options and write them. Returns false if there is no usable answer (it failed, or a newer request took over).
     async loadAndShow() {
+        this.loadedFor = this.dependencyKey()          // the options we are about to ask for are those of this value
         this.waiting = this.dependencyValue() === ''   // empty control: ask for nothing
         return this.loadOptions()
     },

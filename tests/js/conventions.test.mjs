@@ -123,7 +123,7 @@ test('2. the components that read data ask the URL given as loadUrl', async () =
         await dblDataTable({ loadUrl: '/table' }).init()
         await dblResourceDetails({ loadUrl: '/details' }).init()
         await dblTabsLazy({ tabs: [{ loadUrl: '/tab' }] }).init()
-        const select = Object.assign(dblSelectRemote({ loadUrl: '/options' }), { $root: rootBesides(fakeSelect()) })
+        const select = Object.assign(dblSelectRemote({ loadUrl: '/options' }), { $root: rootBesides(fakeSelect()), $watch() {} })
         await select.init()
         await dblCalendar({ loadUrl: '/events', initialDate: '2026-10-05' }).init()
     } finally { leavePage() }
