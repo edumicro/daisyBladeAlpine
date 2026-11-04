@@ -604,7 +604,7 @@ vendor/bin/pest
 node --test tests/js/*.test.mjs
 ```
 
-`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 401 Pest tests (1600 assertions) and 167 JavaScript tests, all green.
+`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 391 Pest tests (1587 assertions) and 154 JavaScript tests, all green.
 
 ---
 
