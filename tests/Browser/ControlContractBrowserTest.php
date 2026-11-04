@@ -13,20 +13,6 @@ use Illuminate\Support\Facades\Route;
  * To add a control to the contract, add a line to the dataset: its Blade, how a user changes it, and the name of its field.
  */
 
-const PAD_SCRIPT = '<script src="/_assets/node/signature_pad/dist/signature_pad.umd.min.js"></script>';
-
-/** One stroke across the canvas of the signature, with the pointer events SignaturePad listens to. */
-function strokeOn($page): void
-{
-    $page->script(<<<'JS'
-        (() => {
-            const c = document.querySelector('canvas'); const r = c.getBoundingClientRect()
-            const at = (type, x, y) => (type === 'pointerup' ? document : c).dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 1, pointerType: 'mouse', isPrimary: true, buttons: type === 'pointerup' ? 0 : 1, clientX: r.left + x, clientY: r.top + y }))
-            at('pointerdown', 20, 20); for (let i = 1; i < 12; i++) at('pointermove', 20 + i * 10, 20 + i * 5); at('pointerup', 130, 75)
-        })()
-        JS);
-}
-
 /** What a browser does when the user picks an option of a native <select>: `input`, then `change`, both bubbling. */
 function pickOption($page, string $selector, string $value): void
 {
@@ -114,7 +100,7 @@ dataset('controls', function () {
         'signature' => [[
             'blade' => PAD_SCRIPT.'<x-dbl::form.signature name="c" />',
             'modules' => ['signature'],
-            'change' => fn ($page) => strokeOn($page),
+            'change' => fn ($page) => drawStroke($page),
             'field' => 'c', 'param' => 'c',
         ]],
     ];

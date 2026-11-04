@@ -9,6 +9,7 @@
 
 import { withConfig } from '../factoryConfig.js'
 import { writeValue } from '../modelBinding.js'
+import { observeSize } from '../observeSize.js'
 
 const INK = '#111111'        // trazo oscuro...
 const PAPER = '#ffffff'      // ...sobre blanco, también en modo oscuro: el PDF es blanco
@@ -20,7 +21,7 @@ const dblSignature = withConfig({ name: '', required: false }, (config, deps = {
     form: null,
     onSubmit: null,
     onReset: null,
-    onResize: null,
+    sizeWatch: null,
 
     init() {
         const SignaturePad = deps.SignaturePad ?? window.SignaturePad
@@ -32,9 +33,9 @@ const dblSignature = withConfig({ name: '', required: false }, (config, deps = {
         })
         this.pad.addEventListener('endStroke', () => this.sync(true))
 
-        this.resize()
-        this.onResize = () => this.resize()
-        window.addEventListener('resize', this.onResize)
+        // The canvas takes its size from the page, which is 0 px while the pad sits in a closed tab or modal: it is sized when it
+        // shows and every time its size changes (observeSize.js), not once at the start.
+        this.sizeWatch = observeSize(this.$refs.canvas, () => this.resize())
 
         this.form = this.$root.closest('form')
         if (this.form) {
@@ -52,7 +53,7 @@ const dblSignature = withConfig({ name: '', required: false }, (config, deps = {
     },
 
     destroy() {
-        window.removeEventListener('resize', this.onResize)
+        this.sizeWatch?.stop()
         this.form?.removeEventListener('submit', this.onSubmit)
         this.form?.removeEventListener('reset', this.onReset)
         this.pad?.off()

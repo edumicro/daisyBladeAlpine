@@ -50,6 +50,17 @@ it('installs with --vite flag', function () {
         ->and(file_exists(resource_path('js/factoryConfig.js')))->toBeTrue();
 });
 
+it('installs every .js file of resources/js beside daisyblade.js, so a new helper cannot be left behind', function () {
+    $this->artisan('daisyblade:install', ['--vite' => true])->assertSuccessful();
+
+    $inThePackage = array_map('basename', glob(dirname(__DIR__, 2).'/resources/js/*.js'));
+
+    expect($inThePackage)->toContain('observeSize.js');
+    foreach ($inThePackage as $file) {
+        expect(file_exists(resource_path('js/'.$file)))->toBeTrue($file);
+    }
+});
+
 it('installs the components folder too, with the same layout it has in the package', function () {
     $this->artisan('daisyblade:install', ['--vite' => true])->assertSuccessful();
 

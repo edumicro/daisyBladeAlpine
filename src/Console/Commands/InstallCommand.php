@@ -31,15 +31,11 @@ class InstallCommand extends Command
         $this->callSilent('vendor:publish', ['--tag' => 'daisyblade-config']);
         $this->info('  ✓ Views and config published.');
 
-        // daisyblade.js imports ./http.js (the one function every component uses to call the server) and ./modelBinding.js
-        // (the one rule of the controls that have a model), ./factoryConfig.js (the declared configuration of each component), and the
-        // optional components (calendar, map, upload, rich-text, signature, flowchart) import ../http.js:
-        // everything is published together, in the same folders it has in the package.
+        // daisyblade.js imports its sibling files (http.js, modelBinding.js, factoryConfig.js, observeSize.js...) and the optional components
+        // (calendar, map, upload, rich-text, signature, flowchart) import them as ../http.js and so on: everything is published
+        // together, in the same folders it has in the package. Every .js file of resources/js goes, so a new helper cannot be left behind.
         $jsSources = [
-            realpath(__DIR__.'/../../../resources/js/daisyblade.js'),
-            realpath(__DIR__.'/../../../resources/js/http.js'),
-            realpath(__DIR__.'/../../../resources/js/modelBinding.js'),
-            realpath(__DIR__.'/../../../resources/js/factoryConfig.js'),
+            ...array_map('realpath', glob(__DIR__.'/../../../resources/js/*.js')),
             realpath(__DIR__.'/../../../resources/js/components'),
         ];
 
@@ -75,7 +71,7 @@ class InstallCommand extends Command
     protected function publishVite(array $sources): void
     {
         $this->copyAll($sources, resource_path('js'));
-        $this->info('  ✓ JS → resources/js/daisyblade.js, http.js, modelBinding.js, factoryConfig.js and components/');
+        $this->info('  ✓ JS → resources/js/daisyblade.js, http.js, modelBinding.js, factoryConfig.js, observeSize.js and components/');
         $this->line("    Add to app.js: <fg=gray>import './daisyblade.js'</>");
         $this->line("    Optional components: <fg=gray>import { registerCalendar } from './components/calendar.js'</> (see docs/components/)");
     }
@@ -84,7 +80,7 @@ class InstallCommand extends Command
     protected function publishPublic(array $sources): void
     {
         $this->copyAll($sources, public_path('vendor/daisyblade'));
-        $this->info('  ✓ JS → public/vendor/daisyblade/daisyblade.js, http.js, modelBinding.js, factoryConfig.js and components/');
+        $this->info('  ✓ JS → public/vendor/daisyblade/daisyblade.js, http.js, modelBinding.js, factoryConfig.js, observeSize.js and components/');
         // type="module": daisyblade.js is an ES module (it imports ./http.js and exports its functions).
         $this->line("    Add to layout: <fg=gray><script type=\"module\" src=\"{{ asset('vendor/daisyblade/daisyblade.js') }}\"></script></>");
     }

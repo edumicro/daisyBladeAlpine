@@ -75,10 +75,12 @@ function browserLayout(string $body, array $modules = []): string
     foreach ($modules as $module) {
         $function = 'register'.ucfirst($module);
         $imports .= "import { {$function} } from '/_assets/js/components/{$module}.js'\n";
-        $registers .= $module === 'map' ? "{$function}(window.Alpine, { maplibregl })\n" : "{$function}(window.Alpine)\n";
+        $registers .= $module === 'map' ? "{$function}(window.Alpine, { maplibregl: withMapsRecorded(maplibregl) })\n" : "{$function}(window.Alpine)\n";
     }
     if (in_array('map', $modules, true)) {
         $imports .= "import * as maplibregl from '/_assets/node/maplibre-gl/dist/maplibre-gl.mjs'\n";
+        // The maps the page creates, in `window.__maps`, so that a test can ask one its zoom or its bounds (the component keeps its own out of reach).
+        $imports .= "const withMapsRecorded = ns => ({ ...ns, Map: class extends ns.Map { constructor(options) { super(options); (window.__maps ??= []).push(this) } } })\n";
     }
 
     // Fake network (see `window.__net`): records every fetch and lets a test delay or fail one by URL.
@@ -243,4 +245,19 @@ function isShown($page, string $selector): bool
 function chooseFile($page, string $selector, string $name = 'f.txt', string $content = 'x'): void
 {
     $page->script('(() => { const e = document.querySelector('.json_encode($selector).'); const t = new DataTransfer(); t.items.add(new File(['.json_encode($content).'], '.json_encode($name).')); e.files = t.files; e.dispatchEvent(new Event("change", { bubbles: true })) })()');
+}
+
+/** The real signature_pad (a development dependency): a page that has a signature loads it before Alpine starts. */
+const PAD_SCRIPT = '<script src="/_assets/node/signature_pad/dist/signature_pad.umd.min.js"></script>';
+
+/** One stroke across a canvas with the pointer events that SignaturePad listens to (the pad must be on the page, and shown). */
+function drawStroke($page, string $canvas = 'canvas'): void
+{
+    $page->script(<<<JS
+        (() => {
+            const c = document.querySelector('{$canvas}'); const r = c.getBoundingClientRect()
+            const at = (type, x, y) => (type === 'pointerup' ? document : c).dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 1, pointerType: 'mouse', isPrimary: true, buttons: type === 'pointerup' ? 0 : 1, clientX: r.left + x, clientY: r.top + y }))
+            at('pointerdown', 20, 20); for (let i = 1; i < 12; i++) at('pointermove', 20 + i * 10, 20 + i * 5); at('pointerup', 130, 75)
+        })()
+        JS);
 }

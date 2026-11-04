@@ -1,7 +1,7 @@
 <?php
 
 /*
-what `depends-on` follows when the parent is not a native <select>, and the corners of observe().
+ * What `depends-on` follows when the parent is not a native <select>, and the corners of observe().
  */
 
 it('a remote select that depends on a SEARCHABLE select reloads when the user picks an option there (no model)', function () {

@@ -4,6 +4,7 @@ import {
     autoLayout, layoutEdges, boxAt, draftLine, drawingBounds, groupBands, shapePath, snap, clampPos, normalizeShape, sizeOf,
 } from './flowchart/geometry.js'
 import { withConfig } from '../factoryConfig.js'
+import { observeSize } from '../observeSize.js'
 import { responder, provisionalEdge, finalizeEdge, samePos } from './flowchart/protocol.js'
 
 // ── Datos: funciones puras (se prueban con `node --test`) ──────────────────
@@ -130,20 +131,17 @@ export const dblFlowchart = withConfig({ name: '', editable: false, grid: 0, sho
 
     init() {
         this.load(config.nodes, config.edges)
-        // Como `display.map`: con `fit`, al cargar se encuadra todo el dibujo (una sola vez).
+        // Como `display.map`: con `fit`, se encuadra todo el dibujo y se vuelve a encuadrar cada vez que la vista cambia de tamaño
+        // (estilos que llegan tarde, girar el móvil, y mostrarse tras haber nacido oculta en una pestaña o un modal; observeSize.js),
+        // hasta que la persona toque el zoom.
         if (this.fitOnLoad) {
             this.$nextTick(() => {
-                this.fit()
-                // El ancho de la vista aún puede cambiar (estilos que llegan tarde, girar el móvil):
-                // se reencuadra hasta que la persona toque el zoom.
-                if (typeof ResizeObserver !== 'undefined' && this.$refs.viewport) {
-                    this._ro = new ResizeObserver(() => { if (!this.zoomed) this.fit() })
-                    this._ro.observe(this.$refs.viewport)
-                }
+                if (!this.$refs.viewport) return
+                this.sizeWatch = observeSize(this.$refs.viewport, () => { if (!this.zoomed) this.fit() })
             })
         }
     },
-    destroy() { this._ro?.disconnect() },
+    destroy() { this.sizeWatch?.stop() },
 
     get hasMuted() { return this.nodes.some(n => n.muted) || this.edges.some(e => e.muted) },
     get isEmpty() { return !this.vNodes.length },
