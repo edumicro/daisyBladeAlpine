@@ -112,9 +112,15 @@ const dbSelectRemote = (config = {}) => ({
 
     // Value of the control we depend on (null if we depend on none), looked up by name
     // in our form or, if we are not in a form, in the whole page.
+    // It is the value the form would SEND for that name: a group of radios counts only through the checked one
+    // ('' if none is), and an unchecked checkbox sends nothing. `form.checkbox` and `form.toggle` write a hidden
+    // `0` before the checkbox, so when the checkbox is unchecked the value is that 0.
     dependencyValue() {
         if (!config.dependsOn) return null
-        return (this.field.form ?? document).querySelector(`[name="${config.dependsOn}"]`)?.value ?? ''
+        const controls = [...(this.field.form ?? document).querySelectorAll(`[name="${config.dependsOn}"]`)]
+        const sent = controls.filter(control => !['radio', 'checkbox'].includes(control.type) || control.checked)
+        // When several controls send the name (hidden 0 + checked checkbox), the last one wins, as in a submitted form.
+        return sent[sent.length - 1]?.value ?? ''
     },
 
     // Every control of the page fires `change`: reload only for the one we depend on.

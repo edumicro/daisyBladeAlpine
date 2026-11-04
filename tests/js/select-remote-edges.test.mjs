@@ -122,3 +122,82 @@ test('init() called again once the first load has finished loads again', async (
 
     assert.equal(calls.length, 2)
 })
+
+// ── depends-on a radio group or a checkbox ──
+//
+// dependencyValue() used to read `.value` of the FIRST control with that name, checked or not: with `form.radio`
+// that was always the first radio, and with `form.checkbox` (a hidden `0` and then the checkbox `1`) the hidden 0.
+// It must read what the form would send.
+
+/** A form with the given controls, in document order: `{ name, type, value, checked }`. */
+function formWith(controls) {
+    return { querySelectorAll: selector => controls.filter(control => selector === `[name="${control.name}"]`) }
+}
+
+/** A remote select that depends on `kind`, inside `form`. */
+function dependentSelect(form, dependsOn = 'kind') {
+    return selectWith({ url: '/options', dependsOn }, fakeField({ form }))
+}
+
+test('depends-on a radio group sends the CHECKED radio, not the first one', async () => {
+    const calls = pageWithAxios([{ value: 'a', label: 'A' }])
+    const form = formWith([
+        { name: 'kind', type: 'radio', value: 'person', checked: false },
+        { name: 'kind', type: 'radio', value: 'company', checked: true },
+    ])
+
+    await dependentSelect(form).init()
+
+    assert.equal(calls.at(-1).params.kind, 'company')
+})
+
+test('depends-on a radio group with none checked waits: nothing is asked and the select is empty', async () => {
+    const calls = pageWithAxios([{ value: 'a', label: 'A' }])
+    const form = formWith([
+        { name: 'kind', type: 'radio', value: 'person', checked: false },
+        { name: 'kind', type: 'radio', value: 'company', checked: false },
+    ])
+    const select = dependentSelect(form)
+
+    await select.init()
+
+    assert.equal(select.dependencyValue(), '')
+    assert.equal(select.waiting, true)
+    assert.deepEqual(select.options, [])
+    assert.equal(calls.length, 0)
+})
+
+test('depends-on a form.checkbox (hidden 0 + checkbox 1) sends 1 when it is checked and 0 when it is not', () => {
+    const controls = [
+        { name: 'vat', type: 'hidden', value: '0' },
+        { name: 'vat', type: 'checkbox', value: '1', checked: true },
+    ]
+    const select = dependentSelect(formWith(controls), 'vat')
+
+    assert.equal(select.dependencyValue(), '1')
+
+    controls[1].checked = false
+    assert.equal(select.dependencyValue(), '0')
+})
+
+test('depends-on a checkbox without hidden 0 that is unchecked sends nothing, so the select waits', () => {
+    const select = dependentSelect(formWith([{ name: 'vat', type: 'checkbox', value: '1', checked: false }]), 'vat')
+
+    assert.equal(select.dependencyValue(), '')
+})
+
+test('depends-on a plain control (text, select) still reads its value', () => {
+    const select = dependentSelect(formWith([{ name: 'country', type: 'select-one', value: 'ES' }]), 'country')
+
+    assert.equal(select.dependencyValue(), 'ES')
+})
+
+test('depends-on a control that is not in the form is an empty value', () => {
+    const select = dependentSelect(formWith([]), 'country')
+
+    assert.equal(select.dependencyValue(), '')
+})
+
+test('a select that depends on nothing has no dependency value', () => {
+    assert.equal(selectWith({ url: '/options' }).dependencyValue(), null)
+})

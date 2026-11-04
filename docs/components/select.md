@@ -45,6 +45,7 @@ JSON con una lista de `{value, label}` (también vale `{"data": [...]}`):
 5. Si la petición falla, no se toca lo elegido (las opciones que traía el servidor siguen ahí si es la primera carga). Bajo el select sale un mensaje traducido con un botón **Reintentar** (el detalle técnico va a la consola), y el select no se queda cargando: `aria-busy` vuelve a `false`.
 
 El otro control puede ser cualquier cosa que lance `change` y tenga `name` (un `<select>`, un `<input>`).
+Su valor es el que el formulario enviaría: con un grupo de `form.radio` es el del radio **marcado** (sin ninguno marcado está vacío y el select espera); con un `form.checkbox` o `form.toggle` es `1` si está marcado y `0` si no.
 Un selector `searchable` guarda su valor en un `<input type="hidden">` que no lanza `change`, así que no sirve como origen.
 
 ## Valor y envío
