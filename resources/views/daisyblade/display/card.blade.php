@@ -89,7 +89,7 @@ $actionClassOf = fn (?string $color) => match($color) {
                         @if(isset($action['icon']))
                             <x-dynamic-component :component="$action['icon']" class="w-4 h-4" />
                         @endif
-                        {{ $action['label'] ?? 'Action' }}
+                        {{ $action['label'] ?? __('Action') }}
                     </a>
                 @endforeach
             </div>

@@ -55,5 +55,60 @@ function viewsOfThePackage(): array
     return $views;
 }
 
+/**
+ * The opening tags of a view that are plain HTML (not `<x-...>` Blade components), as [tag name, source of the tag, line, offset].
+ * A tag ends at the first `>` that is not inside a quoted value, a `{{ }}` or the parentheses of a Blade directive.
+ */
+function openingTagsOf(string $source): array
+{
+    $tags = [];
+    $length = strlen($source);
+    $offset = 0;
+
+    while (preg_match('/<([a-zA-Z][\w:.-]*)/', $source, $found, PREG_OFFSET_CAPTURE, $offset) === 1) {
+        $start = $found[0][1];
+        $position = $start + strlen($found[0][0]);
+        $quote = null;
+
+        while ($position < $length) {
+            $character = $source[$position];
+            $rest = substr($source, $position, 4);
+
+            if (str_starts_with($rest, '{{--') || str_starts_with($rest, '{{') || str_starts_with($rest, '{!!')) {
+                // A comment, an echo: skip to its end, whatever it holds.
+                $end = str_starts_with($rest, '{{--') ? '--}}' : (str_starts_with($rest, '{!!') ? '!!}' : '}}');
+                $position = strpos($source, $end, $position) + strlen($end);
+
+                continue;
+            }
+
+            if ($quote !== null) {
+                $quote = $character === $quote ? null : $quote;
+            } elseif ($character === '"' || $character === "'") {
+                $quote = $character;
+            } elseif ($character === '@' && preg_match('/\G@[a-zA-Z]+\s*\(/', $source, $directive, 0, $position) === 1) {
+                // A Blade directive with arguments (`@if($a > 1)`, `@disabled($x)`): skip its parentheses.
+                $depth = 0;
+                $position += strlen($directive[0]) - 1;
+                do {
+                    $depth += $source[$position] === '(' ? 1 : ($source[$position] === ')' ? -1 : 0);
+                    $position++;
+                } while ($depth > 0 && $position < $length);
+
+                continue;
+            } elseif ($character === '>') {
+                break;
+            }
+
+            $position++;
+        }
+
+        $tags[] = [$found[1][0], substr($source, $start, $position - $start + 1), substr_count($source, "\n", 0, $start) + 1, $start];
+        $offset = $start + strlen($found[0][0]);
+    }
+
+    return $tags;
+}
+
 // A browser test that waits for something that never comes must fail in 5 seconds, not in the 30 of the default.
 pest()->browser()->timeout(5000);

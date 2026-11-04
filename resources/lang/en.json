@@ -1,4 +1,5 @@
 {
+    "Action": "Action",
     "Actions": "Actions",
     "Add badge": "Add badge",
     "Add child": "Add child",
@@ -62,6 +63,7 @@
     "Select an option": "Select an option",
     "Select...": "Select...",
     "Showing": "Showing",
+    "Slide :number": "Slide :number",
     "Step": "Step",
     "Submit": "Submit",
     "Tab :number": "Tab :number",

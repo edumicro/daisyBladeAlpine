@@ -6,7 +6,7 @@ return [
     'node'       => 'Caixa :label',
     'edge'       => 'Fletxa de :from a :to',
     'handle'     => 'Arrossega fins a una altra caixa per crear una fletxa',
-    'help'       => 'Enter obri la caixa o la fletxa. Les fletxes del teclat mouen la caixa seleccionada; amb Majús, un pas de graella.',
+    'help'       => 'Enter obre la caixa o la fletxa. Les fletxes del teclat mouen la caixa seleccionada; amb Majús, un pas de graella.',
     'zoom_in'    => 'Apropa',
     'zoom_out'   => 'Allunya',
     'fit'        => 'Encaixa tot el diagrama',

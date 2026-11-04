@@ -19,7 +19,7 @@
                     x-transition:enter-end="opacity-100"
                 >
                     @if(isset($item['image']))
-                        <img src="{{ $item['image'] }}" alt="{{ $item['alt'] ?? 'Slide ' . ($index+1) }}" class="w-full h-96 object-cover rounded-lg" />
+                        <img src="{{ $item['image'] }}" alt="{{ $item['alt'] ?? __('Slide :number', ['number' => $index + 1]) }}" class="w-full h-96 object-cover rounded-lg" />
                     @elseif(isset($item['content']))
                         <div class="w-full h-96 flex items-center justify-center bg-base-200 rounded-lg">
                             <div class="text-center">{!! $item['content'] !!}</div>
