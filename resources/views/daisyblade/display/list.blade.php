@@ -27,9 +27,9 @@ $tag = $ordered ? 'ol' : 'ul';
         </div>
     @endif
 
-    <{{ $tag }} @class([$sizeClass, 'space-y-1', $listClass])>
+    <{{ $tag }} @dblClass([$sizeClass, 'space-y-1', $listClass])>
         @forelse($items as $item)
-            <li @class([
+            <li @dblClass([
                 'flex flex-col',
                 'pb-2 border-b border-base-300/50 last:border-b-0' => $divided,
                 'hover:bg-base-200/50 px-2 py-1 rounded transition-colors cursor-pointer' => $hoverable,

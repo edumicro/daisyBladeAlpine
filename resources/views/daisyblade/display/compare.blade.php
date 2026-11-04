@@ -25,7 +25,7 @@
             <tbody>
                 @forelse($rows as $row)
                     @php $status = $row['status'] ?? 'equal'; @endphp
-                    <tr @class([
+                    <tr @dblClass([
                         'bg-warning/10' => $status === 'changed',
                         'bg-info/10'    => in_array($status, ['only_left', 'only_right']),
                     ])>
@@ -35,13 +35,13 @@
                         >
                             {{ $row['label'] ?? $row['key'] ?? '' }}
                         </td>
-                        <td @class([
+                        <td @dblClass([
                             'font-bold'                   => $status === 'changed',
                             'text-base-content/40 italic' => $status === 'only_right',
                         ])>
                             {{ isset($row['left']) && $row['left'] !== null ? $row['left'] : '—' }}
                         </td>
-                        <td @class([
+                        <td @dblClass([
                             'font-bold'                   => $status === 'changed',
                             'text-base-content/40 italic' => $status === 'only_left',
                         ])>

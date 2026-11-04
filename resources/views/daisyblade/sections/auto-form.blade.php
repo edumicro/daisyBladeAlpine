@@ -125,7 +125,8 @@ $config = [
         >
             @csrf
             @if(!in_array(strtoupper($method), ['GET','POST']))
-                @method($method)
+                {{-- Not `@method($method)`: it writes the field without escaping the method, which the caller chooses. --}}
+                <input type="hidden" name="_method" value="{{ strtoupper($method) }}">
             @endif
 
             <div class="grid grid-cols-12 gap-4">

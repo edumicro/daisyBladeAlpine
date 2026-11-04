@@ -100,7 +100,7 @@ final class Catalog
             Example::of('display.collapse')->props(['title' => "More{$user}", 'content' => "Details{$user}"])->texts('title'),
             Example::of('display.compare')->props(['leftLabel' => "Before{$user}", 'rightLabel' => "After{$user}", 'rows' => [['label' => "Price{$user}", 'left' => '1', 'right' => '2', 'description' => "Up{$user}"]]])->texts('leftLabel', 'rightLabel', 'rows.*.label', 'rows.*.left', 'rows.*.right', 'rows.*.description'),
             Example::of('display.data-table')->props(['loadUrl' => '/rows', 'columns' => [['key' => 'id', 'label' => "Id{$user}", 'sortable' => true], ['key' => 'name', 'label' => "Name{$user}"]], 'toolbar' => [['label' => "Export{$user}", 'url' => '/x', 'icon' => 'heroicon-o-arrow-down-tray']]])->texts('columns.*.label', 'toolbar.*.label'),
-            Example::of('display.diff')->props(['changes' => [['type' => 'added', 'content' => "new line{$user}", 'line_number' => 1], ['type' => 'removed', 'content' => "old line{$user}", 'line_number' => 2]]])->texts('changes.*.content'),
+            Example::of('display.diff')->props(['changes' => [['type' => 'added', 'content' => "new line{$user}", 'line_number' => 1], ['type' => 'removed', 'content' => "old line{$user}", 'line_number' => 2]]])->texts('changes.*.content')->technicalTexts('plaintext'), // the default `language`: the name of a syntax, not a word of a language
             Example::of('display.flowchart')->props(['nodes' => [['id' => 'a', 'label' => "Start{$user}"], ['id' => 'b', 'label' => "End{$user}"]], 'edges' => [['from' => 'a', 'to' => 'b']]])->texts('nodes.*.label')->modules('flowchart'),
             Example::of('display.hover-3d-card')->props(['image' => '/pixel.png', 'imageAlt' => "Pic{$user}", 'title' => "Hover{$user}", 'description' => "Desc{$user}", 'tags' => ["tag{$user}"]])->texts('imageAlt', 'title', 'description', 'tags.*'),
             Example::of('display.hover-3d-card', 'default alt')->props(['image' => '/pixel.png', 'title' => "Hover{$user}"]),
@@ -108,6 +108,7 @@ final class Catalog
             Example::of('display.kbd')->props(['keys' => ["Ctrl{$user}", "K{$user}"]])->texts('keys.*'),
             Example::of('display.list')->props(['items' => [['title' => "One{$user}", 'description' => "First{$user}"], "Two{$user}"]])->texts('items.0.title', 'items.0.description', 'items.1'),
             Example::of('display.map')->props($mapProps)->modules('map')->notInBrowser('needs the tiles of a map server'),
+            Example::of('display.map', 'with layers')->props($mapProps + ['layers' => [['id' => 'a', 'label' => "Places{$user}", 'load_url' => '/geo/a', 'cluster' => true]]])->texts('layers.*.label')->modules('map')->notInBrowser('needs the tiles of a map server'),
             Example::of('display.mask')->props(['src' => '/pixel.png', 'alt' => "Mask{$user}"])->texts('alt'),
             Example::of('display.node-graph')->props(['nodes' => [['id' => 'r', 'label' => "Root{$user}", 'status' => "ok{$user}"], ['id' => 'c', 'parent' => 'r', 'label' => "Child{$user}", 'badges' => [['label' => "b{$user}", 'variant' => 'info']]]]])->texts('nodes.*.label', 'nodes.0.status', 'nodes.1.badges.*.label'),
             Example::of('display.radial-progress')->props(['value' => 40, 'label' => "Done{$user}"])->texts('label'),
@@ -133,6 +134,7 @@ final class Catalog
             Example::of('form.checkbox')->props(['name' => 'terms', 'label' => "Accept{$user}", 'hint' => "Read it{$user}"])->texts('label', 'hint'),
             Example::of('form.fields')->props(['fields' => $fields])->texts('*.label', '*.placeholder'),
             Example::of('form.fields', 'alpine mode')->props(['fields' => $fields, 'mode' => 'alpine'])->texts('*.label', '*.placeholder')->inScope('{ data: {}, errors: {} }'),
+            Example::of('form.fields', 'with values')->props(['fields' => $fields, 'values' => ['name' => "Ana{$user}", 'bio' => "Hello{$user}", 'active' => true]]),
             Example::of('form.fields', 'attrs in the schema')->props(['fields' => $fieldsWithAttrs]),
             Example::of('form.fields', 'attrs in the schema, alpine mode')->props(['fields' => $fieldsWithAttrs, 'mode' => 'alpine'])->inScope('{ data: {}, errors: {} }'),
             Example::of('form.filters')->props(['filters' => [['key' => 'q', 'label' => "Search{$user}", 'type' => 'text'], ['key' => 's', 'label' => "State{$user}", 'type' => 'select', 'options' => ['a' => "A{$user}"]]]])->texts('filters.*.label'),
@@ -145,6 +147,7 @@ final class Catalog
                 // The same id on every radio would be invalid HTML: the id of the caller goes to the first one only (see the view).
                 ->exceptInBag('id'),
             Example::of('form.repeater')->props(['name' => 'lines', 'label' => "Lines{$user}", 'fields' => [['key' => 'item', 'label' => "Item{$user}", 'type' => 'text'], ['key' => 'qty', 'label' => "Qty{$user}", 'type' => 'number', 'step' => '1'], ['key' => 'note', 'label' => "Note{$user}", 'type' => 'textarea']]])->texts('label', 'fields.*.label'),
+            Example::of('form.repeater', 'events of the caller')->props(['name' => 'lines', 'fields' => [['key' => 'item', 'label' => "Item{$user}", 'type' => 'text']], 'events' => ['root' => ['keydown.enter.prevent' => 'add()'], 'add' => ['click.stop' => 'noop()']]])->texts('fields.*.label'),
             Example::of('form.repeater', 'attrs in the schema')->props(['name' => 'lines', 'fields' => [
                 ['key' => 'amount', 'label' => "Amount{$user}", 'type' => 'number', 'step' => '1', 'field_min' => 0, 'field_max' => 99, 'attrs' => ['step' => '0.5', 'min' => 5, 'max' => 9, 'placeholder' => "mine{$user}"]],
                 ['key' => 'note', 'label' => "Note{$user}", 'type' => 'textarea', 'attrs' => ['rows' => 9, 'placeholder' => "mine{$user}"]],
@@ -194,6 +197,7 @@ final class Catalog
             Example::of('actions.button', 'every colour and size')->props(['label' => "Go{$user}", 'color' => 'error', 'size' => 'xs', 'disabled' => true, 'iconOnly' => false, 'icon' => 'heroicon-o-trash', 'iconPosition' => 'right'])->texts('label'),
             Example::of('actions.modal', 'not closable')->props(['id' => 'm2', 'title' => "Locked{$user}", 'closable' => false, 'size' => 'full'])->texts('title')->slot("<p>x{$user}</p>"),
             Example::of('display.badge', 'with an icon')->props(['label' => "Ok{$user}", 'icon' => 'heroicon-o-check', 'outline' => true, 'color' => 'success'])->texts('label'),
+            Example::of('display.data-table', 'with params')->props(['loadUrl' => '/rows', 'params' => ['status' => 'open'], 'columns' => [['key' => 'id', 'label' => "Id{$user}"]]])->texts('columns.*.label'),
             Example::of('display.data-table', 'with filters and no search')->props(['loadUrl' => '/rows', 'searchable' => false, 'emptyText' => "Nothing{$user}", 'label' => "Rows{$user}", 'columns' => [['key' => 'id', 'label' => "Id{$user}"]], 'filters' => [['key' => 'q', 'label' => "Text{$user}", 'type' => 'text']]])->texts('emptyText', 'label', 'columns.*.label', 'filters.*.label'),
             Example::of('display.table', 'striped')->props(['striped' => true, 'bordered' => true, 'compact' => true, 'label' => "People{$user}", 'columns' => [['key' => 'name', 'label' => "Name{$user}"]], 'rows' => [['name' => "Ana{$user}"], ['name' => "Luis{$user}"]]])->texts('label', 'columns.*.label', 'rows.*.name'),
             Example::of('display.table', 'empty')->props(['columns' => [['key' => 'name', 'label' => "Name{$user}"]], 'rows' => []])->texts('columns.*.label'),

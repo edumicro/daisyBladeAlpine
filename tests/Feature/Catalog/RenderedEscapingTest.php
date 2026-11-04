@@ -22,32 +22,11 @@ beforeEach(function () {
     $this->withoutVite();
 });
 
-/**
- * The tags a hostile text would make alive: an event handler that runs the payload (the view's own `onclick="…"` is not one),
- * and the `<img src=x>` that the payload writes.
- */
-function liveHostileTags(string $html): array
-{
-    $alive = [];
-    foreach (RenderedHtml::tags($html) as $tag) {
-        foreach ($tag['attributes'] as [$name, $value]) {
-            if (str_starts_with($name, 'on') && str_contains((string) $value, 'alert(')) {
-                $alive[] = "<{$tag['name']}> {$name}";
-            }
-        }
-        if ($tag['name'] === 'img' && RenderedHtml::valueOf($tag, 'src') === 'x') {
-            $alive[] = '<img src="x">';
-        }
-    }
-
-    return $alive;
-}
-
 it('the hostile text of a user is escaped in every prop that holds text', function (string $name) {
     $example = Catalog::examples()[$name];
     expect($example->hasTexts())->toBeTrue('the example lists no prop with text: say which ones in ->texts(...)');
 
-    expect(liveHostileTags($example->render(hostile: true)))->toBe([]);
+    expect(RenderedHtml::liveHostileTags($example->render(hostile: true)))->toBe([]);
 })->with(fn () => collect(Catalog::examples())->filter(fn ($example) => $example->hasTexts())->keys()->mapWithKeys(fn ($name) => [$name => [$name]])->all());
 
 it('the examples without texts of the caller are the ones that have none to escape', function () {
@@ -61,6 +40,6 @@ it('the detector sees a hostile text that was NOT escaped', function () {
     // The test of the test: the same text written raw is alive.
     $raw = '<p title="'.Example::HOSTILE.'">'.Example::HOSTILE.'</p>';
 
-    expect(liveHostileTags($raw))->not->toBe([]);
-    expect(liveHostileTags(e($raw)))->toBe([]);
+    expect(RenderedHtml::liveHostileTags($raw))->not->toBe([]);
+    expect(RenderedHtml::liveHostileTags(e($raw)))->toBe([]);
 });

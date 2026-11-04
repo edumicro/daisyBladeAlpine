@@ -27,6 +27,11 @@ class DaisyBladeServiceProvider extends ServiceProvider
                 : realpath(__DIR__.'/../resources/views/daisyblade');
 
             $blade->anonymousComponentPath($path, 'dbl');
+
+            // `@dblClass([...])` is Laravel's `@class([...])` WITH escaping. `@class` writes the list of classes as it is, so a class that
+            // comes from a prop of the caller (`avatar-class`, `list-class`) could close the attribute and open a tag. The views
+            // never use `@class`: tests/Feature/OutputEscapingTest.php fails for the one that does.
+            $blade->directive('dblClass', fn (string $expression) => "<?php echo ' class=\"'.e(\\Illuminate\\Support\\Arr::toCssClasses({$expression})).'\"'; ?>");
         });
 
         if ($this->app->runningInConsole()) {

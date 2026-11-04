@@ -232,6 +232,25 @@ final class Example
         return $props;
     }
 
+    /** The props this example passes (the ones the catalog writes by hand), by name. */
+    public function propsPassed(): array
+    {
+        return $this->props;
+    }
+
+    /**
+     * The same example with other values for some props, ready to paint: the base of the VARIANTS that DerivedVariants builds from
+     * the `@props` of the view. The texts of the caller (`texts()`) are left as the example wrote them.
+     */
+    public function withProps(array $overrides): self
+    {
+        $variant = clone $this;
+        $variant->props = array_replace($this->props, $overrides);
+        $variant->hostileProps = null;
+
+        return $variant;
+    }
+
     public function hasTexts(): bool
     {
         return $this->textPaths !== [] || $this->hostileProps !== null;

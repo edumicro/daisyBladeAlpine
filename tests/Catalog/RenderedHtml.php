@@ -87,6 +87,48 @@ final class RenderedHtml
         return $found;
     }
 
+    /**
+     * The tags a hostile text (Example::HOSTILE) would make alive: an event handler that runs the payload (the view's own `onclick="…"`
+     * is not one), and the `<img src=x>` that the payload writes.
+     *
+     * @return list<string>
+     */
+    public static function liveHostileTags(string $html): array
+    {
+        $alive = [];
+        foreach (self::tags($html) as $tag) {
+            foreach ($tag['attributes'] as [$name, $value]) {
+                if (str_starts_with($name, 'on') && str_contains((string) $value, 'alert(')) {
+                    $alive[] = "<{$tag['name']}> {$name}";
+                }
+            }
+            if ($tag['name'] === 'img' && self::valueOf($tag, 'src') === 'x') {
+                $alive[] = '<img src="x">';
+            }
+        }
+
+        return $alive;
+    }
+
+    /**
+     * The attributes that a tag repeats: ['<input> x-model x2', ...]. The browser keeps the FIRST copy and drops the others without a word.
+     *
+     * @return list<string>
+     */
+    public static function repeatedAttributes(string $html): array
+    {
+        $repeated = [];
+        foreach (self::tags($html) as $tag) {
+            foreach (array_count_values(array_column($tag['attributes'], 0)) as $name => $times) {
+                if ($times > 1) {
+                    $repeated[] = "<{$tag['name']}> {$name} x{$times}";
+                }
+            }
+        }
+
+        return $repeated;
+    }
+
     /** The first value of attribute `$name` in `$tag` (null if it is missing or has no value). */
     public static function valueOf(array $tag, string $name): ?string
     {

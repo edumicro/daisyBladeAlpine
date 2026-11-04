@@ -160,7 +160,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
                    . " data-node-id=\"{$nodeId}\""
                    . " @click.stop=\"\$dispatch('dbl-node-graph-badge-create-requested', { nodeId: JSON.parse(\$el.dataset.nodeId) })\""
                    . " class=\"badge badge-sm badge-ghost gap-1 cursor-pointer opacity-50 hover:opacity-100\""
-                   . " title=\"" . e(__('Add badge')) . "\">+ badge</button>";
+                   . " title=\"" . e(__('Add badge')) . "\">+ " . e(__('Badge')) . "</button>";
         }
         $html .= "</div>";
     }

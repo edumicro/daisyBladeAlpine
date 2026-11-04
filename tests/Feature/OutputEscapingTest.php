@@ -82,3 +82,19 @@ it('hero keeps the style of the caller next to its image', function () {
 
     expect($html)->toContain('color: red')->toContain('background-image');
 });
+
+it('@dblClass escapes the classes it writes, which Laravel\'s own @class does not', function () {
+    $mine = Blade::render('<p @dblClass([$class, \'base\', \'on\' => true, \'off\' => false])>x</p>', ['class' => '"><img src=x onerror=alert(1)>']);
+    $theirs = Blade::render('<p @class([$class, \'base\'])>x</p>', ['class' => '"><img src=x onerror=alert(1)>']);
+
+    expect($mine)->not->toContain('<img src=x')->toContain('base on')->not->toContain('off')
+        ->and($theirs)->toContain('<img src=x');   // the reason the views never use it
+});
+
+it('no view writes @class or @method: they print what the caller chose without escaping it', function () {
+    $offenders = collect(viewsOfThePackage())
+        ->filter(fn ($source) => preg_match('/@(class|method)\s*\(/', preg_replace('/\{\{--.*?--\}\}/s', '', $source)) === 1)
+        ->keys()->all();
+
+    expect($offenders)->toBe([]);
+});

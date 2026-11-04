@@ -47,7 +47,7 @@ $backgroundClass = match($background) {
     @if($description || $trend)
         <div class="stat-desc mt-1">
             @if($trend)
-                <span @class(['inline-flex items-center gap-1', 'text-success' => $trend === 'up', 'text-error' => $trend !== 'up'])>
+                <span @dblClass(['inline-flex items-center gap-1', 'text-success' => $trend === 'up', 'text-error' => $trend !== 'up'])>
                     <x-dbl::components.icon :name="$trend === 'up' ? 'arrow-trending-up' : 'arrow-trending-down'" class="w-4 h-4" />
                     {{ $trendValue }}
                 </span>

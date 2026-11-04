@@ -42,7 +42,7 @@
                                 $childActive = $childUrl !== '#' && request()->is(ltrim($childUrl, '/'));
                             @endphp
                             <li>
-                                <a href="{{ $childUrl }}" @class(['active' => $childActive])>
+                                <a href="{{ $childUrl }}" @dblClass(['active' => $childActive])>
                                     @if(!empty($child['icon']))
                                         <x-dynamic-component :component="$child['icon']" class="w-4 h-4 shrink-0" />
                                     @endif
@@ -54,7 +54,7 @@
                 </li>
             @else
                 <li>
-                    <a href="{{ $url }}" @class(['active' => $isActive])>
+                    <a href="{{ $url }}" @dblClass(['active' => $isActive])>
                         @if(!empty($item['icon']))
                             <x-dynamic-component :component="$item['icon']" class="w-5 h-5 shrink-0" />
                         @endif
