@@ -89,21 +89,29 @@ $controlId = $attributes->get('id', $name ?: null);
         </div>
     @elseif($searchable)
         {{-- Alpine searchable combobox — soporta flat {k:v} y grouped {group:{k:v}} --}}
-        <div x-data="dblSelectSearch(@js(['name' => $name, 'search' => $selectedLabel, 'options' => $options]))" class="relative" @click.outside="open = false">
+        @php
+        // The `x-model` of the caller (with its modifiers) is NOT for the text box: like on a native <select>, it holds the KEY
+        // that is chosen. It goes on the box around everything, which is also the Alpine scope, paired with `x-modelable`
+        // (that is why the tag below does not hold `$attributes`: it only gets the model). Everything else the caller writes
+        // (placeholder, autocomplete, @input, @focus...) goes to the text box.
+        $modelAttributes = $attributes->whereStartsWith('x-model');
+        $boxAttributes = $attributes->whereDoesntStartWith('x-model');
+        @endphp
+        <div x-data="dblSelectSearch(@js(['name' => $name, 'search' => $selectedLabel, 'chosen' => $selected[0] ?? '', 'options' => $options]))"
+             x-modelable="chosen" {{ $modelAttributes }} class="relative" @click.outside="open = false">
             {{-- The text box is the control of this mode: it takes the attributes of the caller. So it carries none of ours that
                  the caller could also write, since the browser keeps only the first of two equal attributes and the caller's
                  would vanish: its own `@input` and `@focus` would be exactly that. They go on the box around it instead:
                  `input` bubbles up to here, and so does `focusin` (`focus` does not). The text is written from the box
-                 around it (the x-effect), not with :value nor x-model, so that an x-model of the caller can be written on the text box
-                 without a second one. An `x-model` on the text box holds the TEXT of the box: what is typed, and the label once an
-                 option is chosen (the key is in the hidden input and in `dbl-select-changed`). --}}
-            <div class="relative" x-on:input="typed($event.target.value)" x-on:focusin="open = true"
-                 x-effect="showSearch()">
+                 around it (the x-effect), not with :value nor x-model. The model of the caller holds the chosen KEY
+                 (`''` while nothing is chosen, as a native <select>), and the text box shows its label. --}}
+            <div class="relative" x-on:input.stop="typed($event.target.value)" x-on:focusin="open = true"
+                 x-effect="sync()">
                 <input
                     type="text"
                     value="{{ $selectedLabel }}"
                     placeholder="{{ $placeholder ?: __('Search...') }}"
-                    {{ $attributes->merge(['id' => $controlId, 'class' => "input w-full {$sizeClass}"]) }}
+                    {{ $boxAttributes->merge(['id' => $controlId, 'class' => "input w-full {$sizeClass}"]) }}
                 />
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/40">
                     <x-heroicon-o-chevron-down class="w-4 h-4" />

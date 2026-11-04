@@ -903,7 +903,7 @@ it('10. gives the factories of the static components their configuration the sam
         ->and(xDataConfig($render('<x-dbl::display.carousel :items="[[\'image\' => \'/a.jpg\'], [\'image\' => \'/b.jpg\']]" />'), 'dblCarousel'))->toBe(['total' => 2])
         ->and(xDataConfig($render('<x-dbl::display.text-rotate :texts="[\'a\', \'b\']" :duration="1000" />'), 'dblTextRotate'))->toBe(['texts' => ['a', 'b'], 'duration' => 1000, 'autoRotate' => true])
         ->and(xDataConfig($render('<x-dbl::feedback.toast message="Hola" :auto-close="true" :duration="2500" />'), 'dblToastSingle'))->toBe(['duration' => 2500, 'autoClose' => true])
-        ->and(xDataConfig($render('<x-dbl::form.select name="a" :options="[1 => \'x\']" searchable value="1" />'), 'dblSelectSearch'))->toBe(['name' => 'a', 'search' => 'x', 'options' => [1 => 'x']]);
+        ->and(xDataConfig($render('<x-dbl::form.select name="a" :options="[1 => \'x\']" searchable value="1" />'), 'dblSelectSearch'))->toBe(['name' => 'a', 'search' => 'x', 'chosen' => '1', 'options' => [1 => 'x']]);
 });
 
 // ── 12. The wizard: the saved progress does not overwrite the values of the Blade ──

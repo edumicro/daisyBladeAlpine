@@ -26,6 +26,17 @@ it('keeps the listeners of the searchable select on the box around the text box,
     preg_match('/<div class="relative"[^>]*x-on:input[^>]*>/', $html, $box);
 
     expect($box)->not->toBeEmpty('the box around the text box has no listener')
-        ->and($box[0])->toContain('x-on:input="typed($event.target.value)"')
+        ->and($box[0])->toContain('x-on:input.stop="typed($event.target.value)"')
         ->and($box[0])->toContain('x-on:focusin="open = true"');   // focusin bubbles; focus does not
+});
+
+it('sends the x-model to the box with x-modelable (it holds the chosen key) and the rest of the attributes to the text box', function () {
+    $html = Blade::render('<x-dbl::form.select name="c" searchable :options="[\'1\' => \'One\']" x-model.number="form.c" placeholder="Pick" autocomplete="off" @input="mine()" />');
+
+    preg_match('/<div x-data="dblSelectSearch[^>]*>/s', $html, $root);
+    preg_match('/<input[^>]*type="text"[^>]*>/s', $html, $input);
+
+    expect($root[0])->toContain('x-modelable="chosen"')->toContain('x-model.number="form.c"')
+        ->and($input[0])->not->toContain('x-model')
+        ->and($input[0])->toContain('placeholder="Pick"')->toContain('autocomplete="off"')->toContain('@input="mine()"');
 });
