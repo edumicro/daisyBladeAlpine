@@ -386,3 +386,29 @@ test('12. a wizard with nothing saved keeps the values of the Blade, and the for
     assert.deepEqual({ ...fresh.data }, { name: 'Ana' })
     assert.deepEqual({ ...dblWizard({}).data }, {})
 })
+
+// ── What 2.x left marked for 3.0 in dblSelectRemote ────────────────────────
+
+test('dblSelectRemote has lost the leftovers of a searchable mode no template uses, and loadOptions() is no longer called fetch()', () => {
+    const select = dblSelectRemote({ loadUrl: '/o', value: 'a' })
+
+    for (const leftover of ['search', 'open', 'value', 'filtered', 'select', 'labelFor', 'fetch']) {
+        assert.equal(leftover in select, false, `${leftover} should be gone`)
+    }
+    assert.equal(typeof select.loadOptions, 'function')
+    assert.deepEqual(select.selected, ['a'], '`selected` is what the component uses')
+})
+
+test('loadOptions() sends the params of the component and the value of the control it depends on, and no `search`', async () => {
+    const calls = []
+    globalThis.location = { href: 'https://app.test/', origin: 'https://app.test' }
+    globalThis.window = { axios: { get: async (url, config) => { calls.push({ url, params: config.params }); return { data: [] } } } }
+    try {
+        const select = Object.assign(dblSelectRemote({ loadUrl: '/o', params: { only: 'active' } }), {
+            $root: { querySelector: () => ({ form: null, selectedOptions: [], querySelectorAll: () => [] }) },
+        })
+        await select.loadOptions()
+    } finally { leavePage() }
+
+    assert.deepEqual(calls, [{ url: '/o', params: { only: 'active' } }])
+})

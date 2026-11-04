@@ -84,7 +84,7 @@ test('syncField mirrors the loading state in aria-busy', () => {
 // ── A view published with 2.3 next to the 2.4 JavaScript ──
 //
 // In 2.3 the x-data was on the <select> itself and the view had `x-init="init()"`. The 2.4 factory looks for the
-// <select> INSIDE the Alpine scope: for the old view that found nothing and fetch() threw
+// <select> INSIDE the Alpine scope: for the old view that found nothing and loadOptions() threw
 // "Cannot read properties of null (reading 'querySelectorAll')". Alpine also calls init() by itself, so the old
 // `x-init="init()"` made it run twice and asked the server twice.
 

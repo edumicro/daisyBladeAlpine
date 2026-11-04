@@ -235,11 +235,6 @@ const stillOffered = (selected, options) => selected.filter(text => options.some
 const dblSelectRemote = (config = {}) => ({
     options: [],
     loading: false,
-    // `search`, `open` and `value` are left over from a searchable mode that no template uses (see the note above
-    // `filtered()`). `selected` is what the component really uses.
-    search: '',
-    open: false,
-    value: config.value ?? null,
     selected: toTexts(config.value),    // what is chosen now, as texts
     disabled: config.disabled ?? false, // the `disabled` prop
     waiting: false,                     // true while the control we depend on is empty
@@ -311,7 +306,7 @@ const dblSelectRemote = (config = {}) => ({
     // Load the options and drop from the selection whatever they no longer offer.
     async reload() {
         this.waiting = this.dependencyValue() === ''   // empty control: ask for nothing
-        if (!await this.fetch('')) return              // a newer request took over
+        if (!await this.loadOptions()) return          // a newer request took over
         const kept = stillOffered(this.selected, this.options)
         if (kept.length === this.selected.length) return   // everything chosen is still offered
         this.selected = kept
@@ -322,13 +317,14 @@ const dblSelectRemote = (config = {}) => ({
     },
 
     // Ask the server for the options. Returns false if there is no usable answer: it failed, or a newer request made it old.
-    async fetch(q = '') {
+    // (Named loadOptions and not fetch: `fetch` is the global function that http.js falls back to.)
+    async loadOptions() {
         // The number of THIS request (a count, not the request() function of http.js): if a newer one starts, ours is old.
         const requestNumber = ++this.lastRequest
         this.loading = true
         this.error = ''
         try {
-            const params = { ...(q ? { search: q } : {}), ...(config.params ?? {}), ...dependencyParams(config.dependsOn, this.dependencyValue()) }
+            const params = { ...(config.params ?? {}), ...dependencyParams(config.dependsOn, this.dependencyValue()) }
             const { data } = this.waiting ? { data: [] } : await http({ url: config.loadUrl, params })
             expectJson(data)
             if (requestNumber !== this.lastRequest) return false
@@ -350,16 +346,6 @@ const dblSelectRemote = (config = {}) => ({
         this.field.querySelectorAll('option[data-initial]').forEach(option => option.remove())
         return true
     },
-    // Left over from a searchable mode that no template uses: `search`, `open`, `value`, `filtered()`, `select()`,
-    // `labelFor()` and the `q` parameter of fetch(). They stay in 2.x because someone's own view could call them.
-    // 3.0: remove them, and rename fetch() to loadOptions() (it shares its name with the global `fetch` of http.js).
-    filtered() {
-        if (!this.search) return this.options
-        const q = this.search.toLowerCase()
-        return this.options.filter(o => String(o.label ?? o.name ?? o).toLowerCase().includes(q))
-    },
-    select(opt) { this.value = opt.value ?? opt.id ?? opt; this.open = false },
-    labelFor(val) { return this.options.find(o => (o.value ?? o.id) == val)?.label ?? val ?? '' },
 })
 
 const dblResourceDetails = (config = {}) => ({
