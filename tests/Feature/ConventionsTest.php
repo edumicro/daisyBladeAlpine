@@ -147,7 +147,6 @@ it('2. names the URL props after what the URL is for', function () {
         'reorderUrl',  // upload: where the new order is sent
         'templateUrl', // spreadsheet: link to download the template
         'baseUrl',     // pagination: the page links
-        'applyUrl',    // form.filter, until it is folded into form.filters (convention 9)
     ];
 
     $found = [];
@@ -525,9 +524,6 @@ it('7. gives the attributes of a page layout to its <html>', function () {
 
 // ── 8. Events: dbl-<component>-<what happened>, and dbl-<component>-<verb> for orders ──
 
-/** The two filter bars and their only listener keep their 2.x event names until they become form.filters (convention 9). */
-const CONVENTION_UNTIL_FILTERS = ['display/filters.blade.php', 'form/filter.blade.php', 'display/data-table.blade.php'];
-
 /**
  * The literal names a source file passes to `$dispatch(...)`, including both sides of a ternary
  * (`$dispatch(empty ? 'a' : 'b', ...)`). A name made at run time (`$dispatch('{{ $item['action'] }}')`) is not literal.
@@ -554,10 +550,6 @@ it('8. gives every event a dbl- prefix, in the views and in the scripts', functi
     $offenders = [];
 
     foreach ([...conventionViews(), ...conventionScripts()] as $path => $source) {
-        if (in_array($path, CONVENTION_UNTIL_FILTERS, true)) {
-            continue;
-        }
-
         // $dispatch(...) (also the two sides of a ternary), new CustomEvent('...') and this.emit('...') with a literal name.
         preg_match_all('/(?:new CustomEvent|\bemit)\(\s*[\'"]([^\'"{]+)[\'"]/', $source, $found);
         foreach ([...conventionDispatchedNames($source), ...$found[1]] as $name) {
@@ -574,10 +566,6 @@ it('8. names an announced event after its own component: dbl-<component>-<what h
     $offenders = [];
 
     foreach (conventionViews() as $path => $source) {
-        if (in_array($path, CONVENTION_UNTIL_FILTERS, true)) {
-            continue;
-        }
-
         $component = preg_replace('/\.blade\.php$/', '', basename($path));
 
         foreach (conventionDispatchedNames($source) as $name) {
@@ -606,7 +594,7 @@ it('8. names an announced event after its own component: dbl-<component>-<what h
 it('8. ends the name of an announced event in a participle, never in a bare verb', function () {
     $names = [];
 
-    foreach ([...array_diff_key(conventionViews(), array_flip(CONVENTION_UNTIL_FILTERS)), ...conventionScripts()] as $source) {
+    foreach ([...conventionViews(), ...conventionScripts()] as $source) {
         $names = [...$names, ...conventionDispatchedNames($source)];
         preg_match_all('/\bemit\(\s*[\'"](dbl-[^\'"]+)[\'"]/', $source, $found);
         $names = [...$names, ...$found[1]];
@@ -652,7 +640,7 @@ it('8. does not listen to a window event without the prefix, unless it is a nati
     $native = ['keydown', 'keyup', 'change', 'input', 'click', 'resize', 'scroll', 'focus', 'blur'];
     $offenders = [];
 
-    foreach (array_diff_key(conventionViews(), array_flip(CONVENTION_UNTIL_FILTERS)) as $path => $source) {
+    foreach (conventionViews() as $path => $source) {
         preg_match_all('/(?:@|x-on:)([a-z][a-z-]*)(?:\.[a-z]+)*\.window=/', $source, $found);
         foreach ($found[1] as $name) {
             if (! str_starts_with($name, 'dbl-') && ! in_array($name, $native, true)) {
@@ -677,4 +665,38 @@ it('8. lets the dock and the menu dispatch the event the application names, whic
 
     expect($render('<x-dbl::navigation.menu :items="[[\'label\' => \'A\', \'action\' => \'mi-evento\']]" />'))->toContain("\$dispatch('mi-evento')")
         ->and($render('<x-dbl::navigation.dock :items="[[\'label\' => \'A\', \'action\' => \'dbl-sidebar-toggle\']]" />'))->toContain("\$dispatch('dbl-sidebar-toggle')");
+});
+
+// ── 9. One filter component: form.filters ──────────────────────────────────
+
+it('9. has one filter component, x-dbl::form.filters, and neither of the two old ones', function () {
+    $paths = array_keys(conventionViews());
+
+    expect(array_values(array_filter($paths, fn (string $path) => str_contains($path, 'filter'))))->toBe(['form/filters.blade.php'])
+        ->and(conventionViewsWithProp('filters'))->toBe(['display/data-table.blade.php', 'display/map.blade.php', 'form/filters.blade.php']);
+});
+
+it('9. speaks one vocabulary in form.filters: filters[key], with dbl-filters-applied and dbl-filters-cleared, both with { filters }', function () {
+    $source = conventionViews()['form/filters.blade.php'];
+
+    expect(conventionProps($source))->toHaveKeys(['filters', 'icon', 'position', 'label'])
+        ->and(array_keys(conventionProps($source)))->not->toContain('fields', 'applyUrl', 'method')
+        ->and($source)->toContain("\$dispatch('dbl-filters-applied', { filters: this.filters })")
+        ->toContain("\$dispatch('dbl-filters-cleared', { filters: {} })");
+});
+
+it('9. makes data-table listen to the two events of form.filters and to no other window event', function () {
+    $source = conventionViews()['display/data-table.blade.php'];
+
+    preg_match_all('/@([a-z-]+)\.window=/', $source, $listeners);
+
+    expect($listeners[1])->toBe(['dbl-filters-applied', 'dbl-filters-cleared']);
+});
+
+it('9. lets the data-table filter with what form.filters announces', function () {
+    $this->withoutVite();
+    $html = Illuminate\Support\Facades\Blade::render('<x-dbl::display.data-table load-url="/rows" :columns="[]" :filters="[[\'key\' => \'status\', \'type\' => \'select\']]" />');
+
+    // The table carries the panel inside it, and listens to what the panel says.
+    expect($html)->toContain("\$dispatch('dbl-filters-applied'")->toContain('@dbl-filters-applied.window="applyFilters($event.detail.filters)"');
 });

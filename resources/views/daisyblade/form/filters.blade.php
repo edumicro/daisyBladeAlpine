@@ -1,26 +1,38 @@
 {{--
-    Tipo 2: Alpine filter panel (dropdown). Dispatches 'filters-updated' event.
+    Filter panel (dropdown). The only filter component of the package.
+
+    Every change of the user is announced at once, so a table (or anything else) can listen:
+      `dbl-filters-applied` { filters }  — all the filters that are on now, as { key: value }
+      `dbl-filters-cleared` { filters }  — the user cleared them all; `filters` is empty
+    `display.data-table` listens to these two events, and to nothing else.
 
     @prop filters  — [ ['key'=>'status', 'type'=>'select', 'label'=>'Status', 'options'=>[...]] ]
-    @prop icon     — trigger icon
+                     type: text (default) | number | select | date | daterange | boolean (or toggle)
+                     number: min, max · text and number: placeholder · boolean: text (beside the switch)
+                     any type: hint (help text under the control)
+                     daterange puts two keys in `filters`: `<key>_from` and `<key>_to`
+    @prop icon     — icon of the button that opens the panel
     @prop position — DaisyUI dropdown position class
+    @prop label    — text of the button (default: «Filters»)
 --}}
 @props([
-    'filters'    => [],
-    'icon'       => 'heroicon-o-funnel',
-    'position'   => 'dropdown-end',
-    'label'      => '',
+    'filters'  => [],
+    'icon'     => 'heroicon-o-funnel',
+    'position' => 'dropdown-end',
+    'label'    => '',
 ])
 
+{{-- The Alpine object has no data from PHP, so it can stay inline. The keys of the filters do come from PHP:
+     they are written with @js() into the handlers, never inside a JavaScript string with {{ }}. --}}
 <div
     x-data="{
-        active: {},
-        count() { return Object.values(this.active).filter(v => v !== '' && v !== null && v !== false).length },
+        filters: {},
+        count() { return Object.values(this.filters).filter(v => v !== '' && v !== null && v !== false).length },
         update(key, val) {
-            if (val === '' || val === null) { delete this.active[key] } else { this.active[key] = val }
-            this.$dispatch('filters-updated', { filters: this.active })
+            if (val === '' || val === null) { delete this.filters[key] } else { this.filters[key] = val }
+            this.$dispatch('dbl-filters-applied', { filters: this.filters })
         },
-        clear() { this.active = {}; this.$dispatch('filters-cleared') },
+        clear() { this.filters = {}; this.$dispatch('dbl-filters-cleared', { filters: {} }) },
     }"
     {{ $attributes->merge(['class' => "dropdown {$position}"]) }}
 >
@@ -53,7 +65,7 @@
 
                     @switch($fType)
                         @case('select')
-                            <select @change="update('{{ $fKey }}', $event.target.value)" class="select select-sm w-full">
+                            <select @change="update(@js($fKey), $event.target.value)" class="select select-sm w-full">
                                 <option value="">{{ __('All') }}</option>
                                 @foreach($filter['options'] ?? [] as $ov => $ol)
                                     <option value="{{ $ov }}">{{ $ol }}</option>
@@ -64,35 +76,35 @@
                         @case('boolean')
                         @case('toggle')
                             <div class="flex items-center justify-between">
-                                <span class="text-sm text-base-content/70">{{ $filter['description'] ?? __('Enabled') }}</span>
-                                <input type="checkbox" @change="update('{{ $fKey }}', $event.target.checked ? 1 : '')" class="toggle toggle-primary toggle-sm" />
+                                <span class="text-sm text-base-content/70">{{ $filter['text'] ?? __('Enabled') }}</span>
+                                <input type="checkbox" @change="update(@js($fKey), $event.target.checked ? 1 : '')" class="toggle toggle-primary toggle-sm" />
                             </div>
                         @break
 
                         @case('date')
-                            <input type="date" @change="update('{{ $fKey }}', $event.target.value)" class="input input-sm w-full" />
+                            <input type="date" @change="update(@js($fKey), $event.target.value)" class="input input-sm w-full" />
                         @break
 
                         @case('daterange')
                             <div class="flex gap-2">
-                                <input type="date" @change="update('{{ $fKey }}_from', $event.target.value)" placeholder="{{ __('From') }}" class="input input-sm flex-1" />
-                                <input type="date" @change="update('{{ $fKey }}_to', $event.target.value)" placeholder="{{ __('To') }}" class="input input-sm flex-1" />
+                                <input type="date" @change="update(@js($fKey.'_from'), $event.target.value)" placeholder="{{ __('From') }}" class="input input-sm flex-1" />
+                                <input type="date" @change="update(@js($fKey.'_to'), $event.target.value)" placeholder="{{ __('To') }}" class="input input-sm flex-1" />
                             </div>
                         @break
 
                         @case('number')
-                            <input type="number" @input.debounce.300="update('{{ $fKey }}', $event.target.value)"
+                            <input type="number" @input.debounce.300="update(@js($fKey), $event.target.value)"
                                 min="{{ $filter['min'] ?? '' }}" max="{{ $filter['max'] ?? '' }}"
                                 placeholder="{{ $filter['placeholder'] ?? '' }}" class="input input-sm w-full" />
                         @break
 
                         @default
-                            <input type="text" @input.debounce.300="update('{{ $fKey }}', $event.target.value)"
+                            <input type="text" @input.debounce.300="update(@js($fKey), $event.target.value)"
                                 placeholder="{{ $filter['placeholder'] ?? '' }}" class="input input-sm w-full" />
                     @endswitch
 
-                    @if(isset($filter['help']))
-                        <label class="mb-1 block font-medium text-xs text-base-content/60">{{ $filter['help'] }}</label>
+                    @if(isset($filter['hint']))
+                        <p class="mt-1 text-xs text-base-content/60">{{ $filter['hint'] }}</p>
                     @endif
                 </div>
             @empty

@@ -4,7 +4,7 @@
     @prop loadUrl   — Axios GET endpoint. Must return:
                        { data: [...rows], meta: { current_page, last_page, total, per_page } }
     @prop columns   — [ ['key'=>'name', 'label'=>'Name', 'sortable'=>true] ]
-    @prop filters   — filters config forwarded to <x-dbl::display.filters> (optional)
+    @prop filters   — filters config forwarded to <x-dbl::form.filters> (optional)
     @prop params    — extra static query params merged on every request
     @prop searchable — show global search input
     @prop perPage   — default page size
@@ -48,11 +48,9 @@
         params:  @js(array_merge(['per_page' => $perPage], $params)),
         messages: @js(['loadFailed' => __('Could not load the data')]),
     })"
-    {{-- display.filters says `filters-updated` / `filters-cleared`; form.filter says `filter-apply` / `filter-clear`. --}}
-    @filters-updated.window="applyFilters($event.detail.filters)"
-    @filters-cleared.window="clearFilters()"
-    @filter-apply.window="applyFilters($event.detail.values)"
-    @filter-clear.window="clearFilters()"
+    {{-- form.filters announces these two events, and the table listens to nothing else. --}}
+    @dbl-filters-applied.window="applyFilters($event.detail.filters)"
+    @dbl-filters-cleared.window="clearFilters()"
     {{ $attributes }}
 >
     {{-- Header --}}
@@ -76,7 +74,7 @@
             @endif
 
             @if(!empty($filters))
-                <x-dbl::display.filters :filters="$filters" />
+                <x-dbl::form.filters :filters="$filters" />
             @endif
 
             {{-- Toolbar links: same state the user is looking at, handed to whatever URL. --}}

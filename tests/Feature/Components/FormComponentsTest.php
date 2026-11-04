@@ -234,14 +234,38 @@ it('validator hides when message is empty', function () {
     expect(trim($html))->toBeEmpty();
 });
 
-// ── form/filter ───────────────────────────────────────────────────────────────
+// ── form/filters ──────────────────────────────────────────────────────────────
 
-it('filter renders field labels and apply-url', function () {
+it('filters renders the label, the options and the hint of each filter, and announces dbl-filters-applied', function () {
     $html = Blade::render(
-        '<x-dbl::form.filter :fields="$fields" apply-url="/products" />',
-        ['fields' => [['name' => 'status', 'type' => 'select', 'label' => 'Estado', 'options' => []]]]
+        '<x-dbl::form.filters :filters="$filters" />',
+        ['filters' => [
+            ['key' => 'status', 'type' => 'select', 'label' => 'Estado', 'options' => ['open' => 'Abierto'], 'hint' => 'Solo los de este año'],
+        ]]
     );
-    expect($html)->toContain('Estado')->toContain('/products');
+
+    expect($html)->toContain('Estado')->toContain('Abierto')->toContain('Solo los de este año')
+        ->toContain("update('status', \$event.target.value)")
+        ->toContain("\$dispatch('dbl-filters-applied', { filters: this.filters })");
+});
+
+it('filters writes the key of each filter with @js, so a quote in it cannot break the handler', function () {
+    $html = Blade::render('<x-dbl::form.filters :filters="$filters" />', ['filters' => [['key' => "o'k", 'type' => 'text']]]);
+
+    expect($html)->not->toContain("update('o'k'")->toContain("update('o\\u0027k'");
+});
+
+it('filters offers every type of the two old filter bars', function () {
+    $html = Blade::render('<x-dbl::form.filters :filters="$filters" />', ['filters' => [
+        ['key' => 'when', 'type' => 'daterange', 'label' => 'Cuándo'],
+        ['key' => 'amount', 'type' => 'number', 'min' => 1, 'max' => 9],
+        ['key' => 'vip', 'type' => 'toggle', 'text' => 'Solo VIP'],
+        ['key' => 'born', 'type' => 'date'],
+        ['key' => 'name'],
+    ]]);
+
+    expect($html)->toContain("update('when_from'")->toContain("update('when_to'")->toContain('min="1"')->toContain('Solo VIP')
+        ->toContain("update('born'")->toContain("update('name'");
 });
 
 // ── form/fields: decimal + attrs (schema-driven, same contract as the repeater) ─

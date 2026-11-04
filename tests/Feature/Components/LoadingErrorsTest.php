@@ -46,21 +46,18 @@ it('keeps the other selects without any Alpine scope on the container', function
     expect($native)->not->toContain('dblSelectRemote')->not->toContain('x-show="error"');
 });
 
-// ── data-table listens to both filter bars ────────────────────────────────────
+// ── data-table listens to the filter panel ────────────────────────────────────
 
-it('data-table listens to the events of display.filters and of form.filter, with the names each one already used', function () {
+it('data-table listens to the two events of form.filters', function () {
     $html = Blade::render('<x-dbl::display.data-table load-url="/rows" :columns="[]" />');
 
-    expect($html)->toContain('@filters-updated.window="applyFilters($event.detail.filters)"')
-        ->toContain('@filters-cleared.window="clearFilters()"')
-        ->toContain('@filter-apply.window="applyFilters($event.detail.values)"')
-        ->toContain('@filter-clear.window="clearFilters()"');
+    expect($html)->toContain('@dbl-filters-applied.window="applyFilters($event.detail.filters)"')
+        ->toContain('@dbl-filters-cleared.window="clearFilters()"');
 });
 
-it('keeps the event names of both filter bars as they were', function () {
-    $filters = Blade::render('<x-dbl::display.filters :filters="[[\'key\' => \'a\']]" />');
-    $form = Blade::render('<x-dbl::form.filter :fields="[[\'name\' => \'a\']]" />');
+it('form.filters announces its two events with { filters }', function () {
+    $filters = Blade::render('<x-dbl::form.filters :filters="[[\'key\' => \'a\']]" />');
 
-    expect($filters)->toContain("\$dispatch('filters-updated', { filters: this.active })")->toContain("\$dispatch('filters-cleared')")
-        ->and($form)->toContain("\$dispatch('filter-apply', { values: this.values, queryString: qs.toString() })")->toContain("\$dispatch('filter-clear')");
+    expect($filters)->toContain("\$dispatch('dbl-filters-applied', { filters: this.filters })")
+        ->toContain("\$dispatch('dbl-filters-cleared', { filters: {} })");
 });

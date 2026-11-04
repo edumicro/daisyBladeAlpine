@@ -322,7 +322,7 @@ const dblDataTable = (config = {}) => ({
         // Same joiner and same list format as the request of load(), so the export gets what the table asked for.
         return joinUrl(base, Object.fromEntries(filled))
     },
-    // A filter bar (display.filters or form.filter) says which filters are on: they replace the ones it
+    // The filter panel (form.filters) says which filters are on: they replace the ones it
     // sent before, and the table goes back to page 1. '', null and false mean "no filter".
     applyFilters(filters = {}) {
         this.dropFilters()
@@ -332,7 +332,7 @@ const dblDataTable = (config = {}) => ({
         this.page = 1
         return this.load()
     },
-    // The filter bar was cleared.
+    // The filter panel was cleared.
     clearFilters() {
         this.dropFilters()
         this.page = 1

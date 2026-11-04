@@ -197,7 +197,7 @@ test('spreadsheet import: a failed upload shows the translated text', async () =
 
 // ── data-table and the filter bars ─────────────────────────────────────────
 
-test('data-table: filters from display.filters replace the previous ones and send the table back to page 1', async () => {
+test('data-table: filters from form.filters replace the previous ones and send the table back to page 1', async () => {
     const calls = pageWithAxios({ data: [] })
     const table = dblDataTable({ loadUrl: '/rows', params: { per_page: 15 } })
     table.page = 4
@@ -224,7 +224,7 @@ test('data-table: clearing the filters removes only what the filters added, and 
     assert.equal('status' in calls.at(-1).params, false)
 })
 
-test('data-table: form.filter sends its values with empty ones and unchecked toggles still in; they are not filters', async () => {
+test('data-table: filters with an empty value or an unchecked toggle are not filters, and are not sent', async () => {
     const calls = pageWithAxios({ data: [] })
     const table = dblDataTable({ loadUrl: '/rows' })
 
