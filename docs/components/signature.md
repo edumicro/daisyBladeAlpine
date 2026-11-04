@@ -21,7 +21,8 @@ Botones y textos grandes; el trazo es siempre oscuro sobre blanco, también en m
 | `signer` | `''` | Texto bajo la línea ("Secretaría: Ana López") |
 | `height` | `220` | Alto del lienzo en px |
 | `required` | `false` | Impide enviar el formulario sin firma |
-| `description` | `''` | Ayuda visible bajo el título |
+| `hint` | `''` | Ayuda visible bajo el lienzo |
+| `class` | | Clases de la raíz (como en cualquier componente) |
 
 ## Valor enviado
 
@@ -30,12 +31,12 @@ vacío si no hay firma. Decódificalo en el servidor y guárdalo como fichero.
 
 ## Eventos
 
-`signed` (tras un trazo, `detail.value` = data URL) y `cleared` (al quedar vacía). Burbujean:
-`<div x-on:signed="…">`.
+`dbl-signature-signed` (tras un trazo) y `dbl-signature-cleared` (al quedar vacía), los dos con
+`detail: {name, value}` (`value` = data URL, o vacío). Burbujean: `<div x-on:dbl-signature-signed="…">`.
 
 ## JavaScript
 
-`resources/js/components/signature.js` exporta `dbSignature` y `registerSignature(Alpine, deps)`.
+`resources/js/components/signature.js` exporta `dblSignature` y `registerSignature(Alpine, deps)`.
 `signature_pad@^5` se inyecta, el módulo no lo importa:
 
 ```js

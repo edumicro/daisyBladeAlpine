@@ -3,7 +3,7 @@
 Agenda pública de eventos o calendario de un panel. Alpine puro e `Intl`, sin librerías.
 
 ```blade
-<x-dbl::display.calendar load-url="/api/eventos" x-on:event-click="console.log($event.detail)" />
+<x-dbl::display.calendar load-url="/api/eventos" x-on:dbl-calendar-event-clicked="console.log($event.detail)" />
 ```
 
 ## Props
@@ -42,7 +42,7 @@ Responde un array (o `{ "data": [...] }`):
 - **Lista**: agrupada por día, con hora y título enlazado.
 - **Teclado**: las flechas mueven el foco por los días (cambian de mes si hace falta); Enter abre la lista del día.
 - **Estados**: cargando (`skeleton`), vacío y error con botón de reintento.
-- **Evento `event-click`**: se dispara en el componente con el evento en `detail`; después navega a `url` si la tiene.
+- **Evento `dbl-calendar-event-clicked`**: se dispara en el componente con el evento en `detail`; después navega a `url` si la tiene.
 
 ## Registro
 

@@ -3,6 +3,184 @@
 Formato: lo que está sin publicar arriba. Al sacar versión, esa sección pasa a llevar su número
 y su fecha, y se etiqueta.
 
+## [3.0.0] — sin publicar
+
+La 3.0 **cambia nombres** para que todo el paquete siga una sola convención. No arrastra los nombres viejos: **no hay alias ni avisos de obsoleto**. Quien no quiera migrar se queda en la línea `2.x`, que se sigue manteniendo. La sección `[2.4.0]` de más abajo es la de la 2.x y también está en esta línea (la 3.0 parte de ella).
+
+### Guía de la 2 a la 3
+
+Doce convenciones. Cada una tiene su párrafo y, después, una tabla por componente con el nombre de antes y el de ahora.
+
+1. **Un solo prefijo, `dbl`.** Las etiquetas Blade ya eran `x-dbl::`. Ahora también lo son los eventos (`dbl-…`), las factorías de JavaScript (`dblSelectRemote`), las clases CSS propias (`dbl-flowchart`), los ids que genera un componente (`dbl-flowchart-<aleatorio>-help`) y las claves de localStorage (`dbl_sidebar`, `dbl_wizard_…`). Al leer, si solo existe la clave vieja `db_…`, su valor se mueve una vez a la nueva y la vieja se borra: nadie pierde la barra lateral ni el progreso de un asistente.
+2. **Propiedades de URL.** En PHP camelCase, en la etiqueta kebab-case, y las claves de los arrays de configuración en snake_case (como en Laravel). Cada URL dice para qué sirve: `load-url` (de dónde lee el componente sus datos), `submit-url` (adónde manda lo que el usuario rellenó), `upload-url` (adónde van los ficheros), `geocode-url` (se queda). Las claves de array que eran camelCase pasan a snake_case: `badge_color`, `view_url`, `line_number`.
+3. **Valor.** `value` es un solo valor, en todos los controles de formulario (input, checkbox y toggle lo ganan; checkbox y toggle quedan marcados si es verdadero). `values` es solo un mapa nombre → valor: auto-form, fields y los pasos del wizard.
+4. **Ayuda.** `hint` en todos los controles de formulario; `description` desaparece de ellos. Se pinta siempre debajo del control. select, radio y repeater ganan `hint`.
+5. **Tamaño.** `size` es siempre un token `xs|sm|md|lg|xl` (más los extras con sentido: `full` en modal, `2xl` en avatar, `2xl`, `3xl` y `4xl` en text-rotate). El componente lo traduce a su clase con un `match` de nombres escritos enteros; un valor desconocido da `md`. input, textarea, checkbox, radio y toggle ganan `size`.
+6. **Color.** `color` es siempre un token (`primary|secondary|accent|neutral|info|success|warning|error`, más `ghost|link` en los botones y `ghost` en badge), nunca la clase. `background` es el único nombre del fondo, con un token `base-100|base-200|base-300` o uno de los colores. Lo que no esté en la lista va por `class`.
+7. **`class` y los demás atributos.** Van a la raíz del componente, como en cualquier componente de Laravel, y todas las vistas aplican `$attributes` (las 27 que no lo hacían, también). Única excepción: el enlace del valor de un control (`x-model`, `wire:model`) va al propio control. Para dar clases a una parte interior hay una propiedad `<parte>-class` (`input-class`, `dropzone-class`, `canvas-class`...). `containerClass` desaparece.
+8. **Eventos.** Lo que un componente anuncia se llama `dbl-<componente>-<lo que pasó, en participio>`; las órdenes que escucha en la ventana, `dbl-<componente>-<verbo>`. Siempre con `$dispatch` desde el componente (sube por el DOM) y el `detail` es siempre un objeto. El select nativo y el remoto ahora también lanzan `dbl-select-changed` `{ name, value }`, y rich-text lanza `dbl-rich-text-changed`. La excepción a `$dispatch` es display.flowchart, que despacha desde su raíz con las mismas opciones porque necesita saber si un oyente llamó a `preventDefault()`.
+9. **Un solo componente de filtros:** `x-dbl::form.filters`, con `filters[clave]` y los eventos `dbl-filters-applied` y `dbl-filters-cleared`, los dos con `{ filters }`. `form.filter` y `display.filters` desaparecen; `display.data-table` escucha esos dos eventos y nada más.
+10. **La configuración llega al JavaScript de una sola forma:** `x-data="dblComponente(@js($config))"`. Fuera el `'{{ $url }}'` dentro de un texto JS (una comilla lo rompía), el `JSON.parse($el.dataset.config)` y el atributo `data-config`, `Js::from` y los objetos en línea con datos de PHP. Un `x-data` en línea sin datos de PHP puede quedarse.
+11. **Limpieza.** Fuera la configuración muerta de `config/daisyblade.php` (`component_map`, `defaults`, `toast`, `sidebar`; quedan `map` y `geo`) y la factoría que nadie usaba. `daisyblade:install` publica también `components/`, y las traducciones tienen la etiqueta `daisyblade-lang`.
+12. **El fallo del wizard.** Los `values` de los pasos son el punto de partida y el progreso guardado de ese mismo asistente se aplica encima: antes un `x-init` ponía los valores después de restaurar el progreso y lo pisaba.
+
+Para pasar de la 2 a la 3, por este orden: (1) vuelve a publicar las vistas (`php artisan daisyblade:install`; las vistas de la 2.x no funcionan con el JavaScript de la 3.x ni al revés); (2) busca en tus plantillas los nombres de las tablas de abajo (`options-url=`, `action=` en upload, auto-form y wizard, `variant=`, `container-class=`, `description=`, `x-on:select-change`...); (3) cambia los eventos que escuchas y las órdenes que lanzas; (4) pasa de la clase al token en `size` y `color`.
+
+#### Factorías de JavaScript
+
+| 2.x | 3.0 |
+|---|---|
+| `dbModal`, `dbToast`, `dbNavbar`, `dbSidebar`, `dbSidebarTree` | `dblModal`, `dblToast`, `dblNavbar`, `dblSidebar`, `dblSidebarTree` |
+| `dbDataTable`, `dbAutoForm`, `dbWizard`, `dbSelectRemote`, `dbResourceDetails`, `dbTabsLazy`, `dbSpreadsheetImport`, `dbKvEditor`, `dbListEditor` | `dblDataTable`, `dblAutoForm`, `dblWizard`, `dblSelectRemote`, `dblResourceDetails`, `dblTabsLazy`, `dblSpreadsheetImport`, `dblKvEditor`, `dblListEditor` |
+| `dbCalendar`, `dbMap`, `dbUpload`, `dbRichText`, `dbSignature`, `dbFlowchart` | `dblCalendar`, `dblMap`, `dblUpload`, `dblRichText`, `dblSignature`, `dblFlowchart` |
+| `dbTabs` (no la usaba ninguna vista) | fuera. El nombre `dblTabs` es ahora la factoría de `navigation.tabs` (índice de la pestaña abierta) |
+| (inline en la vista) | nuevas: `dblSteps`, `dblCarousel`, `dblTextRotate`, `dblRepeater`, `dblSelectSearch`, `dblToastSingle`, `dblTabs` |
+| `dbSelectRemote`: `search`, `open`, `value`, `filtered()`, `select()`, `labelFor()`, el parámetro `q` de `fetch()` | fuera (restos de un modo buscable que ninguna plantilla usaba; el select buscable es `dblSelectSearch`) |
+| `dbSelectRemote.fetch()` | `dblSelectRemote.loadOptions()` (compartía nombre con el `fetch` global) |
+| configuración `url` / `optionsUrl` (select), `action` (auto-form, wizard, upload), `tabs[].url` | `loadUrl`, `submitUrl`, `uploadUrl`, `tabs[].loadUrl` |
+| flowchart: `onWindowEvent(detail)` | `onSet`, `onFocus`, `onRemoveEdge`, `onRemoveNode` |
+
+Clases CSS: `db-calendar`, `db-flowchart`, `db-flowchart-handle`, `db-rich-text-content` → `dbl-calendar`, `dbl-flowchart`, `dbl-flowchart-handle`, `dbl-rich-text-content`. localStorage: `db_sidebar` → `dbl_sidebar`; `db_wizard_<usuario>_<formulario>_v<n>` → `dbl_wizard_<usuario>_<formulario>_v<n>`.
+
+#### Eventos
+
+| 2.x | 3.0 |
+|---|---|
+| `select-change` (solo el select buscable) | `dbl-select-changed` `{ name, value }`, en los tres modos |
+| `filter-apply`, `filters-updated` | `dbl-filters-applied` `{ filters }` |
+| `filter-clear`, `filters-cleared` | `dbl-filters-cleared` `{ filters }` |
+| `page-changed` (navigation.pagination) | `dbl-pagination-page-changed` |
+| `step-changed` (navigation.steps) | `dbl-steps-step-changed` |
+| `dbl-repeater-change` | `dbl-repeater-changed` |
+| (rich-text no lanzaba nada) | `dbl-rich-text-changed` `{ name, value }` |
+| `signed`, `cleared` | `dbl-signature-signed`, `dbl-signature-cleared` (`detail`: `{ value }` → `{ name, value }`) |
+| `uploaded`, `removed` | `dbl-upload-uploaded`, `dbl-upload-removed` |
+| `map-picked` | `dbl-map-picked` |
+| `event-click` | `dbl-calendar-event-clicked` |
+| `node-click`, `edge-click`, `node-move`, `edge-create` (display.flowchart) | `dbl-flowchart-node-clicked`, `-edge-clicked`, `-node-moved`, `-edge-created` |
+| `node-click`, `badge-click`, `node-create`, `node-delete`, `badge-create`, `badge-delete`, `edge-create` (display.node-graph) | `dbl-node-graph-node-clicked`, `-badge-clicked`, `-node-created`, `-node-deleted`, `-badge-created`, `-badge-deleted`, `-edge-created` |
+| `open-modal`, `close-modal` (orden de ventana, `{ id }`) | `dbl-modal-open`, `dbl-modal-close` |
+| `notify` (orden de ventana, `{ message, type, duration }`) | `dbl-toast-show` |
+| `sidebar-toggle` (orden de ventana) | `dbl-sidebar-toggle` |
+| `dbl-flowchart` con `{ name, action: 'set' \| 'focus' \| 'removeEdge' \| 'removeNode', ... }` | una orden por verbo, cada una con `name`: `dbl-flowchart-set`, `dbl-flowchart-focus`, `dbl-flowchart-remove-edge`, `dbl-flowchart-remove-node` |
+| `dbl-map-focus` | igual (ya cumplía la regla) |
+| `action` de un ítem de `navigation.menu` / `navigation.dock` | igual: es el nombre del evento que lanza *tu* aplicación |
+
+#### Por componente
+
+**Acciones**
+
+| Componente | 2.x | 3.0 |
+|---|---|---|
+| `actions.button` | `variant="btn-primary"`, `size="btn-md"` | `color="primary"` (también `ghost`, `link`), `size="md"` |
+| `actions.fab` | `variant="btn-primary"`, `size="btn-lg"`, `class` (el botón) | `color="primary"`, `size="lg"`, `button-class`; `class` va a la raíz |
+| `actions.swap` | `variant="btn-ghost"`, `size="btn-md"`, `class` (los botones) | `color="ghost"`, `size="md"`, `button-class`; `class` va a la raíz |
+| `actions.modal` | `open-modal` / `close-modal`; `size` sm..xl, full; sin `$attributes` | `dbl-modal-open` / `dbl-modal-close`; añade `xs`; `class` y atributos a la raíz |
+
+**Display**
+
+| Componente | 2.x | 3.0 |
+|---|---|---|
+| `display.accordion` | `class` (título), `container-class` | `title-class`, `class` |
+| `display.avatar` | `class` | `avatar-class` (`class` va a la raíz) |
+| `display.badge` | `color` y `variant`, `ghost` booleano, `color="soft"` / `"dash"` / `"outline"` | solo `color` (admite `ghost`); `outline` sigue siendo booleano; `soft` y `dash` van por `class="badge-soft"` |
+| `display.calendar` | `event-click`; `dbCalendar` | `dbl-calendar-event-clicked`; `dblCalendar` |
+| `display.card` | `background` (cualquier color), `border-color`, `actions[].variant` (`btn-primary`) | `background` es un token; `border-color` fuera (`class="border border-primary"`); `actions[].color` (`primary`) |
+| `display.carousel` | `class` (diapositiva), `container-class` (la tira) | `slide-class`, `carousel-class`; `class` a la raíz |
+| `display.chat-bubble` | `class` | `bubble-class` |
+| `display.collapse` | `variant` (tinte del contenido), `class` (título), `container-class` | `background`, `title-class`, `class` |
+| `display.compare`, `display.table` | `class` (tabla), `container-class` | `table-class`, `class` |
+| `display.data-table` | `class` (tabla), `container-class`; escucha `filters-updated`, `filters-cleared`, `filter-apply`, `filter-clear`; lleva `display.filters` | `table-class`, `class`; escucha `dbl-filters-applied` y `dbl-filters-cleared`; lleva `form.filters` |
+| `display.diff` | `class` (cada fila); clave `lineNumber` | `row-class`; clave `line_number` |
+| `display.filters` | — | `form.filters` |
+| `display.flowchart` | `class` (lienzo), `container-class`; eventos y orden `dbl-flowchart`; id `dbf-…` | `canvas-class`, `class`; eventos y órdenes de las tablas de arriba; id `dbl-flowchart-…-help` |
+| `display.hover-3d-card` | `class` | `content-class` |
+| `display.hover-gallery` | `class` (imagen), `container-class` (rejilla); clave `viewUrl`; sin raíz única | `item-class`, `grid-class`; clave `view_url`; una raíz que recibe `class` |
+| `display.kbd` | `variant`, `class` | `color`, `kbd-class` |
+| `display.list` | `class` (la lista), `container-class` | `list-class`, `class` |
+| `display.map` | capas `url`; `map-picked`; `data-config` | capas `load_url`; `dbl-map-picked`; sin `data-config` |
+| `display.node-graph`, `display.tree` | `class` (el árbol), `container-class`; eventos del node-graph | `tree-class`, `class`; eventos de las tablas de arriba |
+| `display.radial-progress` | `class` | `circle-class` |
+| `display.resource-details` | `class` (contenido), `container-class` | `content-class`, `class` |
+| `display.stat` | `background-color="bg-base-100"`; sin `$attributes` | `background="base-100"`; `class` a la raíz |
+| `display.status` | `class` | `text-class` (el texto de los modos `inline` y `dot`) |
+| `display.text-rotate` | `class`, `size="base"` | `text-class`, `size="md"` |
+| `display.timeline` | `variant`, ítem `variant`, etiqueta `variant`, `class` (punto), `container-class` | `color`, ítem `color`, etiqueta `color`, `dot-class`, `class` |
+
+**Feedback**
+
+| Componente | 2.x | 3.0 |
+|---|---|---|
+| `feedback.alert`, `feedback.loading` | `class` (contenido), `container-class` | `content-class`, `class` |
+| `feedback.progress` | `class` (el `<progress>`), `container-class` | `progress-class`, `class` |
+| `feedback.skeleton` | `class`, `container-class` | `skeleton-class`, `class` |
+| `feedback.toast` | `notify`; sin `$attributes` | `dbl-toast-show`; `class` a la raíz |
+| `feedback.tooltip` | `class` (el icono o texto), `tooltip-class` (raíz); `color` solo success, warning, error, info | `trigger-class`, `class`; `color` con los ocho colores |
+
+**Formulario**
+
+| Componente | 2.x | 3.0 |
+|---|---|---|
+| `form.input` | `class` (control), `container-class`, `description`; sin `value` ni `size` | `input-class`, `class`, `hint`; `value`, `size` |
+| `form.textarea` | `class`, `container-class`, `description`; sin `size` | `textarea-class`, `class`, `hint`; `size` |
+| `form.checkbox`, `form.toggle` | `class` (control), `container-class`, `description`; sin `value` ni `size` | `checkbox-class` / `toggle-class`, `class`, `hint`; `value`, `size` |
+| `form.radio` | `class`, `container-class`; sin `hint` ni `size` | `radio-class`, `class`; `hint`, `size` |
+| `form.select` | `options-url`, `class` (control), `container-class`; `select-change` solo en el buscable; sin `hint` | `load-url`, `select-class`, `class`; `dbl-select-changed` en los tres modos; `hint` |
+| `form.rich-text` | `description`, `container-class`; no lanzaba nada | `hint`, `class`; `dbl-rich-text-changed` |
+| `form.signature` | `description`, `class`; `signed`, `cleared` | `hint`, `class`; `dbl-signature-signed`, `dbl-signature-cleared` |
+| `form.upload` | `action`, `description`, `class` (zona de soltar), `container-class`; `uploaded`, `removed` | `upload-url`, `hint`, `dropzone-class`, `class`; `dbl-upload-uploaded`, `dbl-upload-removed` |
+| `form.repeater` | `dbl-repeater-change`; sin `hint`; sin `$attributes` | `dbl-repeater-changed`; `hint`; `class` a la raíz |
+| `form.kv-editor`, `form.list-editor` | `class` | `class` (a la raíz; ya era la raíz) |
+| `form.fields` | `alpha-errors`; un fragmento sin raíz | `alpine-errors`; envuelto en un `<div class="contents">` que recibe `$attributes` |
+| `form.filter`, `display.filters` | `fields[name]` / `filters[key]`; `apply-url`; `help`, `description` del filtro | `form.filters`, `filters[key]`; `apply-url` fuera; `hint`, `text` del filtro |
+
+**Layout, navegación, secciones**
+
+| Componente | 2.x | 3.0 |
+|---|---|---|
+| `layout.app` | `html-class` | `class` (va al `<html>`) |
+| `layout.auth` | sin `$attributes` | `class` y atributos al `<html>` |
+| `layout.footer` | `bg-class="bg-base-200 text-base-content"`, `container-class`, `class` | `background="base-200"`, `class` |
+| `layout.divider` | `class` (la línea), `container-class` | `divider-class`, `class` |
+| `layout.join` | `class` (la unión), `container-class` | `join-class`, `class` |
+| `layout.hero`, `layout.indicator`, `layout.stack`, `layout.section-wrapper` | `class`, `container-class` | `class` (la raíz); `content-class`, `indicator-class` y `overlay-class` se quedan |
+| `navigation.breadcrumb` | `class` (la lista), `container-class` | `list-class`, `class` |
+| `navigation.dock` | `icon-size="w-6 h-6"`, `class` (la barra), `container-class` | `icon-size="md"`, `bar-class`, `class` |
+| `navigation.menu` | ítem `badgeColor`; `class`, `container-class` | ítem `badge_color`; `class` |
+| `navigation.pagination` | `page-changed`; `class` (la unión) | `dbl-pagination-page-changed`; `join-class` |
+| `navigation.steps` | `step-changed`; `class` (la lista) | `dbl-steps-step-changed`; `steps-class` |
+| `navigation.sidebar` | `sidebar-toggle`; `class` (el `<aside>`) | `dbl-sidebar-toggle`; `aside-class` (`class` va al `<div>` que lo envuelve) |
+| `navigation.navbar`, `navigation.sidebar-tree`, `navigation.tabs` | `class` como propiedad, o sin `$attributes` | `class` y atributos a la raíz |
+| `sections.auto-form` | `action`, `class` (el `<form>`), `container-class` | `submit-url`, `form-class`, `class` |
+| `sections.wizard` | `action`, `container-class`; `x-init` con los valores | `submit-url`, `class`; los `values` viajan en la configuración |
+| `sections.tabs` | clave `'load-url'`, `class` (panel), `container-class` | clave `'load_url'`, `panel-class`, `class` |
+| `import.spreadsheet` | `container-class` | `class` (`upload-url` y `template-url` no cambian) |
+
+#### Otros cambios que se ven
+
+- `form.checkbox` y `form.toggle` quedan marcados con `value` verdadero; lo que se envía sigue siendo `1` (y `0` si no está marcado).
+- `form.fields` y `x-model`: el enlace usa `values['clave']` en lugar de `values.clave`.
+- `display.card` pone un color de texto (`text-primary-content`...) a juego con el fondo.
+- Los controles de formulario ya no pasan los atributos al control: `class`, `id`, `data-*`, `aria-*` van a la raíz (la caja con la etiqueta). Para clases del control, `input-class`...; el `x-model` sigue llegando al control. Los atributos nativos del control (`min`, `max`, `step`, `autocomplete`...) ya no tienen dónde ir: en formularios por esquema se pasan con `attrs`.
+- `daisyblade:install` copia también `components/` y `daisyblade:make` genera vistas que siguen las convenciones.
+
+### Añadido
+- `x-dbl::form.filters` (ver convención 9), `value` en input, checkbox y toggle, `hint` en todos los controles, `size` en input, textarea, checkbox, radio y toggle, y las factorías `dblSteps`, `dblCarousel`, `dblTextRotate`, `dblRepeater`, `dblSelectSearch`, `dblToastSingle` y `dblTabs`.
+- `dbl-rich-text-changed`, `dbl-select-changed` en el select nativo y en el remoto, y `name` en los eventos de signature.
+- `php artisan vendor:publish --tag=daisyblade-lang`, y `components/` en `daisyblade:install` y en `daisyblade-assets`.
+- Pruebas que impiden volver atrás: `tests/Feature/ConventionsTest.php` y `tests/js/conventions.test.mjs`, una por convención.
+
+### Corregido
+- `sections.wizard` pisaba el progreso guardado con sus `values` iniciales (convención 12).
+- `feedback.toast`: dos avisos en el mismo milisegundo compartían id y cerrar uno cerraba los dos.
+- `display.text-rotate`: el temporizador no se paraba al destruir el componente.
+- `form.textarea`: el mensaje de error abría un `<div>` y no lo cerraba.
+- `display.card`, `display.timeline`: ya no montan clases en ejecución (`bg-{$background}`, `border-{$borderColor}`, `badge-{$variant}`).
+
+### Quitado
+- Todos los nombres de la tabla de arriba, sin alias.
+- `display.filters`, `form.filter`, la factoría `dbTabs`, y `component_map`, `defaults`, `toast` y `sidebar` de `config/daisyblade.php`.
+
 ## [2.4.0] — sin publicar
 
 ### Añadido

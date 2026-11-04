@@ -13,7 +13,7 @@ instala e inyecta la aplicación, así que decides tú qué extensiones (y qué 
     placeholder="Escribe aquí…"
     upload-url="{{ route('uploads.image') }}"
     :max-length="5000"
-    description="Se admiten títulos, listas, enlaces, imágenes y tablas."
+    hint="Se admiten títulos, listas, enlaces, imágenes y tablas."
     :required="true"
 />
 ```
@@ -21,7 +21,7 @@ instala e inyecta la aplicación, así que decides tú qué extensiones (y qué 
 | Prop | Descripción |
 |---|---|
 | `name` | Nombre del `<input type="hidden">` que viaja en el formulario |
-| `label`, `description`, `required` | Como en el resto de campos |
+| `label`, `hint`, `required` | Como en el resto de campos |
 | `value` | HTML inicial |
 | `placeholder` | Texto con el editor vacío (requiere `Placeholder`) |
 | `upload-url` | Endpoint de subida de imágenes (requiere `Image`) |

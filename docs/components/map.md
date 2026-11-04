@@ -39,7 +39,7 @@ registerMap(Alpine, { maplibregl, loadGoogleMaps, MarkerClusterer })
 
 (`registerMap` no es parte de `daisyblade.js`: se llama aparte, antes de `Alpine.start()`.)
 
-**Peticiones.** Las capas (`url`) y el buscador (`geocode-url`) usan el cliente HTTP del paquete: el `axios` que pases
+**Peticiones.** Las capas (`load_url`) y el buscador (`geocode-url`) usan el cliente HTTP del paquete: el `axios` que pases
 (`registerMap(Alpine, { maplibregl, axios })`), si no `window.axios`, y si no `fetch`. Una URL de **otro dominio** (una capa
 GeoJSON pública, por ejemplo) va siempre por `fetch` y sin cabeceras de Laravel (`X-Requested-With`, CSRF), que los servidores
 ajenos suelen rechazar en el preflight de CORS.
@@ -53,7 +53,7 @@ ajenos suelen rechazar en el preflight de CORS.
 | `center` | `[39.4699, -0.3763]` | `[lat, lng]` |
 | `zoom` | `6` | Zoom inicial |
 | `height` | `24rem` | Altura CSS (`px`, `rem`, `em`, `vh`, `%`) |
-| `layers` | `[]` | `[{id, label, url, cluster, color, icon}]`; `url` devuelve un GeoJSON de puntos; `icon` es 1-2 caracteres dibujados sobre el punto |
+| `layers` | `[]` | `[{id, label, load_url, cluster, color, icon}]`; `load_url` devuelve un GeoJSON de puntos; `icon` es 1-2 caracteres dibujados sobre el punto |
 | `filters` | `true` | `true`/`false` o `['layers' => bool, 'categories' => bool]`. Casillas por capa y por `properties.category` |
 | `picker` | `false` | Marcador arrastrable; clic para colocarlo |
 | `picker-name` | `location` | Prefijo de los inputs ocultos `<name>_lat` y `<name>_lng` |
@@ -106,7 +106,7 @@ Desde cualquier sitio de la página, p. ej. una lista lateral, por evento (recom
 ## Eventos
 
 - `dbl-map-focus` (entrada, en `window`) — `detail: {map, layer, id}`; ver arriba.
-- `map-picked` — `detail: {lat, lng}` al colocar o arrastrar el marcador (y al elegir un resultado del buscador). Burbujea desde el elemento raíz: `x-on:map-picked="..."`.
+- `dbl-map-picked` — `detail: {lat, lng}` al colocar o arrastrar el marcador (y al elegir un resultado del buscador). Burbujea desde el elemento raíz: `x-on:dbl-map-picked="..."`.
 
 ## Ejemplo
 
@@ -116,7 +116,7 @@ Desde cualquier sitio de la página, p. ej. una lista lateral, por evento (recom
     <x-dbl::display.map
         base="ign-base"
         :center="[39.42, -0.38]" :zoom="13"
-        :layers="[['id' => 'ent', 'label' => 'Entidades', 'url' => route('api.entidades'), 'cluster' => true, 'color' => '#2563eb']]"
+        :layers="[['id' => 'ent', 'label' => 'Entidades', 'load_url' => route('api.entidades'), 'cluster' => true, 'color' => '#2563eb']]"
         picker picker-name="sede" :picker-value="[$e->lat, $e->lng]"
         :geocode-url="route('geocode')" />
     {{-- se envían sede_lat y sede_lng --}}

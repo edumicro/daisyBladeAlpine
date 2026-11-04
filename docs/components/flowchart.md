@@ -7,8 +7,8 @@ A diferencia de `display.node-graph` (un árbol, cada nodo con un padre), es un 
 
 ```blade
 <x-dbl::display.flowchart :nodes="$nodes" :edges="$edges" editable name="flujo" :grid="20"
-    x-on:node-click="abrir($event.detail.id)" x-on:edge-click="abrir($event.detail.id)"
-    x-on:edge-create="..." x-on:node-move="..." />
+    x-on:dbl-flowchart-node-clicked="abrir($event.detail.id)" x-on:dbl-flowchart-edge-clicked="abrir($event.detail.id)"
+    x-on:dbl-flowchart-edge-created="..." x-on:dbl-flowchart-node-moved="..." />
 ```
 
 ```php
@@ -37,12 +37,12 @@ $edges = [
 | `edges` | `[]` | `[{id, from, to, label?, variant?, muted?, flat?}]`. Una flecha cuyo `from` o `to` no existe se descarta. |
 | `direction` | `vertical` | Colocación automática: `vertical` (de arriba abajo) u `horizontal` (de izquierda a derecha). |
 | `editable` | `false` | Mover cajas y crear flechas. |
-| `name` | `''` | Identifica el diagrama para el evento de ventana `dbl-flowchart`. |
+| `name` | `''` | Identifica el diagrama para las órdenes de ventana `dbl-flowchart-*` (ver «Desde fuera»). |
 | `height` | `28rem` | Altura CSS del lienzo (`px`, `rem`, `em`, `vh` o `%`); el contenido hace scroll dentro. |
 | `grid` | `0` | Paso de ajuste (px) al soltar una caja; `0` = sin ajuste. |
 | `fit` | `false` | Como en `display.map`: al cargar, encuadra todo el dibujo en el lienzo (escala máxima 1: no agranda) y lo deja **centrado** en el eje en que sobra sitio. A 390 px se ve entero, aunque pequeño. El botón de encuadrar y el zoom también lo centran mientras el dibujo cabe en la vista. |
 | `show-muted` | `false` | Pinta también los `muted`, en discontinua. Sin él hay un interruptor visible (solo si hay algo oculto). |
-| `label`, `class`, `container-class` | | Título, clases del lienzo y clases del contenedor. |
+| `label`, `class`, `canvas-class` | | Título, clases de la raíz y clases del lienzo. |
 
 ### Nodos
 
@@ -69,19 +69,19 @@ Se despachan en el componente (burbujean: se escuchan con `x-on:` en la propia e
 
 | Evento | `detail` | Cuándo |
 |---|---|---|
-| `node-click` | `{id, flat}` | Clic o toque en una caja, o Enter. Siempre. |
-| `edge-click` | `{id, flat}` | Clic en una flecha o su etiqueta, o Enter. Siempre. |
-| `node-move` | `{id, x, y, flat, accept, reject}` | Con `editable`, al soltar una caja (ajustada a `grid`) o al soltar la tecla de flecha. |
-| `edge-create` | `{fromId, toId, fromFlat, toFlat, accept, reject}` | Con `editable`, al arrastrar desde el asa de una caja y soltar sobre otra (o sobre sí misma). |
+| `dbl-flowchart-node-clicked` | `{id, flat}` | Clic o toque en una caja, o Enter. Siempre. |
+| `dbl-flowchart-edge-clicked` | `{id, flat}` | Clic en una flecha o su etiqueta, o Enter. Siempre. |
+| `dbl-flowchart-node-moved` | `{id, x, y, flat, accept, reject}` | Con `editable`, al soltar una caja (ajustada a `grid`) o al soltar la tecla de flecha. |
+| `dbl-flowchart-edge-created` | `{fromId, toId, fromFlat, toFlat, accept, reject}` | Con `editable`, al arrastrar desde el asa de una caja y soltar sobre otra (o sobre sí misma). |
 
 ### Responder a los eventos de edición
 
-`node-move` y `edge-create` se pueden **responder**: el padre aplica su lógica (abrir su diálogo, preguntar a su servidor) y el componente no sabe nada de ella.
+`dbl-flowchart-node-moved` y `dbl-flowchart-edge-created` se pueden **responder**: el padre aplica su lógica (abrir su diálogo, preguntar a su servidor) y el componente no sabe nada de ella.
 
-- **`edge-create`**: al soltar, la flecha ya aparece, **provisional** (discontinua, sin etiqueta).
+- **`dbl-flowchart-edge-created`**: al soltar, la flecha ya aparece, **provisional** (discontinua, sin etiqueta).
   - `accept(datos?)` la fija. `datos` completa la flecha: `{id, label, variant, muted, flat}`. `from` y `to` no se pueden cambiar. Sin `id` se genera uno.
-  - `reject(mensaje?)` la quita. Con mensaje, se avisa con el sistema del paquete: se emite el evento de ventana `notify` (`detail: {message, type: 'error'}`) que recoge `<x-dbl::feedback.toast />`, presente en `layout.app`.
-- **`node-move`**: al soltar, la caja se queda en su sitio nuevo. `reject(mensaje?)` la devuelve sola a su posición anterior (si ya la moviste otra vez, no se toca). `accept()` existe por simetría y no hace nada.
+  - `reject(mensaje?)` la quita. Con mensaje, se avisa con el sistema del paquete: se emite la orden `dbl-toast-show` (`detail: {message, type: 'error'}`) que recoge `<x-dbl::feedback.toast />`, presente en `layout.app`.
+- **`dbl-flowchart-node-moved`**: al soltar, la caja se queda en su sitio nuevo. `reject(mensaje?)` la devuelve sola a su posición anterior (si ya la moviste otra vez, no se toca). `accept()` existe por simetría y no hace nada.
 
 **Cómo decide el componente si alguien responde.** Los eventos son cancelables y el criterio es el de cualquier evento del DOM:
 
@@ -94,14 +94,14 @@ Ejemplo: al unir dos pasos, preguntar con un diálogo propio la condición y ace
 
 ```blade
 <x-dbl::display.flowchart :nodes="$nodes" :edges="$edges" editable name="flujo"
-    x-on:edge-create="
+    x-on:dbl-flowchart-edge-created="
         $event.preventDefault()                         // me quedo la decisión
         const ev = $event.detail
         $store.dialogo.preguntar('¿Qué condición se cumple?').then(
             condicion => ev.accept({ label: condicion, flat: { condicion } }),
             () => ev.reject('No se ha creado la flecha'))
     "
-    x-on:node-move="
+    x-on:dbl-flowchart-node-moved="
         $event.preventDefault()
         const ev = $event.detail
         axios.patch('/pasos/' + ev.id, { x: ev.x, y: ev.y })
@@ -113,18 +113,18 @@ Ejemplo: al unir dos pasos, preguntar con un diálogo propio la condición y ace
 
 ## Desde fuera
 
-Métodos Alpine y su equivalente como evento de ventana (necesita `name`):
+Métodos Alpine y su equivalente como orden de ventana (necesita `name`; cada orden lleva en el `detail` el `name` del diagrama al que va):
 
-| Método | Evento de ventana | |
+| Método | Orden de ventana | |
 |---|---|---|
-| `set(nodes, edges)` | `{name, action: 'set', nodes, edges}` | Reemplaza el estado. Los nodos sin `x`/`y` conservan la posición que ya tenían. |
-| `focus(id)` | `{name, action: 'focus', id}` | Centra y resalta un nodo; si estaba oculto por `muted`, muestra los ocultos. |
-| `removeEdge(id)` | `{name, action: 'removeEdge', id}` | Quita una flecha (p. ej. tras un `edge-click`). No emite nada. |
-| `removeNode(id)` | `{name, action: 'removeNode', id}` | Quita un nodo y las flechas que llegan o salen de él. No emite nada. |
+| `set(nodes, edges)` | `dbl-flowchart-set` `{name, nodes, edges}` | Reemplaza el estado. Los nodos sin `x`/`y` conservan la posición que ya tenían. |
+| `focus(id)` | `dbl-flowchart-focus` `{name, id}` | Centra y resalta un nodo; si estaba oculto por `muted`, muestra los ocultos. |
+| `removeEdge(id)` | `dbl-flowchart-remove-edge` `{name, id}` | Quita una flecha (p. ej. tras un `dbl-flowchart-edge-clicked`). No emite nada. |
+| `removeNode(id)` | `dbl-flowchart-remove-node` `{name, id}` | Quita un nodo y las flechas que llegan o salen de él. No emite nada. |
 | `zoomIn()`, `zoomOut()`, `fit()` | | Zoom (de 0,1 a 2) y encuadre; son los botones +, − y encuadrar de la esquina del lienzo. |
 
 ```js
-window.dispatchEvent(new CustomEvent('dbl-flowchart', { detail: { name: 'flujo', action: 'focus', id: 'envio' } }))
+window.dispatchEvent(new CustomEvent('dbl-flowchart-focus', { detail: { name: 'flujo', id: 'envio' } }))
 ```
 
 ## Comportamiento
@@ -133,7 +133,7 @@ window.dispatchEvent(new CustomEvent('dbl-flowchart', { detail: { name: 'flujo',
 - **Zoom**: botones +, − y encuadrar (con textos traducidos). El puntero y el teclado trabajan siempre en píxeles del dibujo, así que arrastrar funciona igual con cualquier escala.
 - **Flechas nuevas**: el asa, pequeña, está en la esquina inferior derecha de cada caja y solo se ve con el puntero encima o con la caja enfocada (en pantallas táctiles, `hover: none`, siempre). Mientras se arrastra hay una línea provisional que sigue al puntero y la caja de destino se resalta. Soltar el asa sin moverla, o en el vacío, no emite nada.
 - **Flechas**: con punta, salen y llegan al borde de la caja. Varias entre el mismo par, y la ida y vuelta, se reparten en curvas separadas, con etiquetas que no se pisan. Una flecha de un nodo a sí mismo es un bucle bajo la caja.
-- **Teclado**: Tab recorre cajas y flechas; Enter (o Espacio) dispara el clic. Con `editable`, las flechas del teclado mueven la caja seleccionada 10 px (con Shift, un paso de `grid`, o 20 px si no hay rejilla) y **al soltar la tecla** se emite `node-move`. Cajas y flechas llevan `aria-label`.
+- **Teclado**: Tab recorre cajas y flechas; Enter (o Espacio) dispara el clic. Con `editable`, las flechas del teclado mueven la caja seleccionada 10 px (con Shift, un paso de `grid`, o 20 px si no hay rejilla) y **al soltar la tecla** se emite `dbl-flowchart-node-moved`. Cajas y flechas llevan `aria-label`.
 - **Tema**: usa las variables de color de DaisyUI (`--color-base-100`, `--color-primary`, ...), así que sigue el tema claro u oscuro. Funciona a 390 px de ancho: el lienzo hace scroll dentro, no la página.
 - El lienzo no tiene coordenadas negativas: las cajas no se pueden arrastrar más allá del borde superior o izquierdo, y una `x` o `y` negativa que mande el padre se lleva a 0.
 

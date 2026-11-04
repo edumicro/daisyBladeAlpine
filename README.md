@@ -42,14 +42,20 @@ composer require edumicro/daisyblade
 php artisan daisyblade:install
 ```
 
-The install command will ask whether to publish assets for **Vite** (recommended) or as a **public script tag**. Either way it copies two files side by side, `daisyblade.js` and `http.js` (the one function every component uses to call the server):
+The install command will ask whether to publish assets for **Vite** (recommended) or as a **public script tag**. Either way it copies, side by side, `daisyblade.js`, `http.js` (the one function every component uses to call the server) and the `components/` folder (the optional components: map, upload, rich text, signature, calendar, flowchart):
 
 ```bash
-# Vite — assets published to resources/js/daisyblade.js and resources/js/http.js
+# Vite — assets published to resources/js/daisyblade.js, resources/js/http.js and resources/js/components/
 php artisan daisyblade:install --vite
 
-# Script tag — assets published to public/vendor/daisyblade/
+# Script tag — assets published to public/vendor/daisyblade/ (daisyblade.js, http.js, components/)
 php artisan daisyblade:install --public
+```
+
+The texts of the components (Spanish, Catalan and English) can be published too, and edited there:
+
+```bash
+php artisan vendor:publish --tag=daisyblade-lang     # lang/vendor/daisyblade/
 ```
 
 ### Vite setup
@@ -113,13 +119,31 @@ With `fetch` on the **same domain**, the fallback does what axios + Laravel do f
 
 ## Component prefix
 
-All components use the `dbl` prefix:
+Everything the package names uses the `dbl` prefix: the Blade tags (`x-dbl::`), the events (`dbl-select-changed`), the Alpine factories (`dblSelectRemote`), its own CSS classes (`dbl-flowchart`) and the localStorage keys (`dbl_sidebar`).
 
 ```blade
 <x-dbl::display.badge label="Active" color="success" />
 <x-dbl::form.input name="email" type="email" label="Email" />
 <x-dbl::display.data-table :load-url="route('products.data')" :columns="$columns" />
 ```
+
+---
+
+## One convention for every component
+
+Learn it once, it is the same everywhere. The migration guide from 2.x is in `CHANGELOG.md`, section `[3.0.0]`.
+
+| What | Rule |
+|---|---|
+| **URLs** | In PHP camelCase, in the tag kebab-case; the keys of the arrays you pass are snake_case. `load-url`: where the component reads its data (calendar, data-table, resource-details, remote select, lazy tabs with `load_url`, map layers with `load_url`). `submit-url`: where it sends what the user filled in (auto-form, wizard). `upload-url`: where the files go (upload, rich-text, spreadsheet). `geocode-url`: the address search of the map. |
+| **Value** | `value` is one value, in every form control (`input`, `checkbox` and `toggle` included: checked when it is true). `values` is a `name => value` map, only in `auto-form`, `fields` and the steps of `wizard`. |
+| **Help** | `hint`, in every form control. There is no `description` on a control. |
+| **Size** | `size` is a token: `xs\|sm\|md\|lg\|xl` (and `full` in `modal`, `2xl`..`4xl` in `text-rotate`, `2xl` in `avatar`). The component turns it into its class with a literal map. Controls (`input`, `textarea`, `select`, `checkbox`, `radio`, `toggle`) have it. |
+| **Color** | `color` is a token: `primary\|secondary\|accent\|neutral\|info\|success\|warning\|error`, plus `ghost\|link` on buttons. `background` is the only name for a background: `base-100\|base-200\|base-300` or one of the colors (card, stat, footer, collapse). Anything else goes in `class`. |
+| **`class` and attributes** | Everything you write (`class`, `id`, `data-*`, `aria-*`, `x-on:*`) goes to the **root** element, as in any Laravel component. The one exception: the binding of a form control's value (`x-model`, `wire:model`) goes to the control. To style an inner part there is a `<part>-class` prop: `input-class`, `dropzone-class`, `canvas-class`, `table-class`... There is no `container-class`. |
+| **Events** | What a component announces: `dbl-<component>-<what happened, in the past>` (`dbl-select-changed`, `dbl-pagination-page-changed`, `dbl-upload-removed`). The orders it listens to on the window: `dbl-<component>-<verb>` (`dbl-modal-open`, `dbl-modal-close`, `dbl-toast-show`, `dbl-sidebar-toggle`, `dbl-map-focus`, `dbl-flowchart-focus`). Always `$dispatch`, and the `detail` is always an object. |
+| **Filters** | One component, `x-dbl::form.filters`, announcing `dbl-filters-applied` and `dbl-filters-cleared` with `{ filters }`. `display.data-table` listens to those two. |
+| **Configuration for the JavaScript** | One way: `x-data="dblName(@js($config))"`. Nothing from PHP is glued inside a JavaScript text. |
 
 ---
 
@@ -171,7 +195,7 @@ No JavaScript. Receive props, render HTML.
 | `navigation.breadcrumb` | Breadcrumb trail |
 | `navigation.dock` | Bottom dock navigation |
 | `navigation.steps` | Step indicator |
-| `actions.button` | Button with variants, loading, icon |
+| `actions.button` | Button with colors, loading, icon |
 | `actions.fab` | Floating action button |
 | `actions.swap` | Toggle swap element |
 | `components.icon` | Heroicon wrapper |
@@ -184,10 +208,10 @@ UI state managed by Alpine. No Axios.
 |---|---|
 | `actions.modal` | Modal with Alpine open/close |
 | `display.carousel` | Image/content carousel |
-| `display.filters` | Filter bar with Alpine state |
 | `display.node-graph` | Tree graph with event timeline + detail modal |
 | `display.text-rotate` | Animated rotating text |
 | `feedback.toast` | Toast notification |
+| `form.filters` | Filter panel (dropdown): announces `dbl-filters-applied` / `dbl-filters-cleared` |
 | `form.kv-editor` | Key-value editor with auto-inferring type selector |
 | `form.list-editor` | Chip/tag array-of-strings editor |
 | `form.repeater` | Dynamic repeatable field group |
@@ -202,14 +226,13 @@ UI state managed by Alpine. No Axios.
 
 ### Type 3 — Interactive remote (Alpine + Axios)
 
-Receive a `load-url` or `action` prop. Call plain Laravel controllers returning JSON.
+Receive a `load-url`, `submit-url` or `upload-url` prop. Call plain Laravel controllers returning JSON.
 
 | Component | Usage |
 |---|---|
-| `display.data-table` | Paginated, sortable, filterable table (listens to `display.filters` and to `form.filter`) |
+| `display.data-table` | Paginated, sortable, filterable table (listens to `form.filters`) |
 | `display.resource-details` | Detail view loaded from `load-url` |
-| `form.filter` | Filter bar for data-table |
-| `form.select` | Select whose options come from `options-url`; `depends-on="other_field"` asks again when that field changes (`docs/components/select.md`) |
+| `form.select` | Select whose options come from `load-url`; `depends-on="other_field"` asks again when that field changes (`docs/components/select.md`) |
 | `import.spreadsheet` | Excel/CSV chunked import |
 | `sections.auto-form` | Declarative form from schema array |
 | `sections.tabs` | Tabs with lazy-loaded content |
@@ -287,7 +310,7 @@ Event badge colours: `end` → green, `abort` → amber, `fail` → red, no term
 />
 ```
 
-The table asks `load-url` with these query params: `page`, `per_page`, `search`, `sort` (the column key), `direction` (`asc` or `desc`) and one param per active filter. The `filters` prop shows the `display.filters` dropdown; a `form.filter` bar placed anywhere on the page filters the table too (the table listens to the events of both). If the request fails, the table shows a message with a **Retry** button instead of spinning for ever.
+The table asks `load-url` with these query params: `page`, `per_page`, `search`, `sort` (the column key), `direction` (`asc` or `desc`) and one param per active filter. The `filters` prop shows the `form.filters` dropdown; a `<x-dbl::form.filters>` placed anywhere on the page filters the table too (the table listens to its `dbl-filters-applied` and `dbl-filters-cleared` events). If the request fails, the table shows a message with a **Retry** button instead of spinning for ever.
 
 #### Toolbar links — export, print, anything
 
@@ -351,7 +374,7 @@ public function data(Request $request)
 
 ```blade
 <x-dbl::form.select name="country_code" :options="$countries" />
-<x-dbl::form.select name="region_code" options-url="/location/regions" depends-on="country_code" />
+<x-dbl::form.select name="region_code" load-url="/location/regions" depends-on="country_code" />
 {{-- GET /location/regions?country_code=ES  ->  [{"value": "ES-TF", "label": "Santa Cruz de Tenerife"}, ...] --}}
 ```
 
@@ -365,7 +388,7 @@ public function data(Request $request)
         'price'       => ['label' => 'Price',    'type' => 'money'],
         'active'      => ['label' => 'Active',   'type' => 'toggle'],
     ]"
-    action="{{ route('products.store') }}"
+    submit-url="{{ route('products.store') }}"
     method="POST"
 />
 ```
@@ -413,11 +436,11 @@ Each field definition is keyed by `key` (not `name`):
 />
 ```
 
-The repeater dispatches `dbl-repeater-change` (`{ name, rows }`) whenever the rows change, so a
+The repeater dispatches `dbl-repeater-changed` (`{ name, rows }`) whenever the rows change, so a
 parent can react without reaching into its Alpine scope:
 
 ```blade
-<div x-data="{ save() { /* … */ } }" @dbl-repeater-change.debounce.500ms="save()">
+<div x-data="{ save() { /* … */ } }" @dbl-repeater-changed.debounce.500ms="save()">
     <x-dbl::form.repeater name="installments" :fields="$fields" />
 </div>
 ```
@@ -524,16 +547,15 @@ Chip/tag input for an array of strings. Enter or comma adds a chip; Backspace re
     form-id="product-onboarding"
     schema-version="2"
     :user-id="auth()->id()"
-    action="{{ route('products.store') }}"
+    submit-url="{{ route('products.store') }}"
     :steps="[
-        ['title' => 'Basic info',  'fields' => ['name', 'category_id']],
-        ['title' => 'Pricing',     'fields' => ['price', 'currency']],
-        ['title' => 'Visibility',  'fields' => ['active', 'publish_at']],
+        ['label' => 'Basic info', 'schema' => ['name' => ['label' => 'Name'], 'category_id' => ['label' => 'Category']], 'values' => ['name' => 'New product']],
+        ['label' => 'Pricing',    'schema' => ['price' => ['label' => 'Price', 'type' => 'money']]],
     ]"
 />
 ```
 
-If the user refreshes mid-wizard, their progress is automatically restored from localStorage. The storage key is versioned (`product-onboarding_{userId}_v2`), so changing `schema-version` invalidates stale state.
+If the user refreshes mid-wizard, their progress is automatically restored from localStorage. The storage key is `dbl_wizard_{userId}_{formId}_v{schemaVersion}`, so changing `schema-version` invalidates stale state. The `values` of the steps are where the form starts; the saved progress goes on top of them (what the user typed is not overwritten).
 
 ### App layout
 
@@ -561,6 +583,39 @@ If the user refreshes mid-wizard, their progress is automatically restored from 
 
 </x-dbl::layout.app>
 ```
+
+---
+
+## Events
+
+Announced by the components (they bubble up from the component, so `x-on:` on any ancestor hears them; `detail` is an object):
+
+| Component | Event | `detail` |
+|---|---|---|
+| `form.select` (all three modes) | `dbl-select-changed` | `{ name, value }` (`value` is a list with `multiple`) |
+| `form.filters` | `dbl-filters-applied`, `dbl-filters-cleared` | `{ filters }` |
+| `form.repeater` | `dbl-repeater-changed` | `{ name, rows }` |
+| `form.rich-text` | `dbl-rich-text-changed` | `{ name, value }` (the HTML) |
+| `form.signature` | `dbl-signature-signed`, `dbl-signature-cleared` | `{ name, value }` |
+| `form.upload` | `dbl-upload-uploaded`, `dbl-upload-removed` | `{ id, name, url, file }`, `{ id, name }` |
+| `navigation.pagination` | `dbl-pagination-page-changed` | `{ page }` |
+| `navigation.steps` | `dbl-steps-step-changed` | `{ step }` |
+| `display.calendar` | `dbl-calendar-event-clicked` | the event |
+| `display.map` | `dbl-map-picked` | `{ lat, lng }` |
+| `display.flowchart` | `dbl-flowchart-node-clicked`, `-edge-clicked`, `-node-moved`, `-edge-created` | see `docs/components/flowchart.md` |
+| `display.node-graph` | `dbl-node-graph-node-clicked`, `-badge-clicked`, `-node-created`, `-node-deleted`, `-badge-created`, `-badge-deleted`, `-edge-created` | the node and badge ids |
+
+Orders the components listen to on the window (`window.dispatchEvent(new CustomEvent('dbl-modal-open', { detail: { id: 'help' } }))`, or `$dispatch` from any element):
+
+| Order | `detail` | Effect |
+|---|---|---|
+| `dbl-modal-open`, `dbl-modal-close` | `{ id }` | Opens / closes the `actions.modal` with that `id` |
+| `dbl-toast-show` | `{ message, type?, duration? }` | `feedback.toast` shows a toast |
+| `dbl-sidebar-toggle` | | `navigation.sidebar` opens / closes |
+| `dbl-map-focus` | `{ map, layer, id }` | `display.map` centers on a point |
+| `dbl-flowchart-set`, `-focus`, `-remove-edge`, `-remove-node` | `{ name, ... }` | `display.flowchart` with that `name` |
+
+The `action` of a `navigation.menu` or `navigation.dock` item is the name of the event it dispatches: the name is yours (`'action' => 'dbl-sidebar-toggle'`).
 
 ---
 
@@ -604,7 +659,7 @@ vendor/bin/pest
 node --test tests/js/*.test.mjs
 ```
 
-`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 389 Pest tests (1581 assertions) and 154 JavaScript tests, all green.
+`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 460 Pest tests (2029 assertions) and 183 JavaScript tests, all green. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
 
 ---
 

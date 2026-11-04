@@ -6,7 +6,7 @@ Subida de ficheros: arrastrar y soltar más botón, vista previa, progreso por f
 <x-dbl::form.upload
     name="attachments"
     label="Documentos"
-    action="{{ route('files.store') }}"
+    upload-url="{{ route('files.store') }}"
     multiple
     accept="image/*,.pdf"
     :max-size="5"
@@ -17,7 +17,7 @@ Subida de ficheros: arrastrar y soltar más botón, vista previa, progreso por f
 />
 
 {{-- Hacer una foto con el móvil (acta firmada, ticket) --}}
-<x-dbl::form.upload name="ticket" action="/files" accept="image/*" capture="environment" />
+<x-dbl::form.upload name="ticket" upload-url="/files" accept="image/*" capture="environment" />
 ```
 
 ## Props
@@ -25,8 +25,9 @@ Subida de ficheros: arrastrar y soltar más botón, vista previa, progreso por f
 | Prop | Descripción |
 |---|---|
 | `name` | Los ids subidos se envían como `name[]` (inputs ocultos). |
-| `label`, `description`, `required` | Etiqueta, ayuda y asterisco. |
-| `action` | URL POST de subida. |
+| `label`, `hint`, `required` | Etiqueta, ayuda (bajo el campo) y asterisco. |
+| `upload-url` | URL POST de subida. |
+| `class`, `dropzone-class` | `class` va a la raíz; `dropzone-class` a la zona de soltar. |
 | `multiple` | Varios ficheros. Sin él, un fichero nuevo sustituye al anterior. |
 | `accept` | Extensiones, tipos o comodines: `image/*,.pdf`. Se valida también en el cliente. |
 | `max-size` | MB por fichero. |
@@ -38,7 +39,7 @@ Subida de ficheros: arrastrar y soltar más botón, vista previa, progreso por f
 
 ## Contrato JSON con el servidor
 
-**Subida** — `POST {action}`, `multipart/form-data`, campo `file`.
+**Subida** — `POST {upload-url}`, `multipart/form-data`, campo `file`.
 
 Respuesta 2xx:
 
@@ -62,16 +63,16 @@ Respuesta 2xx:
 
 Se emiten con `$dispatch` y burbujean:
 
-- `uploaded` — `detail: {id, name, url, file}` (`file` es la respuesta completa del servidor).
-- `removed` — `detail: {id, name}`.
+- `dbl-upload-uploaded` — `detail: {id, name, url, file}` (`file` es la respuesta completa del servidor).
+- `dbl-upload-removed` — `detail: {id, name}`.
 
 ```blade
-<div x-on:uploaded="console.log($event.detail.id)"> <x-dbl::form.upload … /> </div>
+<div x-on:dbl-upload-uploaded="console.log($event.detail.id)"> <x-dbl::form.upload … /> </div>
 ```
 
 ## JavaScript
 
-`resources/js/components/upload.js` exporta `dbUpload` y `registerUpload(Alpine, deps)`. axios se inyecta:
+`resources/js/components/upload.js` exporta `dblUpload` y `registerUpload(Alpine, deps)`. axios se inyecta:
 
 ```js
 import axios from 'axios'
@@ -81,7 +82,7 @@ registerUpload(Alpine, { axios })   // sin deps, usa window.axios
 
 Sin axios (ni inyectado ni `window.axios`) la subida usa `XMLHttpRequest`, porque `fetch` no informa del progreso de
 subida; envía las mismas cabeceras (`X-Requested-With`, CSRF) y falla con la misma forma de error que axios
-(`error.response.status` y `error.response.data`, p. ej. un 422 con `errors.file`). Una URL de `action` de **otro dominio**
+(`error.response.status` y `error.response.data`, p. ej. un 422 con `errors.file`). Una `upload-url` de **otro dominio**
 va siempre por `fetch`, sin cabeceras de Laravel y sin barra de progreso.
 
 ## Accesibilidad
