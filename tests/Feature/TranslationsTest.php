@@ -74,7 +74,7 @@ it('translates the fixed texts of the key-value editor', function (string $local
 
     $this->blade('<x-dbl::form.kv-editor name="p" />')->assertSee($expected, false);
 })->with([
-    'es' => ['es', ['Clave', 'Valor', 'Tipo', 'placeholder="Campo"', 'Añadir campo', 'title="Eliminar"']],
+    'es' => ['es', ['Clave', 'Valor', 'Tipo', 'placeholder="Campo"', 'Añadir campo', 'title="Quitar"']],
     'ca' => ['ca', ['Clau', 'Valor', 'Tipus', 'placeholder="Camp"', 'Afegeix un camp', 'title="Elimina"']],
     'en' => ['en', ['Key', 'Value', 'Type', 'placeholder="Field"', 'Add field', 'title="Remove"']],
 ]);
@@ -83,7 +83,7 @@ it('shows no Spanish in the key-value editor when the locale is English', functi
     App::setLocale('en');
 
     $this->blade('<x-dbl::form.kv-editor name="p" />')
-         ->assertDontSee('clave')->assertDontSee('Añadir')->assertDontSee('Eliminar');
+         ->assertDontSee('clave')->assertDontSee('Añadir')->assertDontSee('Quitar');
 });
 
 it('translates the default placeholder of the list editor, and respects one that is given', function () {
