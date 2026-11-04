@@ -13,13 +13,13 @@
 
 import { request, answerShapes } from '../http.js'
 import { withConfig } from '../factoryConfig.js'
-import { announceValue } from '../modelBinding.js'
+import { announceValue, modelBinding, isEmptyValue } from '../modelBinding.js'
 
 // Solo se aceptan enlaces http(s) y mailto. El servidor debe volver a comprobarlo al sanear.
 const SAFE_URL = /^(https?:\/\/|mailto:)/i
 
 export const dblRichText = withConfig({
-    name: '', label: '', placeholder: '', maxLength: 0, minimal: false, uploadUrl: '', labels: {},
+    name: '', label: '', placeholder: '', maxLength: 0, minimal: false, required: false, uploadUrl: '', labels: {},
 }, (config, deps = {}) => {
     // El editor vive en el cierre, NO en `this`: Alpine envolvería el editor en un Proxy
     // y Tiptap dejaría de funcionar bien.
@@ -32,6 +32,10 @@ export const dblRichText = withConfig({
         length: 0,        // caracteres de texto (sin etiquetas)
         uploading: false,
         error: '',
+        model: '',        // the model of the caller (`x-model` through the `x-modelable` of the view): the HTML.
+        blocked: '',      // why the form was not sent ('' = it was, or nothing was tried): `required` or `maxLength`
+        owningForm: null,   // not `form`: the `x-model` of the caller is read in this scope, and `form.body` must not find our element
+        onSubmit: null,
 
         init() {
             const extensions = [
@@ -65,16 +69,60 @@ export const dblRichText = withConfig({
             })
             this.buttons = this.buildButtons()
             this.sync()
+            this.guardTheForm()
+            // The model of the caller (x-modelable) exists once the whole component has started.
+            this.$nextTick(() => this.followTheModel())
+        },
+
+        // The rule of modelBinding.js for a control with a model: at the start the model wins if it holds something, and if it is
+        // empty the HTML of the view is shown and the model receives it; later, a change of the model from outside is always shown.
+        followTheModel() {
+            const binding = modelBinding({ get: () => this.model, set: html => { this.model = html } })
+            const shown = binding.reconcile(this.$refs.input.value)
+            this.showHtml(shown)
+            binding.observe(this.$watch.bind(this), html => {
+                if ((html ?? '') !== this.$refs.input.value) this.showHtml(html)   // the user's own typing comes back as the model: not a change
+            })
+        },
+
+        // Puts HTML in the editor (and in the field) without announcing it as something the user typed.
+        showHtml(html) {
+            const text = isEmptyValue(html) ? '' : String(html)
+            if (text === (editor.isEmpty ? '' : editor.getHTML())) return
+            editor.commands.setContent(text, { emitUpdate: false })
+            this.sync()
+        },
+
+        // `required` and `max-length` stop the submit of the form, like `required` and `maxlength` of a native field (a hidden
+        // input cannot do it by itself, and the editor is a <div>). The same pattern as the signature.
+        guardTheForm() {
+            this.owningForm = this.$root.closest('form')
+            this.onSubmit = event => {
+                this.blocked = this.reasonToBlock()
+                if (!this.blocked) return
+                event.preventDefault()
+                editor.commands.focus()
+            }
+            this.owningForm?.addEventListener('submit', this.onSubmit)
+        },
+
+        // The message of what stops the form, or '' when nothing does.
+        reasonToBlock() {
+            if (config.required && editor.isEmpty) return labels.required ?? ''
+            if (this.overLimit) return (labels.tooLong ?? '').replace(':max', config.maxLength)
+            return ''
         },
 
         // Copia el HTML al hidden y actualiza el contador.
         sync() {
             this.$refs.input.value = editor.isEmpty ? '' : editor.getHTML()
             this.length = editor.getText().length
+            if (this.blocked && !this.reasonToBlock()) this.blocked = ''   // what stopped the form is solved
         },
 
         // Tells whoever listens above that the content changed, with the name of the field and its HTML.
         announce() {
+            this.model = this.$refs.input.value   // what the user typed goes to the model of the caller
             announceValue(this.$refs.input)   // the field says it changed, as a native control does (modelBinding.js)
             this.$dispatch('dbl-rich-text-changed', { name: config.name, value: this.$refs.input.value })
         },
@@ -162,6 +210,7 @@ export const dblRichText = withConfig({
         },
 
         destroy() {
+            this.owningForm?.removeEventListener('submit', this.onSubmit)
             editor?.destroy()
             editor = null
         },

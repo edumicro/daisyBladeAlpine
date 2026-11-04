@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Str;
 use Illuminate\Support\ViewErrorBag;
 
 /*
@@ -73,9 +74,17 @@ function browserLayout(string $body, array $modules = []): string
     $imports = '';
     $registers = '';
     foreach ($modules as $module) {
-        $function = 'register'.ucfirst($module);
+        $function = 'register'.Str::studly($module);
         $imports .= "import { {$function} } from '/_assets/js/components/{$module}.js'\n";
-        $registers .= $module === 'map' ? "{$function}(window.Alpine, { maplibregl: withMapsRecorded(maplibregl) })\n" : "{$function}(window.Alpine)\n";
+        // The optional components that need a library get it injected, as an application does.
+        $registers .= match ($module) {
+            'map' => "{$function}(window.Alpine, { maplibregl: withMapsRecorded(maplibregl) })\n",
+            'rich-text' => "{$function}(window.Alpine, tiptap)\n",
+            default => "{$function}(window.Alpine)\n",
+        };
+    }
+    if (in_array('rich-text', $modules, true)) {
+        $imports .= "import * as tiptap from '/_assets/tiptap.js'\n";
     }
     if (in_array('map', $modules, true)) {
         $imports .= "import * as maplibregl from '/_assets/node/maplibre-gl/dist/maplibre-gl.mjs'\n";
@@ -138,6 +147,9 @@ function registerBrowserEndpoints(): void
         ->where('path', '.*')->name('browser.assets');
     Route::get('/_assets/node/{path}', fn (string $path) => $serve(browserPath('node_modules/'.$path), $typeOf($path)))
         ->where('path', '.*');
+
+    // Tiptap in ONE module, built from tests/Browser/Support/tiptap-entry.js (see `tiptapBundle()`).
+    Route::get('/_assets/tiptap.js', fn () => $serve(tiptapBundle(), 'text/javascript'));
 
     // A 1x1 picture for every image of the catalog, a resource and two fragments of lazy tabs.
     Route::get('/pixel.png', fn () => response(
@@ -260,4 +272,32 @@ function drawStroke($page, string $canvas = 'canvas'): void
             at('pointerdown', 20, 20); for (let i = 1; i < 12; i++) at('pointermove', 20 + i * 10, 20 + i * 5); at('pointerup', 130, 75)
         })()
         JS);
+}
+
+/**
+ * The bundle of Tiptap for the browser tests, built once with esbuild from `node_modules` (a development dependency) and kept in the
+ * temporary folder of the system until the entry file or the installed Tiptap changes. Returns its path.
+ */
+function tiptapBundle(): string
+{
+    $entry = browserPath('tests/Browser/Support/tiptap-entry.js');
+    $bundle = sys_get_temp_dir().'/daisyblade-tests/tiptap-'.md5($entry.filemtime($entry).filemtime(browserPath('package-lock.json'))).'.js';
+    if (is_file($bundle)) {
+        return $bundle;
+    }
+
+    @mkdir(dirname($bundle), 0777, true);
+    $built = Illuminate\Support\Facades\Process::path(browserPath(''))->run([browserPath('node_modules/.bin/esbuild'), $entry, '--bundle', '--format=esm', '--outfile='.$bundle, '--log-level=error']);
+    if (! $built->successful()) {
+        throw new RuntimeException('esbuild could not build Tiptap for the browser tests (did you run `npm install`?): '.$built->errorOutput());
+    }
+
+    return $bundle;
+}
+
+/** Types text in the editor like a user: focus it and type with real key presses. */
+function typeInEditor($page, string $text): void
+{
+    $page->script("document.querySelector('.dbl-rich-text-content').focus()");
+    $page->typeSlowly('.dbl-rich-text-content', $text, 10);
 }

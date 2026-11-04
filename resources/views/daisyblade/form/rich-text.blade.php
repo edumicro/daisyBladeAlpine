@@ -15,7 +15,11 @@
     // Textos traducidos: el JS no sabe de idiomas, los recibe ya resueltos.
     $keys = ['editor', 'paragraph', 'h2', 'h3', 'bold', 'italic', 'bulletList', 'orderedList',
              'blockquote', 'link', 'image', 'table', 'undo', 'redo', 'linkPrompt', 'linkInvalid',
-             'uploadFailed'];
+             'uploadFailed', 'required', 'tooLong'];
+    // The `x-model` of the caller is NOT for the box: like on a native field it holds the VALUE (the HTML). It goes on a hidden element
+    // inside the scope of the component, paired with `x-modelable`; the rest of the attributes go to the box of the editor.
+    $modelAttributes = $attributes->whereStartsWith('x-model');
+    $boxAttributes = $attributes->whereDoesntStartWith('x-model');
     $config = [
         'name'        => $name,
         'label'       => $label,
@@ -23,6 +27,7 @@
         'uploadUrl'   => $uploadUrl,
         'maxLength'   => (int) $maxLength,
         'minimal'     => (bool) $minimal,
+        'required'    => (bool) $required,
         'labels'      => collect($keys)->mapWithKeys(fn ($k) => [$k => __("daisyblade::rich-text.$k")])->all(),
     ];
 @endphp
@@ -66,8 +71,9 @@
 
     {{-- Lo que viaja en el formulario: el HTML del editor, que el servidor DEBE sanear. --}}
     <input type="hidden" x-ref="input" @if($name) name="{{ $name }}" @endif value="{{ $value }}">
+    <span {{ $modelAttributes->merge(['x-modelable' => 'model', 'hidden' => true]) }}></span>
 
-    <div {{ $attributes->merge(['class' => 'rounded-box border border-base-300 bg-base-100 focus-within:border-primary']) }}>
+    <div {{ $boxAttributes->merge(['class' => 'rounded-box border border-base-300 bg-base-100 focus-within:border-primary']) }}>
         <div role="toolbar" aria-label="{{ __('daisyblade::rich-text.toolbar') }}"
              class="flex flex-wrap gap-1 border-b border-base-300 p-1">
             <template x-for="button in buttons" x-bind:key="button.id">
@@ -89,6 +95,7 @@
     <input type="file" accept="image/*" class="hidden" x-ref="file" x-on:change="upload($event)" tabindex="-1">
 
     <p x-show="error" x-cloak x-text="error" class="mt-1 text-xs text-error font-semibold" role="alert"></p>
+    <p x-show="blocked" x-cloak x-text="blocked" class="mt-1 text-xs text-error font-semibold" role="alert"></p>
 
     <x-dbl::form.field-error :name="$name" />
 

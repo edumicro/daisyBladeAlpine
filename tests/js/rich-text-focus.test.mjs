@@ -19,7 +19,7 @@ function fakeEditorDeps(calls) {
     return { Editor, StarterKit: { configure: () => ({}) } }
 }
 
-const richTextWith = deps => Object.assign(dblRichText({ name: 'body' }, deps), { $refs: { editor: {}, input: { value: '' }, file: {} } })
+const richTextWith = deps => Object.assign(dblRichText({ name: 'body' }, deps), { $refs: { editor: {}, input: { value: '' }, file: {} }, $root: { closest: () => null }, $nextTick: () => {}, $watch() {} })
 
 test('focus() puts the cursor in the editor', () => {
     const calls = []

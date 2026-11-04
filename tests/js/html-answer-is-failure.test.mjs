@@ -46,7 +46,7 @@ test('rich-text: an HTML answer to an image upload inserts nothing and shows the
     }
     const richText = Object.assign(
         dblRichText({ name: 'b', uploadUrl: '/img', labels: { uploadFailed: 'Fallo' } }, { Editor, StarterKit: { configure: () => ({}) } }),
-        { $refs: { editor: {}, input: { value: '' }, file: {} }, $dispatch() {} },
+        { $refs: { editor: {}, input: { value: '' }, file: {} }, $dispatch() {}, $root: { closest: () => null }, $nextTick: () => {}, $watch() {} },
     )
     richText.init()
 

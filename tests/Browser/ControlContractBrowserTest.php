@@ -97,6 +97,12 @@ dataset('controls', function () {
             'change' => fn ($page) => chooseFile($page, 'input[type=file]', 'f.txt', 'hello'),
             'field' => 'c[]', 'param' => 'c[]',
         ]],
+        'rich text' => [[
+            'blade' => '<x-dbl::form.rich-text name="c" />',
+            'modules' => ['rich-text'],
+            'change' => fn ($page) => typeInEditor($page, 'ab'),
+            'field' => 'c', 'param' => 'c',
+        ]],
         'signature' => [[
             'blade' => PAD_SCRIPT.'<x-dbl::form.signature name="c" />',
             'modules' => ['signature'],

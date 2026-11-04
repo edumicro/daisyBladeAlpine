@@ -533,6 +533,9 @@ it('7. puts class and every other attribute of a form control on the control, an
         'form/checkbox.blade.php' => '<input', 'form/radio.blade.php' => '<input', 'form/toggle.blade.php' => '<input',
         'form/rich-text.blade.php' => '<div', 'form/signature.blade.php' => '<div', 'form/upload.blade.php' => '<div',
     ];
+    // The `x-model` of the caller is the one attribute that does not go to the control in rich-text: the model holds the HTML, and it sits
+    // on a hidden element inside the scope of the component, paired with `x-modelable` (as in the searchable select).
+    $modelOn = ['form/rich-text.blade.php' => '<span'];
     $offenders = [];
 
     foreach (CONVENTION_CONTROLS as $path) {
@@ -542,10 +545,13 @@ it('7. puts class and every other attribute of a form control on the control, an
         $root = $tags[0];
         $carrying = array_values(array_filter($tags, fn ($t) => str_contains($t, 'data-probe="yes"')));
 
+        $holdingTheModel = array_values(array_filter($tags, fn ($t) => str_contains($t, 'x-model="form.f"')));
+
         $ok = count($carrying) === 1
             && str_starts_with($carrying[0], $control[$path])
             && $carrying[0] !== $root
-            && str_contains($carrying[0], 'probe-class') && str_contains($carrying[0], 'x-model="form.f"')
+            && str_contains($carrying[0], 'probe-class')
+            && count($holdingTheModel) === 1 && str_starts_with($holdingTheModel[0], $modelOn[$path] ?? $control[$path])
             && str_contains($root, 'probe-wrapper') && ! str_contains($root, 'probe-class') && ! str_contains($root, 'x-model');
 
         if (! $ok) {

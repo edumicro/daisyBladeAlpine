@@ -19,5 +19,7 @@ return [
     'linkPrompt' => 'URL del enlace (http, https o mailto). Vacío para quitarlo.',
     'linkInvalid' => 'Solo se admiten enlaces http, https o mailto.',
     'uploadFailed' => 'No se pudo subir la imagen.',
+    'required' => 'Este campo es obligatorio.',
+    'tooLong' => 'El texto es demasiado largo: el máximo es de :max caracteres.',
     'uploading' => 'Subiendo imagen…',
 ];

@@ -19,5 +19,7 @@ return [
     'linkPrompt' => 'URL de l\'enllaç (http, https o mailto). Buit per treure\'l.',
     'linkInvalid' => 'Només s\'admeten enllaços http, https o mailto.',
     'uploadFailed' => 'No s\'ha pogut pujar la imatge.',
+    'required' => 'Aquest camp és obligatori.',
+    'tooLong' => 'El text és massa llarg: el màxim és de :max caràcters.',
     'uploading' => 'Pujant imatge…',
 ];
