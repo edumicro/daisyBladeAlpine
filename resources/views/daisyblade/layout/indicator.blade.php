@@ -6,8 +6,6 @@
     'vertical'       => 'top',
     'indicatorClass' => '',
     'contentClass'   => '',
-    'class'          => '',
-    'containerClass' => '',
 ])
 
 @php
@@ -34,7 +32,7 @@ $indicatorItemClasses = trim(implode(' ', array_filter([
 ])));
 @endphp
 
-<div {{ $attributes->merge(['class' => trim("indicator {$containerClass}")]) }}>
+<div {{ $attributes->merge(['class' => 'indicator']) }}>
     <span class="{{ $indicatorItemClasses }}">
         @if($icon && $iconSide === 'left')
             <x-dynamic-component :component="$icon" class="h-4 w-4" />
@@ -51,7 +49,7 @@ $indicatorItemClasses = trim(implode(' ', array_filter([
         @endif
     </span>
 
-    <div class="{{ trim("{$contentClass} {$class}") }}">
+    <div class="{{ $contentClass }}">
         {{ $slot }}
     </div>
 </div>

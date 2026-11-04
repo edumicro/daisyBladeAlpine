@@ -46,7 +46,7 @@ $typeClass = match($type) {
             }
         }"
         x-show="visible"
-        class="toast {{ $verticalClass }} {{ $positionClass }} z-50"
+        {{ $attributes->merge(['class' => "toast {$verticalClass} {$positionClass} z-50"]) }}
     >
         <div class="alert {{ $typeClass }}">
             <span>{{ $message }}</span>
@@ -60,7 +60,7 @@ $typeClass = match($type) {
     <div
         x-data="dblToast()"
         @notify.window="add($event.detail.message, $event.detail.type ?? 'info', $event.detail.duration ?? {{ $duration }})"
-        class="toast {{ $verticalClass }} {{ $positionClass }} z-50 pointer-events-none"
+        {{ $attributes->merge(['class' => "toast {$verticalClass} {$positionClass} z-50 pointer-events-none"]) }}
     >
         <template x-for="toast in toasts" :key="toast.id">
             <div

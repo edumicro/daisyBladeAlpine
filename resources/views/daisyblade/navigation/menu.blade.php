@@ -5,8 +5,6 @@
     'showIcons'      => true,
     'compact'        => false,
     'fullWidth'      => false,
-    'class'          => '',
-    'containerClass' => '',
 ])
 
 @php
@@ -36,7 +34,7 @@ $badgeClass = fn ($color) => match($color) {
 @endphp
 
 <ul
-    {{ $attributes->merge(['class' => trim("menu {$sizeClass} {$dirClass} " . ($fullWidth ? 'w-full ' : '') . (!$compact ? 'bg-base-100 rounded-lg ' : '') . $class)]) }}
+    {{ $attributes->merge(['class' => trim("menu {$sizeClass} {$dirClass} " . ($fullWidth ? 'w-full ' : '') . (!$compact ? 'bg-base-100 rounded-lg' : ''))]) }}
 >
     @foreach($items as $item)
         @php $type = $item['type'] ?? 'item'; @endphp

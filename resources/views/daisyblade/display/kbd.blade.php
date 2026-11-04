@@ -4,12 +4,12 @@
     'color'   => 'neutral',   // neutral | primary | secondary | accent
     'size'    => 'md',   // xs | sm | md | lg | xl
     'label'   => '',
-    'class'   => '',
+    'kbdClass' => '',
 ])
 
 @php
 $keys = is_array($keys) ? $keys : ($keys !== '' && $keys !== [] ? [$keys] : []);
-$kbdClass = 'kbd' . match($color) {
+$kbdClasses = 'kbd' . match($color) {
     'primary'   => ' kbd-primary',
     'secondary' => ' kbd-secondary',
     'accent'    => ' kbd-accent',
@@ -30,13 +30,13 @@ $kbdClass = 'kbd' . match($color) {
     <div class="flex flex-wrap gap-2 items-center">
         @if(!empty($keys))
             @foreach($keys as $k)
-                <span class="{{ $kbdClass }} {{ $class }}">{{ $k }}</span>
+                <span class="{{ $kbdClasses }} {{ $kbdClass }}">{{ $k }}</span>
                 @if(!$loop->last)
                     <span class="text-base-content/50">+</span>
                 @endif
             @endforeach
         @elseif($key)
-            <span class="{{ $kbdClass }} {{ $class }}">{{ $key }}</span>
+            <span class="{{ $kbdClasses }} {{ $kbdClass }}">{{ $key }}</span>
         @else
             {{ $slot }}
         @endif

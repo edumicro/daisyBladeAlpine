@@ -1,10 +1,9 @@
 @props([
     'title'       => '',
     'description' => '',
-    'class'       => '',
 ])
 
-<div class="mb-6 {{ $class }}">
+<div {{ $attributes->merge(['class' => 'mb-6']) }}>
     @if($title)
         <div class="mb-3">
             <h3 class="text-base font-semibold text-base-content">{{ $title }}</h3>

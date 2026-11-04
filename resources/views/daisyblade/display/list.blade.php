@@ -6,8 +6,7 @@
     'icon'           => '',
     'hoverable'      => false,
     'label'          => '',
-    'class'          => '',
-    'containerClass' => '',
+    'listClass'      => '',
 ])
 
 @php
@@ -21,14 +20,14 @@ $sizeClass = match($size) {
 $tag = $ordered ? 'ol' : 'ul';
 @endphp
 
-<div class="{{ $containerClass }}">
+<div {{ $attributes }}>
     @if($label)
         <div class="mb-3 pb-2 border-b border-base-300">
             <h3 class="font-semibold">{{ $label }}</h3>
         </div>
     @endif
 
-    <{{ $tag }} @class([$sizeClass, 'space-y-1', $class])>
+    <{{ $tag }} @class([$sizeClass, 'space-y-1', $listClass])>
         @forelse($items as $item)
             <li @class([
                 'flex flex-col',

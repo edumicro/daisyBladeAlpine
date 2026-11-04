@@ -10,7 +10,6 @@
     'applyUrl' => '',
     'method'   => 'GET',
     'label'    => '',
-    'class'    => '',
 ])
 
 <div
@@ -30,7 +29,7 @@
             this.$dispatch('filter-clear')
         }
     }"
-    class="{{ $class }}"
+    {{ $attributes }}
 >
     @if($label)
         <h3 class="font-semibold mb-3">{{ $label }}</h3>

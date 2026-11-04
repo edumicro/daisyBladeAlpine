@@ -8,7 +8,7 @@
     'loading'   => false,
     'actions'   => [],
     'icon'      => '',
-    'class'     => '',
+    'bubbleClass' => '',
 ])
 
 <div {{ $attributes->merge(['class' => 'chat ' . ($variant === 'sent' ? 'chat-end' : 'chat-start')]) }}>
@@ -29,7 +29,7 @@
         </div>
     @endif
 
-    <div class="chat-bubble {{ $variant === 'sent' ? 'chat-bubble-primary' : 'chat-bubble-neutral' }} {{ $class }}">
+    <div class="chat-bubble {{ $variant === 'sent' ? 'chat-bubble-primary' : 'chat-bubble-neutral' }} {{ $bubbleClass }}">
         @if($loading)
             <span class="loading loading-spinner loading-sm"></span>
             {{ __('Typing') }}...

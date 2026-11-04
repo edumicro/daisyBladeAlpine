@@ -10,8 +10,7 @@
     'tabs'   => [],
     'active' => 0,
     'style'  => 'lifted',
-    'class'  => '',
-    'containerClass' => '',
+    'panelClass' => '',
 ])
 
 @php
@@ -32,7 +31,7 @@ $tabsJson = json_encode(array_map(fn($t) => ['label' => $t['label'] ?? '', 'load
 
 <div
     x-data="dblTabsLazy({ active: {{ (int)$active }}, tabs: {{ $tabsJson }}, messages: @js(['loadFailed' => __('Could not load the content')]) })"
-    {{ $attributes->merge(['class' => "space-y-0 {$containerClass}"]) }}
+    {{ $attributes->merge(['class' => 'space-y-0']) }}
 >
     {{-- Tab headers --}}
     <div role="tablist" class="tabs {{ $styleClass }} w-full">
@@ -61,7 +60,7 @@ $tabsJson = json_encode(array_map(fn($t) => ['label' => $t['label'] ?? '', 'load
         <div
             x-show="isActive({{ $i }})"
             x-cloak
-            class="bg-base-100 border border-base-300 border-t-0 rounded-b-box p-6 {{ $class }}"
+            class="bg-base-100 border border-base-300 border-t-0 rounded-b-box p-6 {{ $panelClass }}"
         >
             <div x-show="isLoading({{ $i }})" class="flex justify-center py-8">
                 <div class="loading loading-spinner loading-md"></div>

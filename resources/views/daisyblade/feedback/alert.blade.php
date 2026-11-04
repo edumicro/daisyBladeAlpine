@@ -4,8 +4,7 @@
     'title'          => '',
     'icon'           => '',
     'closable'       => true,
-    'class'          => '',
-    'containerClass' => '',
+    'contentClass'   => '',
 ])
 
 @php
@@ -16,9 +15,9 @@ $defaultIcon = $icon ?: match($type) { 'success'=>'heroicon-o-check-circle','war
 <div
     x-data="{ open: true }"
     x-show="open"
-    class="alert {{ $alertClass }} {{ $containerClass }}"
+    {{ $attributes->merge(['class' => "alert {$alertClass}"]) }}
 >
-    <div class="flex items-start gap-3 w-full {{ $class }}">
+    <div class="flex items-start gap-3 w-full {{ $contentClass }}">
         <x-dynamic-component :component="$defaultIcon" class="w-6 h-6 flex-shrink-0" />
 
         <div class="flex-1">

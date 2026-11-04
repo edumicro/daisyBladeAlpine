@@ -46,8 +46,7 @@
     'showMuted'      => false,
     'fit'            => false,
     'label'          => '',
-    'class'          => '',
-    'containerClass' => '',
+    'canvasClass'    => '',
 ])
 
 @php
@@ -89,7 +88,7 @@
     $uid = 'dbf-' . \Illuminate\Support\Str::random(8);   // único por render: dos diagramas iguales no comparten ids
 @endphp
 
-<div {{ $attributes->merge(['class' => 'dbl-flowchart min-w-0 max-w-full ' . $containerClass]) }}
+<div {{ $attributes->merge(['class' => 'dbl-flowchart min-w-0 max-w-full']) }}
      x-data="dblFlowchart(JSON.parse($el.dataset.config))"
      x-on:dbl-flowchart.window="onWindowEvent($event.detail)"
      data-config="{{ json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) }}">
@@ -132,7 +131,7 @@
             </button>
         </div>
 
-    <div x-ref="viewport" class="overflow-auto rounded-box border border-base-300 bg-base-100 {{ $class }}"
+    <div x-ref="viewport" class="overflow-auto rounded-box border border-base-300 bg-base-100 {{ $canvasClass }}"
          style="height: {{ $height }}; max-width: 100%">
         <div class="relative" x-bind:style="`width:${size.w * scale + offset.x}px;height:${size.h * scale + offset.y}px;min-width:100%;min-height:100%`">
         {{-- translate(offset) centers the drawing after fit/zoom when it is smaller than the view; it is 0 until then --}}

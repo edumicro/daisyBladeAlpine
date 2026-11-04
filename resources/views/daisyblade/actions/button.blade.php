@@ -9,7 +9,6 @@
     'iconPosition' => 'left',
     'iconOnly'     => false,
     'href'         => '',
-    'class'        => '',
 ])
 
 @php
@@ -42,7 +41,7 @@ $sizeClass = match($size) {
 @if($href)
     <a
         href="{{ $href }}"
-        {{ $attributes->merge(['class' => "btn {$colorClass} {$sizeClass} {$class}" . ($iconOnly ? ' btn-circle' : '')]) }}
+        {{ $attributes->merge(['class' => "btn {$colorClass} {$sizeClass}" . ($iconOnly ? ' btn-circle' : '')]) }}
     >
         @if($icon && $iconPosition === 'left' && !$iconOnly)
             <x-dynamic-component :component="$icon" class="w-5 h-5" />
@@ -58,7 +57,7 @@ $sizeClass = match($size) {
     <button
         type="{{ $type }}"
         @disabled($disabled || $loading)
-        {{ $attributes->merge(['class' => "btn {$colorClass} {$sizeClass} {$class}" . ($iconOnly ? ' btn-circle' : '') . ($loading ? ' btn-loading' : '')]) }}
+        {{ $attributes->merge(['class' => "btn {$colorClass} {$sizeClass}" . ($iconOnly ? ' btn-circle' : '') . ($loading ? ' btn-loading' : '')]) }}
     >
         @if($loading)
             <span class="loading loading-spinner loading-sm"></span>

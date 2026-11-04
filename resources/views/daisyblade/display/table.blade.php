@@ -5,16 +5,15 @@
     'compact'  => false,
     'bordered' => false,
     'label'    => '',
-    'class'    => '',
-    'containerClass' => '',
+    'tableClass' => '',
 ])
 
-<div class="overflow-x-auto w-full {{ $containerClass }}">
+<div {{ $attributes->merge(['class' => 'overflow-x-auto w-full']) }}>
     @if($label)
         <h3 class="text-lg font-bold mb-4">{{ $label }}</h3>
     @endif
 
-    <table {{ $attributes->merge(['class' => trim('table ' . ($striped ? 'table-zebra ' : '') . ($compact ? 'table-compact ' : '') . ($bordered ? 'table-bordered ' : '') . 'w-full ' . $class)]) }}>
+    <table class="{{ trim('table ' . ($striped ? 'table-zebra ' : '') . ($compact ? 'table-compact ' : '') . ($bordered ? 'table-bordered ' : '') . 'w-full ' . $tableClass) }}">
         @if(!empty($columns))
             <thead>
                 <tr>

@@ -7,7 +7,7 @@
     'size'     => 'lg',   // xs | sm | md | lg | xl
     'position' => 'bottom-right',
     'disabled' => false,
-    'class'    => '',
+    'buttonClass' => '',
 ])
 
 @php
@@ -45,7 +45,7 @@ $posClass = match($position) {
 
 <div
     x-data="{ menuOpen: false }"
-    class="fixed {{ $posClass }} z-40"
+    {{ $attributes->merge(['class' => "fixed {$posClass} z-40"]) }}
 >
     {{-- Slot actions (speed-dial menu) --}}
     @if($slot->isNotEmpty())
@@ -58,7 +58,7 @@ $posClass = match($position) {
         @if($href)
             <a
                 href="{{ $href }}"
-                {{ $attributes->merge(['class' => "btn btn-circle {$colorClass} {$sizeClass} shadow-lg hover:shadow-xl transition-all duration-200 {$class}"]) }}
+                class="btn btn-circle {{ $colorClass }} {{ $sizeClass }} shadow-lg hover:shadow-xl transition-all duration-200 {{ $buttonClass }}"
             >
                 <x-dynamic-component :component="$icon" class="w-6 h-6" />
                 @if($label) <span class="ml-2">{{ __($label) }}</span> @endif
@@ -68,7 +68,7 @@ $posClass = match($position) {
                 type="button"
                 @if($slot->isNotEmpty()) @click="menuOpen = !menuOpen" @endif
                 @disabled($disabled)
-                {{ $attributes->merge(['class' => "btn btn-circle {$colorClass} {$sizeClass} shadow-lg hover:shadow-xl transition-all duration-200 {$class}"]) }}
+                class="btn btn-circle {{ $colorClass }} {{ $sizeClass }} shadow-lg hover:shadow-xl transition-all duration-200 {{ $buttonClass }}"
             >
                 <x-dynamic-component :component="$icon" class="w-6 h-6" />
                 @if($label) <span class="ml-2">{{ __($label) }}</span> @endif

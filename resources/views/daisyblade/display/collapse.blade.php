@@ -6,8 +6,7 @@
     'icon'           => '',
     'iconSide'       => 'left',
     'background'     => 'base-200',   // base-200 | primary | secondary | accent | info | success | warning | error
-    'class'          => '',
-    'containerClass' => '',
+    'titleClass'     => '',
 ])
 
 @php
@@ -25,10 +24,10 @@ $contentClass = match($background) {
 };
 @endphp
 
-<div {{ $attributes->merge(['class' => "collapse collapse-arrow border border-base-300 bg-base-100 {$containerClass}"]) }}>
+<div {{ $attributes->merge(['class' => "collapse collapse-arrow border border-base-300 bg-base-100"]) }}>
     <input type="checkbox" {{ $open ? 'checked' : '' }} />
 
-    <div class="collapse-title flex items-center gap-2 font-medium {{ $class }}">
+    <div class="collapse-title flex items-center gap-2 font-medium {{ $titleClass }}">
         @if($icon && $iconSide === 'left')
             <x-dynamic-component :component="$icon" class="w-5 h-5 shrink-0" />
         @endif

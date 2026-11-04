@@ -8,7 +8,7 @@
     'icon'     => '',
     'color'    => 'neutral',
     'label'    => '',
-    'class'    => '',
+    'avatarClass' => '',
 ])
 
 @php
@@ -44,7 +44,7 @@ $sizeClass = match($size) {
         <span class="text-sm font-medium">{{ $label }}</span>
     @endif
 
-    <div @class(['avatar', 'avatar-online' => $online, 'avatar-offline' => $offline, $class => $class])>
+    <div @class(['avatar', 'avatar-online' => $online, 'avatar-offline' => $offline, $avatarClass => $avatarClass])>
         <div class="{{ $sizeClass }} rounded-full">
             @if($src)
                 <img src="{{ $src }}" alt="{{ $alt }}" class="rounded-full object-cover w-full h-full" />

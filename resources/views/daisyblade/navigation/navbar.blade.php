@@ -1,9 +1,8 @@
 @props([
     'brand' => null,
-    'class' => '',
 ])
 
-<div x-data="dblNavbar()" class="navbar bg-base-100 shadow-sm {{ $class }}">
+<div x-data="dblNavbar()" {{ $attributes->merge(['class' => 'navbar bg-base-100 shadow-sm']) }}>
 
     <div class="navbar-start">
         @isset($start)

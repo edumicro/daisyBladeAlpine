@@ -7,13 +7,11 @@
     'overlayClass' => 'hero-overlay bg-opacity-60',
     'contentClass' => '',
     'minHeight'    => 'min-h-screen',
-    'class'        => '',
-    'containerClass' => '',
 ])
 
 @php
-$heroClasses    = trim("hero {$minHeight} {$containerClass}");
-$contentClasses = trim("hero-content text-center {$contentClass} {$class}");
+$heroClasses    = trim("hero {$minHeight}");
+$contentClasses = trim("hero-content text-center {$contentClass}");
 @endphp
 
 <div

@@ -13,9 +13,13 @@
     'mode'         => 'form',
     'values'       => [],
     'alpineData'   => 'data',
-    'alphaErrors'  => 'errors',
+    'alpineErrors' => 'errors',
 ])
 
+{{-- A fragment: many cells and no root of its own, because it goes inside the grid of its parent. `display: contents`
+     makes this wrapper disappear from the layout while still being the element that takes `$attributes`.
+     (`$attributes` does not exist when a view `@include`s this file instead of using the tag.) --}}
+<div {{ ($attributes ?? new \Illuminate\View\ComponentAttributeBag)->merge(['class' => 'contents']) }}>
 @foreach($fields as $key => $field)
     @php
         $ft          = $field['type'] ?? 'text';
@@ -63,7 +67,7 @@
         }
         $attrs = Edumicro\DaisyBlade\Support\Attrs::render($attrs);
         $aD = $alpineData;
-        $aE = $alphaErrors;
+        $aE = $alpineErrors;
     @endphp
 
     {{-- `hidden` sale ANTES del <div> de la celda: un campo oculto no ocupa columna, no lleva
@@ -271,3 +275,4 @@
         @endswitch
     </div>
 @endforeach
+</div>

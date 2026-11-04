@@ -3,7 +3,6 @@
     'value'  => [],
     'label'  => null,
     'hint'   => null,
-    'class'  => '',
 ])
 
 @php
@@ -23,7 +22,7 @@ $initialRows = collect($value)->map(function ($v, $k) {
 })->values()->toArray();
 @endphp
 
-<div x-data="dblKvEditor({ rows: {{ \Illuminate\Support\Js::from($initialRows) }} })" class="{{ $class }}">
+<div x-data="dblKvEditor({ rows: {{ \Illuminate\Support\Js::from($initialRows) }} })" {{ $attributes }}>
 
     @if($label)
     <div class="mb-1 text-sm font-medium">{{ $label }}</div>

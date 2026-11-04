@@ -4,8 +4,7 @@
     'direction'          => 'horizontal',
     'showLabelsOnHover'  => true,
     'iconSize'           => 'md',   // xs | sm | md | lg | xl
-    'class'              => '',
-    'containerClass'     => '',
+    'barClass'           => '',
 ])
 
 @php
@@ -28,8 +27,8 @@ $iconSizeClass = match($iconSize) {
 $dirClass = $direction === 'vertical' ? 'flex-col' : 'flex-row';
 @endphp
 
-<div class="fixed {{ $posClass }} p-4 z-40 {{ $containerClass }}">
-    <div class="flex {{ $dirClass }} gap-2 bg-base-100 shadow-2xl rounded-full p-3 backdrop-blur-sm border border-base-300 {{ $class }}">
+<div {{ $attributes->merge(['class' => "fixed {$posClass} p-4 z-40"]) }}>
+    <div class="flex {{ $dirClass }} gap-2 bg-base-100 shadow-2xl rounded-full p-3 backdrop-blur-sm border border-base-300 {{ $barClass }}">
         @foreach($items as $item)
             <div class="relative group">
                 @if($item['route'] ?? false)

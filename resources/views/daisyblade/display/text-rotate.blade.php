@@ -7,7 +7,7 @@
     'color'      => 'primary',
     'bold'       => true,
     'label'      => '',
-    'class'      => '',
+    'textClass'  => '',
 ])
 
 @php
@@ -71,7 +71,7 @@ $sizeClass = match($size) {
                 class="absolute inset-0 flex items-center justify-center transition-opacity duration-500"
                 :class="{ 'opacity-100': i === current, 'opacity-0': i !== current }"
             >
-                <span class="{{ $sizeClass }} {{ $bold ? 'font-bold' : '' }} {{ $textColorClass }} text-center px-4 {{ $class }}" x-text="text.text ?? text"></span>
+                <span class="{{ $sizeClass }} {{ $bold ? 'font-bold' : '' }} {{ $textColorClass }} text-center px-4 {{ $textClass }}" x-text="text.text ?? text"></span>
             </div>
         </template>
     </div>

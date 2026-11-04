@@ -2,8 +2,7 @@
     'items'          => [],
     'label'          => '',
     'expandAll'      => false,
-    'class'          => '',
-    'containerClass' => '',
+    'treeClass'      => '',
 ])
 
 @php
@@ -49,14 +48,14 @@ $renderTree = function (array $items, int $depth = 0) use (&$renderTree, $expand
 };
 @endphp
 
-<div {{ $attributes->merge(['class' => $containerClass]) }}>
+<div {{ $attributes }}>
     @if($label)
         <div class="mb-3 pb-2 border-b border-base-300">
             <h3 class="font-semibold">{{ $label }}</h3>
         </div>
     @endif
 
-    <div class="{{ $class }}">
+    <div class="{{ $treeClass }}">
         {!! $renderTree($items) !!}
     </div>
 </div>

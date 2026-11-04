@@ -25,8 +25,7 @@
     'resetLabel'   => '',
     'successMsg'   => '',
     'label'        => '',
-    'class'        => '',
-    'containerClass' => '',
+    'formClass'    => '',
 ])
 
 @if($mode === 'alpine')
@@ -43,7 +42,7 @@
             values: @js((object) $values),
             messages: @js(['failed' => __('An error occurred')]),
         })"
-        {{ $attributes->merge(['class' => $containerClass]) }}
+        {{ $attributes }}
     >
         @if($label)
             <h3 class="text-lg font-semibold mb-4">{{ $label }}</h3>
@@ -63,14 +62,9 @@
             <span x-text="globalError"></span>
         </div>
 
-        <form @submit.prevent="submit" class="{{ $class }}">
+        <form @submit.prevent="submit" class="{{ $formClass }}">
             <div class="grid grid-cols-12 gap-4">
-                @include('daisyblade::form.fields', [
-                    'fields'      => $fields,
-                    'mode'        => 'alpine',
-                    'alpineData'  => 'values',
-                    'alphaErrors' => 'errors',
-                ])
+                <x-dbl::form.fields :fields="$fields" mode="alpine" alpine-data="values" alpine-errors="errors" />
             </div>
 
             {{ $slot }}
@@ -93,7 +87,7 @@
     </div>
 @else
     {{-- Standard HTML form mode --}}
-    <div {{ $attributes->merge(['class' => $containerClass]) }}>
+    <div {{ $attributes }}>
         @if($label)
             <h3 class="text-lg font-semibold mb-4">{{ $label }}</h3>
         @endif
@@ -101,7 +95,7 @@
         <form
             action="{{ $submitUrl }}"
             method="{{ in_array(strtoupper($method), ['GET','POST']) ? strtoupper($method) : 'POST' }}"
-            class="{{ $class }}"
+            class="{{ $formClass }}"
         >
             @csrf
             @if(!in_array(strtoupper($method), ['GET','POST']))
@@ -109,11 +103,7 @@
             @endif
 
             <div class="grid grid-cols-12 gap-4">
-                @include('daisyblade::form.fields', [
-                    'fields'  => $fields,
-                    'mode'    => 'form',
-                    'values'  => $values,
-                ])
+                <x-dbl::form.fields :fields="$fields" mode="form" :values="$values" />
             </div>
 
             {{ $slot }}

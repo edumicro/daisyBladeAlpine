@@ -3,12 +3,11 @@
     'icon'           => '',
     'iconSide'       => 'left',
     'vertical'       => false,
-    'class'          => '',
-    'containerClass' => '',
+    'dividerClass'   => '',
 ])
 
-<div class="w-full {{ $containerClass }}">
-    <div {{ $attributes->merge(['class' => trim('divider ' . ($vertical ? 'divider-vertical ' : '') . $class)]) }}>
+<div {{ $attributes->merge(['class' => 'w-full']) }}>
+    <div class="{{ trim('divider ' . ($vertical ? 'divider-vertical ' : '') . $dividerClass) }}">
         @if($icon && $iconSide === 'left')
             <x-dynamic-component :component="$icon" class="h-4 w-4" />
         @endif

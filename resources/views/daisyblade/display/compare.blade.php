@@ -3,11 +3,10 @@
     'leftLabel'      => '',
     'rightLabel'     => '',
     'label'          => '',
-    'class'          => '',
-    'containerClass' => '',
+    'tableClass'     => '',
 ])
 
-<div {{ $attributes->merge(['class' => $containerClass]) }}>
+<div {{ $attributes }}>
     @if($label)
         <div class="mb-3 pb-2 border-b border-base-300">
             <h3 class="font-semibold">{{ $label }}</h3>
@@ -15,7 +14,7 @@
     @endif
 
     <div class="overflow-x-auto">
-        <table class="table table-zebra w-full {{ $class }}">
+        <table class="table table-zebra w-full {{ $tableClass }}">
             <thead>
                 <tr>
                     <th>{{ __('Parameter') }}</th>

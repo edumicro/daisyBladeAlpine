@@ -9,13 +9,12 @@
     'loadUrl'        => '',
     'label'          => '',
     'fields'         => [],
-    'class'          => '',
-    'containerClass' => '',
+    'contentClass'   => '',
 ])
 
 <div
     x-data="dblResourceDetails({ loadUrl: '{{ $loadUrl }}', fields: @js($fields), messages: @js(['loadFailed' => __('Error loading resource')]) })"
-    {{ $attributes->merge(['class' => $containerClass]) }}
+    {{ $attributes }}
 >
     @if($label)
         <h3 class="text-lg font-semibold mb-4">{{ $label }}</h3>
@@ -34,7 +33,7 @@
     </div>
 
     {{-- Data --}}
-    <div x-show="resource && !loading" x-cloak class="{{ $class }}">
+    <div x-show="resource && !loading" x-cloak class="{{ $contentClass }}">
         @if($slot->isNotEmpty())
             {{ $slot }}
         @else

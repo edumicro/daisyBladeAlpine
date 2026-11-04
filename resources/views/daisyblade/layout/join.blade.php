@@ -4,19 +4,18 @@
     'iconSide'       => 'left',
     'direction'      => 'horizontal',
     'responsive'     => '',
-    'class'          => '',
-    'containerClass' => '',
+    'joinClass'      => '',
 ])
 
 @php
 $joinClasses = trim(implode(' ', array_filter([
     'join',
     $responsive ?: ($direction === 'vertical' ? 'join-vertical' : 'join-horizontal'),
-    $class,
+    $joinClass,
 ])));
 @endphp
 
-<div class="{{ $containerClass }}">
+<div {{ $attributes }}>
     @if($label || $icon)
         <div class="flex items-center gap-2 mb-2">
             @if($icon && $iconSide === 'left')
@@ -31,7 +30,7 @@ $joinClasses = trim(implode(' ', array_filter([
         </div>
     @endif
 
-    <div {{ $attributes->merge(['class' => $joinClasses]) }}>
+    <div class="{{ $joinClasses }}">
         {{ $slot }}
     </div>
 </div>

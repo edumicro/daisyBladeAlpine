@@ -2,15 +2,15 @@
     'items'          => [],
     'showControls'   => true,
     'showIndicators' => true,
-    'class'          => '',
-    'containerClass' => '',
+    'carouselClass'  => '',
+    'slideClass'     => '',
 ])
 
-<div x-data="{ active: 0, total: {{ count($items) }} }">
-    <div class="carousel carousel-center max-w-4xl mx-auto rounded-box bg-neutral p-4 {{ $containerClass }}">
+<div x-data="{ active: 0, total: {{ count($items) }} }" {{ $attributes }}>
+    <div class="carousel carousel-center max-w-4xl mx-auto rounded-box bg-neutral p-4 {{ $carouselClass }}">
         @forelse($items as $index => $item)
             <div
-                class="carousel-item w-full relative {{ $class }}"
+                class="carousel-item w-full relative {{ $slideClass }}"
                 x-show="active === {{ $index }}"
                 x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0"

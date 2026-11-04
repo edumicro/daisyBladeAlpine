@@ -11,8 +11,7 @@
     'disabled'       => false,
     'required'       => false,
     'size'           => 'md',   // xs | sm | md | lg | xl
-    'class'          => '',
-    'containerClass' => '',
+    'selectClass'    => '',
     'value'          => null,
 ])
 
@@ -39,7 +38,9 @@ foreach ($options as $optVal => $optLabel) {
 
 {{-- With `load-url` the Alpine scope (dblSelectRemote) is this container, so the error message below can sit
      next to the <select>; the factory finds the <select> inside it. --}}
-<div class="w-full {{ $containerClass }}"
+{{-- Everything the caller writes (class, id, data-*, aria-*...) goes to the root, as in any Laravel component.
+     The one exception is the binding of the value (x-model, wire:model): it only means something on the control. --}}
+<div {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => 'w-full']) }}
      @if($loadUrl) x-data="dblSelectRemote(@js(['loadUrl' => $loadUrl, 'value' => $value, 'dependsOn' => $dependsOn, 'disabled' => $disabled, 'messages' => ['loadFailed' => __('Could not load the options')]]))" @endif>
     @if($label)
         <label class="mb-1 block text-sm font-medium" @if($name) for="{{ $name }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
@@ -56,9 +57,10 @@ foreach ($options as $optVal => $optLabel) {
             @if($multiple) multiple @endif
             @if($disabled) disabled @endif
             @if($required) required @endif
-            {{ $attributes->merge(['class' => trim('select w-full ' . $sizeClass . ' '
+            {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }}
+            class="{{ trim('select w-full ' . $sizeClass . ' '
                 . ($name && isset($errors) && $errors->has($name) ? 'select-error ' : '')
-                . $class)]) }}
+                . $selectClass) }}"
         >
             @if(!$multiple && $placeholder) <option value="">{{ $placeholder }}</option> @endif
             {{-- What the server already knows (for example the saved value): shown until the JS brings the real options, or if it never does. --}}
@@ -124,7 +126,7 @@ foreach ($options as $optVal => $optLabel) {
                     x-model="search"
                     @focus="open = true"
                     placeholder="{{ $placeholder ?: __('Search...') }}"
-                    class="input w-full {{ $sizeClass }}"
+                    class="input w-full {{ $sizeClass }} {{ $selectClass }}"
                 />
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/40">
                     <x-heroicon-o-chevron-down class="w-4 h-4" />
@@ -156,7 +158,7 @@ foreach ($options as $optVal => $optLabel) {
             </div>
 
             @if($name)
-                <input type="hidden" name="{{ $name }}" value="{{ $selected[0] ?? '' }}" {{ $attributes->only(['x-model']) }} />
+                <input type="hidden" name="{{ $name }}" value="{{ $selected[0] ?? '' }}" {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }} />
             @endif
         </div>
     @else
@@ -166,9 +168,10 @@ foreach ($options as $optVal => $optLabel) {
             @if($multiple) multiple @endif
             @if($disabled) disabled @endif
             @if($required) required @endif
-            {{ $attributes->merge(['class' => trim('select w-full ' . $sizeClass . ' '
+            {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }}
+            class="{{ trim('select w-full ' . $sizeClass . ' '
                 . ($name && isset($errors) && $errors->has($name) ? 'select-error ' : '')
-                . $class)]) }}
+                . $selectClass) }}"
         >
             @if(!$multiple && $placeholder)
                 <option value="">{{ $placeholder }}</option>

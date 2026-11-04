@@ -6,7 +6,6 @@
     'icon'    => '',
     'iconSide'=> 'left',
     'outline' => false,
-    'class'   => '',
 ])
 
 @php
@@ -35,7 +34,7 @@ $sizeClass    = match($size) {
 };
 @endphp
 
-<span {{ $attributes->merge(['class' => "badge {$variantClass} {$sizeClass} gap-1 {$class}"]) }}>
+<span {{ $attributes->merge(['class' => "badge {$variantClass} {$sizeClass} gap-1"]) }}>
     @if($icon && $iconSide === 'left')
         <x-dynamic-component :component="$icon" class="w-3 h-3" />
     @endif

@@ -12,8 +12,7 @@
     'error'          => '',
     'value'          => null,
     'hint'           => '',
-    'class'          => '',
-    'containerClass' => '',
+    'inputClass'     => '',
 ])
 
 @php
@@ -27,7 +26,9 @@ $sizeClass = match($size) {
 };
 @endphp
 
-<div class="w-full {{ $containerClass }}">
+{{-- Everything the caller writes (class, id, data-*, aria-*...) goes to the root, as in any Laravel component.
+     The one exception is the binding of the value (x-model, wire:model): it only means something on the control. --}}
+<div {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => 'w-full']) }}>
     @if($label)
         <label class="mb-1 block text-sm font-medium" @if($name) for="{{ $name }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
@@ -47,11 +48,12 @@ $sizeClass = match($size) {
             @if($disabled) disabled @endif
             @if($readonly) readonly @endif
             @if($required) required @endif
-            {{ $attributes->merge(['class' => trim('input w-full ' . $sizeClass . ' '
+            {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }}
+            class="{{ trim('input w-full ' . $sizeClass . ' '
                 . ($icon && $iconSide === 'left' ? 'pl-10 ' : '')
                 . ($icon && $iconSide === 'right' ? 'pr-10 ' : '')
                 . ($error ? 'input-error ' : ($name && isset($errors) && $errors->has($name) ? 'input-error ' : ''))
-                . $class)]) }}
+                . $inputClass) }}"
         />
 
         @if($icon && $iconSide === 'right')

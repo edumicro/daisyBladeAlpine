@@ -28,7 +28,7 @@ $backgroundClass = match($background) {
 };
 @endphp
 
-<div class="stat {{ $backgroundClass }} rounded-box {{ $shadow ? 'shadow-sm border border-base-200' : '' }}">
+<div {{ $attributes->merge(['class' => "stat {$backgroundClass} rounded-box " . ($shadow ? 'shadow-sm border border-base-200' : '')]) }}>
     @if($icon)
         <div class="stat-figure text-primary">
             <x-dynamic-component :component="$icon" class="w-8 h-8" />

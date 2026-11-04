@@ -6,7 +6,7 @@
     'pulse'    => false,
     'size'     => 'md',   // xs | sm | md | lg | xl
     'position' => 'inline',  // inline | badge | dot
-    'class'    => '',
+    'textClass' => '',
 ])
 
 @php
@@ -34,18 +34,18 @@ $sizeClass  = match($size) {
 @endphp
 
 @if($position === 'badge')
-    <span {{ $attributes->merge(['class' => "badge {$colorClass} {$sizeClass} gap-1 " . ($pulse ? 'animate-pulse ' : '') . $class]) }}>
+    <span {{ $attributes->merge(['class' => "badge {$colorClass} {$sizeClass} gap-1 " . ($pulse ? 'animate-pulse' : '')]) }}>
         <x-dynamic-component :component="$iconName" class="w-3 h-3" />
         {{ $displayText }}
     </span>
 @elseif($position === 'dot')
     <div {{ $attributes->merge(['class' => 'flex items-center gap-2']) }}>
         <div class="w-2.5 h-2.5 rounded-full {{ $colorClass }} {{ $pulse ? 'animate-pulse' : '' }}"></div>
-        <span class="text-sm {{ $class }}">{{ $displayText }}</span>
+        <span class="text-sm {{ $textClass }}">{{ $displayText }}</span>
     </div>
 @else
     <div {{ $attributes->merge(['class' => 'inline-flex items-center gap-2']) }}>
         <span class="inline-block w-2.5 h-2.5 rounded-full {{ $colorClass }} {{ $pulse ? 'animate-pulse' : '' }}"></span>
-        <span class="text-sm font-medium {{ $class }}">{{ $displayText }}</span>
+        <span class="text-sm font-medium {{ $textClass }}">{{ $displayText }}</span>
     </div>
 @endif

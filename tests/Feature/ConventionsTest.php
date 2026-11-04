@@ -404,3 +404,121 @@ it('6. has no card action that takes a class as its color', function () {
 
     expect($html)->toContain('btn-error')->and(Illuminate\Support\Facades\Blade::render('<x-dbl::display.card :actions="[[\'label\' => \'Ver\']]">x</x-dbl::display.card>'))->toContain('btn-primary');
 });
+
+// ── 7. `class` and the other attributes go to the root ─────────────────────
+
+it('7. has no view that declares class or containerClass as a prop, or reads $class', function () {
+    // `class` is not a prop: it stays in $attributes and Blade merges it into the root, as in any Laravel component.
+    $offenders = [];
+
+    foreach (conventionViewProps() as $path => $props) {
+        foreach (['class', 'containerClass', 'htmlClass', 'bgClass', 'tooltipClass'] as $old) {
+            if (array_key_exists($old, $props)) {
+                $offenders[$path][] = $old;
+            }
+        }
+    }
+
+    expect($offenders)->toBe([])
+        ->and(conventionOffenders(conventionViews(), '/\$(?:class|containerClass)\b/'))->toBe([]);
+});
+
+it('7. names the class of an inner part <part>-class', function () {
+    // Every prop that ends in Class is `<part>Class` (kebab-case in the tag: `input-class`, `dropzone-class`...).
+    $names = [];
+
+    foreach (conventionViewProps() as $props) {
+        foreach (array_keys($props) as $name) {
+            if (str_ends_with($name, 'Class')) {
+                $names[$name] = true;
+            }
+        }
+    }
+
+    // The ones the brief names, among the others.
+    expect(array_keys($names))->toContain('inputClass', 'canvasClass', 'dropzoneClass')
+        ->and(array_filter(array_keys($names), fn ($name) => preg_match('/^[a-z]+(?:[A-Z][a-z]+)*Class$/', $name) !== 1))->toBe([]);
+});
+
+it('7. applies $attributes in every view', function () {
+    $without = array_keys(array_filter(conventionViews(), fn (string $source) => ! str_contains($source, '$attributes')));
+
+    expect($without)->toBe([]);
+});
+
+/** The attributes each view needs to render at all (its required props), by path. Everything else renders with none. */
+function conventionMinimalProps(): array
+{
+    return [
+        'components/icon.blade.php' => 'name="home"',
+        'display/calendar.blade.php' => 'load-url="/e"',
+        'display/flowchart.blade.php' => '',
+        'form/kv-editor.blade.php' => 'name="k"',
+        'form/list-editor.blade.php' => 'name="l"',
+        'form/validator.blade.php' => 'message="Mal"',
+        'form/rich-text.blade.php' => 'name="r"',
+        'layout/indicator.blade.php' => 'label="1"',
+        'navigation/sidebar-tree.blade.php' => ':items="[[\'label\' => \'A\']]"',
+    ];
+}
+
+/** The view components that cannot be rendered as a tag with no content. */
+function conventionTagOf(string $path): string
+{
+    return 'dbl::'.str_replace('/', '.', preg_replace('/\.blade\.php$/', '', $path));
+}
+
+it('7. puts class and every other attribute on the root element of each component', function () {
+    $this->withoutVite();   // the layouts call @vite, and testbench has no compiled manifest
+    $minimal = conventionMinimalProps();
+    $offenders = [];
+
+    foreach (array_keys(conventionViews()) as $path) {
+        $tag = conventionTagOf($path);
+        $html = Illuminate\Support\Facades\Blade::render("<x-{$tag} ".($minimal[$path] ?? '').' class="probe-class" data-probe="yes">x</x-'.$tag.'>');
+
+        // The first element that is not a <style>, <script> or <template> (some components print their CSS first).
+        // (A `>` inside a quoted attribute, such as the `=>` of an x-data, does not end the tag.)
+        preg_match('/<(?!\/|!|style\b|script\b|template\b)[a-z](?:"[^"]*"|\'[^\']*\'|[^\'">])*>/i', $html, $root);
+
+        if (! isset($root[0]) || ! str_contains($root[0], 'data-probe="yes"') || ! str_contains($root[0], 'probe-class')) {
+            $offenders[$path] = $root[0] ?? '(no element)';
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('7. sends the binding of the value (x-model) to the control, and the rest to the root', function () {
+    $options = ':options="[\'a\' => \'A\']"';
+
+    foreach (['input' => '', 'textarea' => '', 'checkbox' => '', 'toggle' => '', 'radio' => $options, 'select' => $options] as $control => $extra) {
+        $html = Illuminate\Support\Facades\Blade::render("<x-dbl::form.{$control} name=\"f\" {$extra} x-model=\"form.f\" data-probe=\"yes\" class=\"probe-class\" />");
+
+        preg_match_all('/<(?:div|input|textarea|select)\b[^>]*>/', $html, $tags);
+        $withModel = array_values(array_filter($tags[0], fn ($t) => str_contains($t, 'x-model="form.f"')));
+        $withProbe = array_values(array_filter($tags[0], fn ($t) => str_contains($t, 'data-probe="yes"') && str_contains($t, 'probe-class')));
+
+        expect($withModel)->not->toBe([], "{$control}: x-model not found")
+            ->and($withModel[0])->not->toStartWith('<div', "{$control}: x-model on the root")
+            ->and($withProbe[0])->toStartWith('<div', "{$control}: class not on the root");
+    }
+});
+
+it('7. gives a part of a component its own class prop', function () {
+    $render = fn (string $blade) => Illuminate\Support\Facades\Blade::render($blade);
+
+    expect($render('<x-dbl::form.input name="x" input-class="mi-input" class="mi-raiz" />'))
+        ->toMatch('/<div[^>]*mi-raiz/')->toMatch('/<input[^>]*mi-input/')
+        ->and($render('<x-dbl::form.upload name="f" upload-url="/u" dropzone-class="mi-zona" class="mi-raiz" />'))
+        ->toMatch('/<div[^>]*mi-raiz/')->toMatch('/<div[^>]*mi-zona/')
+        ->and($render('<x-dbl::display.flowchart canvas-class="mi-lienzo" class="mi-raiz" />'))
+        ->toMatch('/<div[^>]*mi-raiz/')->toMatch('/<div[^>]*mi-lienzo/');
+});
+
+it('7. gives the attributes of a page layout to its <html>', function () {
+    $this->withoutVite();
+    $html = Illuminate\Support\Facades\Blade::render('<x-dbl::layout.app class="dark-ish" data-x="1" />');
+
+    expect($html)->toMatch('/<html[^>]*class="dark-ish"/')->toMatch('/<html[^>]*data-x="1"/');
+});

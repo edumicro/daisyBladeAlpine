@@ -8,7 +8,6 @@
     'required'       => false,
     'hint'           => '',
     'minimal'        => false,
-    'containerClass' => '',
 ])
 
 @php
@@ -47,7 +46,7 @@
     </style>
 @endonce
 
-<div class="w-full {{ $containerClass }}" x-data="dblRichText(@js($config))">
+<div {{ $attributes->merge(['class' => 'w-full']) }} x-data="dblRichText(@js($config))">
     @if($label)
         <label class="mb-1 flex items-center justify-between gap-2 text-sm font-medium"
                @if($name) for="{{ $name }}-editor" @endif>

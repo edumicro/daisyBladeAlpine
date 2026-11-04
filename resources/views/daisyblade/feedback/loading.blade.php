@@ -5,8 +5,7 @@
     'color'          => 'primary',
     'fullScreen'     => false,
     'showMessage'    => true,
-    'class'          => '',
-    'containerClass' => '',
+    'contentClass'   => '',
 ])
 
 @php
@@ -37,8 +36,8 @@ $colorClass = match($color) {
 $typeClass  = match($type) { 'dots'=>'loading-dots','bars'=>'loading-bars','ring'=>'loading-ring','ball'=>'loading-ball', default=>'loading-spinner' };
 @endphp
 
-<div class="{{ $fullScreen ? 'fixed inset-0 z-50 bg-base-content/20 backdrop-blur-sm' : '' }} flex items-center justify-center {{ $containerClass }}">
-    <div class="flex flex-col items-center gap-4 {{ !$fullScreen ? 'p-6' : '' }} {{ $class }}">
+<div {{ $attributes->merge(['class' => trim(($fullScreen ? 'fixed inset-0 z-50 bg-base-content/20 backdrop-blur-sm ' : '') . 'flex items-center justify-center')]) }}>
+    <div class="flex flex-col items-center gap-4 {{ !$fullScreen ? 'p-6' : '' }} {{ $contentClass }}">
         <div class="loading {{ $typeClass }} {{ $sizeClass }} {{ $colorClass }}"></div>
 
         @if($showMessage && $message)

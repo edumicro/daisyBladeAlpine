@@ -7,8 +7,7 @@
     'size'           => 'md',   // xs | sm | md | lg | xl
     'color'          => 'primary',
     'indeterminate'  => false,
-    'class'          => '',
-    'containerClass' => '',
+    'progressClass'  => '',
 ])
 
 @php
@@ -36,7 +35,7 @@ $colorClass = match($color) {
 $pct        = $indeterminate ? 0 : (int)(($value / max(1, $max)) * 100);
 @endphp
 
-<div class="w-full {{ $containerClass }}">
+<div {{ $attributes->merge(['class' => 'w-full']) }}>
     @if($label)
         <div class="flex justify-between items-center mb-2">
             <label class="text-sm font-medium">{{ $label }}</label>
@@ -48,7 +47,7 @@ $pct        = $indeterminate ? 0 : (int)(($value / max(1, $max)) * 100);
     @endif
 
     <progress
-        class="progress {{ $sizeClass }} {{ $colorClass }} w-full {{ $class }} {{ $indeterminate ? 'progress-indeterminate' : '' }}"
+        class="progress {{ $sizeClass }} {{ $colorClass }} w-full {{ $progressClass }} {{ $indeterminate ? 'progress-indeterminate' : '' }}"
         value="{{ $indeterminate ? null : $value }}"
         max="{{ $max }}"
     ></progress>

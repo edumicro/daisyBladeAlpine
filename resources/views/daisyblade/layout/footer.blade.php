@@ -5,8 +5,6 @@
     'center'         => false,
     'direction'      => 'vertical',
     'background'     => 'base-200',   // base-100 | base-200 | base-300 | primary | secondary | accent | neutral | info | success | warning | error
-    'class'          => '',
-    'containerClass' => '',
 ])
 
 @php
@@ -29,7 +27,7 @@ $footerClasses = trim(implode(' ', array_filter([
     'footer', $backgroundClass,
     $center ? 'footer-center' : '',
     $direction === 'horizontal' ? 'footer-horizontal' : 'footer-vertical',
-    'p-10', $class,
+    'p-10',
 ])));
 @endphp
 

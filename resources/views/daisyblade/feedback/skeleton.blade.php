@@ -5,8 +5,7 @@
     'size'           => 'md',   // xs | sm | md | lg | xl
     'width'          => 100,
     'label'          => '',
-    'class'          => '',
-    'containerClass' => '',
+    'skeletonClass'  => '',
 ])
 
 @php
@@ -22,7 +21,7 @@ $sizeH    = match($size) {
 $gridColsClass = $width < 50 ? 'grid-cols-2' : ($width < 75 ? 'grid-cols-3' : 'grid-cols-4');
 @endphp
 
-<div {{ $attributes->merge(['class' => $containerClass]) }}>
+<div {{ $attributes }}>
     @if($label)
         <div class="mb-4">
             <div class="skeleton rounded w-1/3 h-6 {{ $pulse }}"></div>
@@ -32,7 +31,7 @@ $gridColsClass = $width < 50 ? 'grid-cols-2' : ($width < 75 ? 'grid-cols-3' : 'g
     @switch($type)
         @case('card')
             <div class="space-y-4">
-                <div class="skeleton rounded-lg w-full h-48 {{ $pulse }} {{ $class }}"></div>
+                <div class="skeleton rounded-lg w-full h-48 {{ $pulse }} {{ $skeletonClass }}"></div>
                 <div class="space-y-3">
                     <div class="skeleton rounded w-3/4 h-4 {{ $pulse }}"></div>
                     <div class="skeleton rounded w-full h-4 {{ $pulse }}"></div>
@@ -48,7 +47,7 @@ $gridColsClass = $width < 50 ? 'grid-cols-2' : ($width < 75 ? 'grid-cols-3' : 'g
 
         @case('avatar')
             <div class="flex items-center gap-4">
-                <div class="skeleton rounded-full w-12 h-12 {{ $pulse }} {{ $class }}"></div>
+                <div class="skeleton rounded-full w-12 h-12 {{ $pulse }} {{ $skeletonClass }}"></div>
                 <div class="space-y-2 flex-1">
                     <div class="skeleton rounded w-32 h-4 {{ $pulse }}"></div>
                     <div class="skeleton rounded w-48 h-3 {{ $pulse }}"></div>
@@ -59,19 +58,19 @@ $gridColsClass = $width < 50 ? 'grid-cols-2' : ($width < 75 ? 'grid-cols-3' : 'g
         @case('text')
             <div class="space-y-3">
                 @for($i = 0; $i < $lines; $i++)
-                    <div class="skeleton rounded {{ $i === $lines - 1 ? 'w-3/4' : 'w-full' }} {{ $sizeH }} {{ $pulse }} {{ $class }}"></div>
+                    <div class="skeleton rounded {{ $i === $lines - 1 ? 'w-3/4' : 'w-full' }} {{ $sizeH }} {{ $pulse }} {{ $skeletonClass }}"></div>
                 @endfor
             </div>
         @break
 
         @case('circle')
             <div class="flex items-center justify-center">
-                <div class="skeleton rounded-full w-24 h-24 {{ $pulse }} {{ $class }}"></div>
+                <div class="skeleton rounded-full w-24 h-24 {{ $pulse }} {{ $skeletonClass }}"></div>
             </div>
         @break
 
         @case('image')
-            <div class="skeleton rounded-lg w-full h-64 {{ $pulse }} {{ $class }}"></div>
+            <div class="skeleton rounded-lg w-full h-64 {{ $pulse }} {{ $skeletonClass }}"></div>
         @break
 
         @case('table')
@@ -104,6 +103,6 @@ $gridColsClass = $width < 50 ? 'grid-cols-2' : ($width < 75 ? 'grid-cols-3' : 'g
         @break
 
         @default
-            <div class="skeleton rounded {{ $pulse }} {{ $class }}" style="width: {{ $width }}%"></div>
+            <div class="skeleton rounded {{ $pulse }} {{ $skeletonClass }}" style="width: {{ $width }}%"></div>
     @endswitch
 </div>

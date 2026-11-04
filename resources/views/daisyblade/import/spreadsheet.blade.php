@@ -14,8 +14,6 @@
     'accept'      => '.xlsx,.xls,.csv',
     'maxPreview'  => 5,
     'label'       => '',
-    'class'       => '',
-    'containerClass' => '',
 ])
 
 <div
@@ -26,7 +24,7 @@
         maxPreview:  {{ (int)$maxPreview }},
         messages:    @js(['uploadFailed' => __('Upload failed')]),
     })"
-    {{ $attributes->merge(['class' => $containerClass]) }}
+    {{ $attributes }}
 >
     @if($label)
         <h3 class="text-lg font-semibold mb-4">{{ $label }}</h3>

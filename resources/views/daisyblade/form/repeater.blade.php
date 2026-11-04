@@ -64,7 +64,7 @@
     }"
     @if($mode === 'alpine') x-effect="{{ $alpineData }}.{{ $name }} = rows" @endif
     {{ $bind('root', ['input' => 'notify()']) }}
-    class="space-y-2"
+    {{ $attributes->merge(['class' => 'space-y-2']) }}
 >
     @if($label)
         <label class="mb-1 block text-sm font-medium">{{ $label }}</label>

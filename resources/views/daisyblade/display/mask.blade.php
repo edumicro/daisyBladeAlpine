@@ -3,11 +3,10 @@
     'half'  => '',
     'src'   => '',
     'alt'   => '',
-    'class' => '',
 ])
 
 @php
-$maskClass = 'mask mask-' . $shape . ($half ? ' mask-' . $half : '') . ' ' . $class;
+$maskClass = 'mask mask-' . $shape . ($half ? ' mask-' . $half : '');
 @endphp
 
 @if($src)

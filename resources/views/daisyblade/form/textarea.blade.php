@@ -9,8 +9,7 @@
     'readonly'       => false,
     'required'       => false,
     'hint'           => '',
-    'class'          => '',
-    'containerClass' => '',
+    'textareaClass'  => '',
     'value'          => null,
 ])
 
@@ -25,7 +24,9 @@ $sizeClass = match($size) {
 };
 @endphp
 
-<div class="w-full {{ $containerClass }}">
+{{-- Everything the caller writes (class, id, data-*, aria-*...) goes to the root, as in any Laravel component.
+     The one exception is the binding of the value (x-model, wire:model): it only means something on the control. --}}
+<div {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => 'w-full']) }}>
     @if($label)
         {{-- Texto y contador en la misma linea: `flex justify-between` explicito, porque la
              clase `.label` de DaisyUI 4 que lo hacia ya no existe en la 5. --}}
@@ -44,9 +45,10 @@ $sizeClass = match($size) {
         @if($readonly) readonly @endif
         @if($required) required @endif
         @if($maxLength > 0) maxlength="{{ $maxLength }}" @endif
-        {{ $attributes->merge(['class' => trim('textarea w-full ' . $sizeClass . ' '
+        {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }}
+        class="{{ trim('textarea w-full ' . $sizeClass . ' '
             . ($name && isset($errors) && $errors->has($name) ? 'textarea-error ' : '')
-            . $class)]) }}
+            . $textareaClass) }}"
     >{{ $value }}</textarea>
 
     @if($name && isset($errors))

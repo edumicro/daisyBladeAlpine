@@ -2,11 +2,10 @@
     'title' => null,
     'theme' => 'light',
     'lang' => str_replace('_', '-', app()->getLocale()),
-    'htmlClass' => '',
 ])
 
 <!DOCTYPE html>
-<html data-theme="{{ $theme }}" lang="{{ $lang }}" @if ($htmlClass !== '') class="{{ $htmlClass }}" @endif>
+<html data-theme="{{ $theme }}" lang="{{ $lang }}" {{ $attributes }}>
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

@@ -16,14 +16,14 @@
                        control jump across the screen, and two toggles in two corners is worse
                        than one where the user looks. The host then needs its own way back in —
                        dispatch `sidebar-toggle` on window.
-      class          — extra classes for the <aside>
+      asideClass     — extra classes for the <aside> (`class` goes to the wrapper <div>)
 
     `dblSidebar()` starts it open from 1024px up and remembers the last choice in localStorage.
 --}}
 @props([
     'collapsible'    => true,
     'floatingToggle' => true,
-    'class'          => '',
+    'asideClass'     => '',
 ])
 
 {{-- `sidebar-toggle` en window: la barra y la navbar viven en slots distintos del layout, asi
@@ -37,7 +37,7 @@
 
      Solo cuando es plegable: con `collapsible => false` la barra esta fija a proposito, y dejarle
      el escuchador permitiria cerrarla desde fuera, que es justo lo que esa opcion promete evitar. --}}
-<div x-data="dblSidebar()" @if($collapsible) @sidebar-toggle.window="toggle()" @endif>
+<div x-data="dblSidebar()" {{ $attributes }} @if($collapsible) @sidebar-toggle.window="toggle()" @endif>
 
     @if($collapsible && $floatingToggle)
         {{-- The way back in once it is closed.
@@ -72,7 +72,7 @@
 
     <aside
         :class="open ? 'translate-x-0' : '-translate-x-full lg:hidden'"
-        class="w-64 shrink-0 fixed lg:static inset-y-0 left-0 z-40 min-h-screen bg-base-200 transition-transform duration-300 flex flex-col overflow-hidden {{ $class }}"
+        class="w-64 shrink-0 fixed lg:static inset-y-0 left-0 z-40 min-h-screen bg-base-200 transition-transform duration-300 flex flex-col overflow-hidden {{ $asideClass }}"
     >
         @if($collapsible)
             <div class="flex justify-end p-2">

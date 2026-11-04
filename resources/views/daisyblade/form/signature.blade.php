@@ -5,7 +5,6 @@
     'height'      => 220,
     'required'    => false,
     'hint'        => '',
-    'class'       => '',
 ])
 
 @php
@@ -16,7 +15,7 @@
 @endphp
 
 <div x-data="dblSignature({{ \Illuminate\Support\Js::from($config) }})"
-     class="w-full {{ $class }}">
+     {{ $attributes->merge(['class' => 'w-full']) }}>
 
     @if($label)
         <div id="{{ $id }}-label" class="mb-1 text-lg font-semibold">

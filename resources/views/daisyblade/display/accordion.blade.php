@@ -3,12 +3,11 @@
     'id'          => 'acc',
     'icon'        => '',
     'iconSide'    => 'right',
-    'class'       => '',
-    'containerClass' => '',
+    'titleClass'  => '',
     'label'       => '',
 ])
 
-<div class="join join-vertical w-full {{ $containerClass }}">
+<div {{ $attributes->merge(['class' => 'join join-vertical w-full']) }}>
     @if($label)
         <p class="font-semibold mb-2">{{ $label }}</p>
     @endif
@@ -17,7 +16,7 @@
         <div class="collapse collapse-arrow join-item border border-base-300">
             <input type="radio" name="accordion-{{ $id }}" {{ ($item['open'] ?? $index === 0) ? 'checked' : '' }} />
 
-            <div class="collapse-title flex items-center gap-2 font-medium {{ $class }}">
+            <div class="collapse-title flex items-center gap-2 font-medium {{ $titleClass }}">
                 @if($icon && $iconSide === 'left')
                     <x-dynamic-component :component="$icon" class="w-5 h-5 shrink-0" />
                 @endif

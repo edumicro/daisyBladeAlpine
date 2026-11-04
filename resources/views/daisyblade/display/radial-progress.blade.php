@@ -7,7 +7,7 @@
     'unit'  => '%',
     'icon'  => '',
     'label' => '',
-    'class' => '',
+    'circleClass' => '',
 ])
 
 @php
@@ -44,7 +44,7 @@ $pct        = $max > 0 ? round(($value / $max) * 100) : 0;
     @endif
 
     <div
-        class="radial-progress {{ $sizeClass }} {{ $colorClass }} {{ $thick ? 'font-bold' : '' }} transition-all duration-500 {{ $class }}"
+        class="radial-progress {{ $sizeClass }} {{ $colorClass }} {{ $thick ? 'font-bold' : '' }} transition-all duration-500 {{ $circleClass }}"
         style="--value:{{ $pct }}"
         role="progressbar"
     >

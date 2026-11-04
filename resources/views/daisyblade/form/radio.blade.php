@@ -9,8 +9,7 @@
     'color'          => 'primary',
     'size'           => 'md',   // xs | sm | md | lg | xl
     'inline'         => false,
-    'class'          => '',
-    'containerClass' => '',
+    'radioClass'     => '',
 ])
 
 @php
@@ -39,7 +38,9 @@ $sizeClass = match($size) {
 };
 @endphp
 
-<div class="w-full {{ $containerClass }}">
+{{-- Everything the caller writes (class, id, data-*, aria-*...) goes to the root, as in any Laravel component.
+     The one exception is the binding of the value (x-model, wire:model): it only means something on the control. --}}
+<div {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => 'w-full']) }}>
     @if($label)
         <label class="mb-1 block text-sm font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
@@ -53,7 +54,8 @@ $sizeClass = match($size) {
                     @if($name) name="{{ $name }}" @endif
                     @if($value !== null && (string)$value === (string)$optVal) checked @endif
                     @if($disabled) disabled @endif
-                    {{ $attributes->merge(['class' => trim("radio {$colorClass} {$sizeClass} " . $class)]) }}
+                    {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }}
+                    class="{{ trim("radio {$colorClass} {$sizeClass} " . $radioClass) }}"
                 />
                 <span class="text-sm">{{ $optLabel }}</span>
             </label>

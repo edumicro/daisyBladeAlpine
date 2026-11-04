@@ -10,7 +10,6 @@
     'icon'       => 'heroicon-o-funnel',
     'position'   => 'dropdown-end',
     'label'      => '',
-    'class'      => '',
 ])
 
 <div
@@ -23,7 +22,7 @@
         },
         clear() { this.active = {}; this.$dispatch('filters-cleared') },
     }"
-    class="dropdown {{ $position }} {{ $class }}"
+    {{ $attributes->merge(['class' => "dropdown {$position}"]) }}
 >
     <label tabindex="0" class="btn btn-sm btn-ghost gap-2">
         <x-dynamic-component :component="$icon" class="w-4 h-4" />

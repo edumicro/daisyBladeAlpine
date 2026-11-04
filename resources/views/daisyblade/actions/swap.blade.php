@@ -7,7 +7,7 @@
     'color'     => 'ghost',   // primary | secondary | accent | neutral | info | success | warning | error | ghost | link
     'size'      => 'md',   // xs | sm | md | lg | xl
     'disabled'  => false,
-    'class'     => '',
+    'buttonClass' => '',
 ])
 
 @php
@@ -42,11 +42,12 @@ $animClass = match($animation) {
 };
 @endphp
 
-<label class="swap swap-animate {{ $animClass }}">
-    <input type="checkbox" @disabled($disabled) {{ $attributes->whereStartsWith('x-model') }} />
+{{-- Everything the caller writes goes to the root; the binding of the value (x-model, wire:model) goes to the checkbox. --}}
+<label {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => "swap swap-animate {$animClass}"]) }}>
+    <input type="checkbox" @disabled($disabled) {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }} />
 
     <div class="swap-off">
-        <button type="button" @disabled($disabled) class="btn {{ $colorClass }} {{ $sizeClass }} {{ $class }}">
+        <button type="button" @disabled($disabled) class="btn {{ $colorClass }} {{ $sizeClass }} {{ $buttonClass }}">
             @if($offIcon)
                 <x-dynamic-component :component="$offIcon" class="w-5 h-5" />
             @endif
@@ -57,7 +58,7 @@ $animClass = match($animation) {
     </div>
 
     <div class="swap-on">
-        <button type="button" @disabled($disabled) class="btn {{ $colorClass }} {{ $sizeClass }} {{ $class }}">
+        <button type="button" @disabled($disabled) class="btn {{ $colorClass }} {{ $sizeClass }} {{ $buttonClass }}">
             @if($onIcon)
                 <x-dynamic-component :component="$onIcon" class="w-5 h-5" />
             @endif

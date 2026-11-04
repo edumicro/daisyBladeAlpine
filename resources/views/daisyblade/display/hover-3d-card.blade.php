@@ -6,7 +6,7 @@
     'tags'        => [],
     'icon'        => '',
     'shadow'      => true,
-    'class'       => '',
+    'contentClass' => '',
 ])
 
 <div {{ $attributes->merge(['class' => 'group relative']) }} style="perspective:1000px">
@@ -28,7 +28,7 @@
 
         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-        <div class="absolute inset-0 flex flex-col justify-end p-6 translate-y-10 group-hover:translate-y-0 transition-transform duration-500 {{ $class }}">
+        <div class="absolute inset-0 flex flex-col justify-end p-6 translate-y-10 group-hover:translate-y-0 transition-transform duration-500 {{ $contentClass }}">
             @if($title)
                 <h3 class="text-xl font-bold text-white mb-2">{{ $title }}</h3>
             @endif

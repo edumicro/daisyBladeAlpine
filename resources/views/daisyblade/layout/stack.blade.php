@@ -3,8 +3,6 @@
     'icon'           => '',
     'iconSide'       => 'left',
     'align'          => 'bottom',
-    'class'          => '',
-    'containerClass' => '',
 ])
 
 @php
@@ -14,11 +12,10 @@ $stackClasses = trim(implode(' ', array_filter([
     $align === 'bottom' ? 'stack-bottom' : '',
     $align === 'start'  ? 'stack-start'  : '',
     $align === 'end'    ? 'stack-end'    : '',
-    $class,
 ])));
 @endphp
 
-<div {{ $attributes->merge(['class' => trim("{$stackClasses} {$containerClass}")]) }}>
+<div {{ $attributes->merge(['class' => $stackClasses]) }}>
     @if($label || $icon)
         <div class="flex items-center gap-2 mb-2">
             @if($icon && $iconSide === 'left')

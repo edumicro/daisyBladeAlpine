@@ -4,8 +4,7 @@
     'color'        => 'info',   // primary | secondary | accent | neutral | info | success | warning | error
     'icon'         => 'heroicon-o-question-mark-circle',
     'display'      => 'icon',
-    'class'        => '',
-    'tooltipClass' => '',
+    'triggerClass' => '',
 ])
 
 @php
@@ -24,15 +23,15 @@ $colorClass = match($color) {
 };
 @endphp
 
-<div class="tooltip {{ $posClass }} {{ $tooltipClass }}" data-tip="{{ $text }}">
+<div {{ $attributes->merge(['class' => "tooltip {$posClass}"]) }} data-tip="{{ $text }}">
     @if($slot->isNotEmpty())
         {{ $slot }}
     @elseif($display === 'icon')
-        <x-dynamic-component :component="$icon" class="w-5 h-5 cursor-help {{ $colorClass }} {{ $class }}" />
+        <x-dynamic-component :component="$icon" class="w-5 h-5 cursor-help {{ $colorClass }} {{ $triggerClass }}" />
     @elseif($display === 'text')
-        <span class="cursor-help underline underline-offset-2 {{ $colorClass }} {{ $class }}">{{ $text }}</span>
+        <span class="cursor-help underline underline-offset-2 {{ $colorClass }} {{ $triggerClass }}">{{ $text }}</span>
     @else
-        <div class="flex items-center gap-1 cursor-help {{ $class }}">
+        <div class="flex items-center gap-1 cursor-help {{ $triggerClass }}">
             <x-dynamic-component :component="$icon" class="w-4 h-4 {{ $colorClass }}" />
             <span class="text-sm underline underline-offset-2 {{ $colorClass }}">{{ $text }}</span>
         </div>

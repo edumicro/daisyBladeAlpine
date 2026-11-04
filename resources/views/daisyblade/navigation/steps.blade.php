@@ -5,8 +5,7 @@
     'clickable'        => false,
     'vertical'         => false,
     'color'            => 'primary',
-    'class'            => '',
-    'containerClass'   => '',
+    'stepsClass'       => '',
 ])
 
 @php
@@ -34,9 +33,9 @@ $stepColorClass = match($color) {
         prev() { if (this.current > 1) { this.current--; this.$dispatch('step-changed', { step: this.current }); } },
         next() { if (this.current < this.total) { this.current++; this.$dispatch('step-changed', { step: this.current }); } },
     }"
-    {{ $attributes->merge(['class' => $containerClass]) }}
+    {{ $attributes }}
 >
-    <ul class="steps {{ $vertical ? 'steps-vertical' : '' }} w-full {{ $class }}">
+    <ul class="steps {{ $vertical ? 'steps-vertical' : '' }} w-full {{ $stepsClass }}">
         @foreach($steps as $index => $step)
             @php $num = $index + 1; @endphp
             <li

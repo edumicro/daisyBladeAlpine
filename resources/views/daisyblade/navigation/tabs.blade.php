@@ -2,7 +2,6 @@
     'items'  => [],   // [['label'=>'Tab 1', 'content'=>'HTML', 'icon'=>null, 'badge'=>null], ...]
     'active' => 0,
     'style'  => 'lifted',
-    'class'  => '',
 ])
 
 @php
@@ -20,7 +19,7 @@ $styleClass = match($style) {
 };
 @endphp
 
-<div x-data="{ active: {{ (int)$active }} }" {{ $attributes->merge(['class' => $class]) }}>
+<div x-data="{ active: {{ (int)$active }} }" {{ $attributes }}>
     <div role="tablist" class="tabs {{ $styleClass }}">
         @foreach($items as $i => $item)
             <button

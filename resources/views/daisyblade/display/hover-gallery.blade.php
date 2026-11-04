@@ -8,15 +8,16 @@
     'rounded'       => true,
     'shadow'        => true,
     'label'         => '',
-    'class'         => '',
-    'containerClass'=> '',
+    'gridClass'     => '',
+    'itemClass'     => '',
 ])
 
 @php
-$gridClass    = match($columns) { 1=>'grid-cols-1', 2=>'grid-cols-2', 4=>'grid-cols-4', default=>'grid-cols-3' };
+$columnsClass = match($columns) { 1=>'grid-cols-1', 2=>'grid-cols-2', 4=>'grid-cols-4', default=>'grid-cols-3' };
 $overlayAnim  = match($overlayEffect) { 'fade'=>'opacity-0 group-hover:opacity-100', 'scale'=>'scale-0 group-hover:scale-100', default=>'translate-y-full group-hover:translate-y-0' };
 @endphp
 
+<div {{ $attributes }}>
 @if($label)
     <div class="flex items-center gap-2 mb-6">
         @if($icon) <x-dynamic-component :component="$icon" class="w-6 h-6" /> @endif
@@ -24,9 +25,9 @@ $overlayAnim  = match($overlayEffect) { 'fade'=>'opacity-0 group-hover:opacity-1
     </div>
 @endif
 
-<div class="grid {{ $gridClass }} gap-4 {{ $containerClass }}">
+<div class="grid {{ $columnsClass }} gap-4 {{ $gridClass }}">
     @forelse($images as $index => $image)
-        <div class="group relative h-64 overflow-hidden {{ $rounded ? 'rounded-lg' : '' }} {{ $shadow ? 'shadow-md hover:shadow-xl' : '' }} transition-all duration-300 {{ $class }}">
+        <div class="group relative h-64 overflow-hidden {{ $rounded ? 'rounded-lg' : '' }} {{ $shadow ? 'shadow-md hover:shadow-xl' : '' }} transition-all duration-300 {{ $itemClass }}">
             <img src="{{ $image['src'] ?? '' }}" alt="{{ $image['alt'] ?? '' }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
 
             @if($showOverlay)
@@ -55,4 +56,5 @@ $overlayAnim  = match($overlayEffect) { 'fade'=>'opacity-0 group-hover:opacity-1
             {{ __('No items') }}
         </div>
     @endforelse
+</div>
 </div>

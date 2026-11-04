@@ -2,12 +2,11 @@
     'items'          => [],
     'separator'      => '/',
     'showHomeIcon'   => true,
-    'class'          => '',
-    'containerClass' => '',
+    'listClass'      => '',
 ])
 
-<nav {{ $attributes->merge(['class' => "text-sm breadcrumbs {$containerClass}"]) }}>
-    <ul class="flex items-center gap-2 {{ $class }}">
+<nav {{ $attributes->merge(['class' => 'text-sm breadcrumbs']) }}>
+    <ul class="flex items-center gap-2 {{ $listClass }}">
         @foreach($items as $item)
             <li>
                 @if($loop->last)

@@ -12,7 +12,7 @@ $displayComponents = [
     '<x-dbl::display.table :rows="[]" :columns="[]" />',
     '<x-dbl::display.timeline :items="[]" />',
     '<x-dbl::display.accordion :items="[]" />',
-    '<x-dbl::display.carousel :images="[]" />',
+    '<x-dbl::display.carousel :items="[]" />',
     '<x-dbl::display.chat-bubble message="Hi" />',
     '<x-dbl::display.collapse title="T" />',
     '<x-dbl::display.diff :changes="[]" />',

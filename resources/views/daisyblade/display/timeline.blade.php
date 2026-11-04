@@ -5,8 +5,7 @@
     'showConnector'  => true,
     'compact'        => false,
     'label'          => '',
-    'class'          => '',
-    'containerClass' => '',
+    'dotClass'       => '',
 ])
 
 @php
@@ -36,7 +35,7 @@ $tagClassOf = fn (?string $color) => match($color) {
 };
 @endphp
 
-<div {{ $attributes->merge(['class' => "timeline " . ($orientation === 'horizontal' ? 'timeline-horizontal' : 'timeline-vertical') . " {$containerClass}"]) }}>
+<div {{ $attributes->merge(['class' => "timeline " . ($orientation === 'horizontal' ? 'timeline-horizontal' : 'timeline-vertical')]) }}>
     @if($label)
         <div class="mb-6 pb-4 border-b border-base-300">
             <h3 class="text-lg font-bold">{{ $label }}</h3>
@@ -52,7 +51,7 @@ $tagClassOf = fn (?string $color) => match($color) {
 
             <div class="timeline-middle">
                 @php $dotColor = $dotClassOf($item['color'] ?? $color) ?? $dotClassOf($color) ?? 'bg-primary'; @endphp
-                <div class="w-4 h-4 rounded-full {{ $dotColor }} ring-4 ring-base-100 flex items-center justify-center {{ $class }}">
+                <div class="w-4 h-4 rounded-full {{ $dotColor }} ring-4 ring-base-100 flex items-center justify-center {{ $dotClass }}">
                     @if(isset($item['icon']))
                         <x-dynamic-component :component="$item['icon']" class="w-2 h-2 text-white" />
                     @else

@@ -4,8 +4,7 @@
     'showFirstLast' => true,
     'showPrevNext'  => true,
     'window'        => 2,
-    'class'         => '',
-    'containerClass' => '',
+    'joinClass'     => '',
 ])
 
 @php
@@ -31,7 +30,7 @@ if ($showFirstLast && $current < ($last - $window - 1)) {
 $pageUrl = fn(int $p) => $baseUrl ? ($baseUrl . (str_contains($baseUrl, '?') ? '&' : '?') . 'page=' . $p) : '#';
 @endphp
 
-<div {{ $attributes->merge(['class' => "flex flex-col gap-4 {$containerClass}"]) }}>
+<div {{ $attributes->merge(['class' => 'flex flex-col gap-4']) }}>
     @if($total > 0)
         <div class="text-sm text-base-content/70 text-center">
             {{ __('Showing') }}
@@ -40,7 +39,7 @@ $pageUrl = fn(int $p) => $baseUrl ? ($baseUrl . (str_contains($baseUrl, '?') ? '
         </div>
     @endif
 
-    <div class="join justify-center {{ $class }}">
+    <div class="join justify-center {{ $joinClass }}">
         @if($showPrevNext)
             @if($baseUrl)
                 <a href="{{ $pageUrl(max(1, $current - 1)) }}" class="join-item btn btn-sm {{ $current <= 1 ? 'btn-disabled' : '' }}">‹ {{ __('Previous') }}</a>

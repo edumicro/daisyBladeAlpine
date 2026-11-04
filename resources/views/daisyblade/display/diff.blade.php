@@ -4,11 +4,10 @@
     'language'        => 'plaintext',
     'icon'            => 'heroicon-o-document-text',
     'label'           => '',
-    'class'           => '',
-    'containerClass'  => '',
+    'rowClass'        => '',
 ])
 
-<div {{ $attributes->merge(['class' => $containerClass]) }}>
+<div {{ $attributes }}>
     @if($label)
         <div class="flex items-center gap-2 mb-4 pb-4 border-b border-base-300">
             @if($icon)
@@ -24,7 +23,7 @@
             <tbody>
                 @forelse($changes as $index => $change)
                     @php
-                    $rowClass = match($change['type'] ?? 'normal') {
+                    $changeClass = match($change['type'] ?? 'normal') {
                         'added'    => 'bg-success/20 border-l-4 border-success',
                         'removed'  => 'bg-error/20 border-l-4 border-error',
                         'modified' => 'bg-warning/20 border-l-4 border-warning',
@@ -37,7 +36,7 @@
                         default    => [' ', 'badge-ghost'],
                     };
                     @endphp
-                    <tr class="{{ $rowClass }} {{ $class }}">
+                    <tr class="{{ $changeClass }} {{ $rowClass }}">
                         @if($showLineNumbers)
                             <td class="w-12 text-center text-xs text-base-content/50 select-none font-mono">
                                 {{ $change['line_number'] ?? $index + 1 }}

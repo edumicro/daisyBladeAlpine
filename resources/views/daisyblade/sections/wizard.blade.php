@@ -22,8 +22,6 @@
     'userId'        => '',
     'formId'        => 'wizard',
     'schemaVersion' => 1,
-    'class'         => '',
-    'containerClass' => '',
 ])
 
 @php
@@ -47,7 +45,7 @@ foreach ($steps as $step) {
     })"
     {{-- Alpine already calls dblWizard's init() (it restores the saved progress) before x-init runs. --}}
     x-init="Object.assign(data, @js($initValues))"
-    {{ $attributes->merge(['class' => "space-y-6 {$containerClass}"]) }}
+    {{ $attributes->merge(['class' => 'space-y-6']) }}
 >
     {{-- Steps indicator --}}
     <ul class="steps w-full">
@@ -95,12 +93,7 @@ foreach ($steps as $step) {
                 @endif
 
                 <div class="grid grid-cols-12 gap-4">
-                    @include('daisyblade::form.fields', [
-                        'fields'      => $step['schema'] ?? [],
-                        'mode'        => 'alpine',
-                        'alpineData'  => 'data',
-                        'alphaErrors' => 'errors',
-                    ])
+                    <x-dbl::form.fields :fields="$step['schema'] ?? []" mode="alpine" alpine-data="data" alpine-errors="errors" />
                 </div>
             </div>
         </div>

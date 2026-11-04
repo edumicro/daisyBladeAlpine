@@ -66,8 +66,8 @@ it('app layout uses the app locale for lang by default and has no class on html'
     expect($html)->toContain('lang="en"')->and($html)->not->toMatch('/<html[^>]*class=/');
 });
 
-it('app layout accepts lang and htmlClass props', function () {
-    $html = Blade::render('<x-dbl::layout.app lang="ca-ES-valencia" htmlClass="large-text" />');
+it('app layout accepts the lang prop and puts class on <html>', function () {
+    $html = Blade::render('<x-dbl::layout.app lang="ca-ES-valencia" class="large-text" />');
     expect($html)->toContain('lang="ca-ES-valencia"')->and($html)->toMatch('/<html[^>]*class="large-text"/');
 });
 

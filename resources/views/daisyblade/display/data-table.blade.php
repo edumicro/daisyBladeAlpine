@@ -38,8 +38,7 @@
     'perPage'        => 15,
     'label'          => '',
     'emptyText'      => '',
-    'class'          => '',
-    'containerClass' => '',
+    'tableClass'     => '',
     'toolbar'        => [],
 ])
 
@@ -54,7 +53,7 @@
     @filters-cleared.window="clearFilters()"
     @filter-apply.window="applyFilters($event.detail.values)"
     @filter-clear.window="clearFilters()"
-    {{ $attributes->merge(['class' => $containerClass]) }}
+    {{ $attributes }}
 >
     {{-- Header --}}
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -106,7 +105,7 @@
     </div>
 
     {{-- Table --}}
-    <div class="overflow-x-auto rounded-lg border border-base-300 {{ $class }}">
+    <div class="overflow-x-auto rounded-lg border border-base-300 {{ $tableClass }}">
         <table class="table table-zebra w-full">
             <thead>
                 <tr>

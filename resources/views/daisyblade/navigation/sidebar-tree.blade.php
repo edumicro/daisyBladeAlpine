@@ -6,7 +6,7 @@
 @php $items = collect($items ?? []); @endphp
 
 @if($items->isNotEmpty())
-    <ul @class(['menu', 'menu-sm' => $depth === 0, 'w-full'])>
+    <ul {{ $attributes->class(['menu', 'menu-sm' => $depth === 0, 'w-full']) }}>
         @foreach($items as $item)
             @php
                 $hasChildren = !empty($item['children']);

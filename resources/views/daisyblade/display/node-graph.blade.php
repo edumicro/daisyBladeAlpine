@@ -2,8 +2,7 @@
     'nodes'          => [],   // [{id, parent, label, status, badges:[{label,variant,flat}], flat}]
     'editable'       => false,
     'label'          => '',
-    'class'          => '',
-    'containerClass' => '',
+    'treeClass'      => '',
 ])
 
 {{--
@@ -180,7 +179,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
 
 <div
     x-data="{}"
-    {{ $attributes->merge(['class' => 'relative ' . $containerClass]) }}
+    {{ $attributes->merge(['class' => 'relative']) }}
 >
     @if($label)
         <div class="mb-4 pb-3 border-b border-base-300">
@@ -188,7 +187,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
         </div>
     @endif
 
-    <div class="{{ $class }}">
+    <div class="{{ $treeClass }}">
         @forelse($roots as $root)
             {!! $renderNode($root) !!}
         @empty

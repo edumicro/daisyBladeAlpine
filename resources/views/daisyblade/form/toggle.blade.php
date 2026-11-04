@@ -7,8 +7,7 @@
     'required'       => false,
     'color'          => 'primary',
     'size'           => 'md',   // xs | sm | md | lg | xl
-    'class'          => '',
-    'containerClass' => '',
+    'toggleClass'    => '',
 ])
 
 @php
@@ -40,7 +39,9 @@ $sizeClass = match($size) {
 $checked = filter_var($value, FILTER_VALIDATE_BOOLEAN);
 @endphp
 
-<div class="w-full {{ $containerClass }}">
+{{-- Everything the caller writes (class, id, data-*, aria-*...) goes to the root, as in any Laravel component.
+     The one exception is the binding of the value (x-model, wire:model): it only means something on the control. --}}
+<div {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => 'w-full']) }}>
     @if($name && isset($errors))
         <input type="hidden" name="{{ $name }}" value="0" />
     @endif
@@ -54,7 +55,8 @@ $checked = filter_var($value, FILTER_VALIDATE_BOOLEAN);
             @if($name) name="{{ $name }}" value="1" @endif
             @if($disabled) disabled @endif
             @checked($checked)
-            {{ $attributes->merge(['class' => trim("toggle {$colorClass} {$sizeClass} " . $class)]) }}
+            {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }}
+            class="{{ trim("toggle {$colorClass} {$sizeClass} " . $toggleClass) }}"
         />
     </label>
 

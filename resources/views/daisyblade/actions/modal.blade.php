@@ -26,7 +26,7 @@ $sizeClass = match($size) {
         @open-modal.window="if ($event.detail.id === '{{ $id }}') show()"
         @close-modal.window="if ($event.detail.id === '{{ $id }}') hide()"
     @endif
-    class="modal"
+    {{ $attributes->merge(['class' => 'modal']) }}
     :class="open && 'modal-open'"
     @keydown.escape.window="hide()"
 >
