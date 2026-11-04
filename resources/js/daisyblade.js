@@ -381,7 +381,8 @@ const dblSelectRemote = (config = {}) => ({
     // `x-model` on the <select>: Alpine applies the model to a <select> when the MODEL changes, not when <option>s
     // appear. So the first application, which ran before our options existed, found none and chose nothing, and nobody
     // applies it again once they arrive. The model is the truth of an input that has `x-model`, so we take what it holds
-    // as what is chosen, and showOptions() marks that one. (With `value` and an empty model the model wins, as on any input.)
+    // as what is chosen, and showOptions() marks that one. An EMPTY model (null or '') is "nothing typed yet", not a choice: an edit
+    // form that starts its model empty keeps the `value` the view wrote (the saved one), as in 2.4.0.
     //
     // Alpine has no public way to read the model of an element: `Alpine.evaluate()` needs the TEXT of the expression, and
     // getting it means parsing the attribute by hand (`x-model`, `x-model.number`, `x-model.debounce.500ms`...), which misses
@@ -391,7 +392,7 @@ const dblSelectRemote = (config = {}) => ({
     // as it did before this fix.
     takeModel() {
         const model = this.field._x_model?.get()
-        if (model !== undefined) this.selected = toTexts(model)
+        if (model !== undefined && model !== null && model !== '') this.selected = toTexts(model)
     },
 
     // Write `options` as <option>s of the <select>, marking the ones in `selected`.

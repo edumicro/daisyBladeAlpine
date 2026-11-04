@@ -6,7 +6,7 @@ import { fakeSelect, rootBesides, shownOptions } from './helpers/fake-select.mjs
 // The guide sends `x-model` to the <select> of the remote mode. Alpine applies a model to a <select> when the model
 // changes, not when <option>s appear: the first application finds no options, and when they arrive nothing re-applies
 // it. Chrome, 3.0 before the fix: `<div x-data="{ form: { city: '2' } }"> <x-dbl::form.select load-url=… x-model="form.city">`
-// ended with the select showing '' while form.city was '2' (and with value="2" + an empty model, the opposite).
+// ended with the select showing '' while form.city was '2' (an empty model, null or '', does not wipe the `value` of the view).
 // Alpine leaves `el._x_model` ({ get, set }) on the element: the factory takes the model as what is chosen.
 
 function pageWithAxios(answer) {
@@ -39,14 +39,26 @@ test('a <select> with x-model: what the model holds is what ends up selected whe
     assert.deepEqual(chosen(field), ['2'])
 })
 
-test('a <select> with x-model and a value prop: the model wins, as it does on any Alpine input', async () => {
+// An edit form: the view writes the saved `value="2"` and the x-model starts empty. The empty model must not wipe it.
+for (const empty of [null, '']) {
+    test(`a <select> with a value prop and an x-model that starts as ${JSON.stringify(empty)}: the value prop stays chosen`, async () => {
+        pageWithAxios(OPTIONS)
+        const { select, field } = selectWithModel({ loadUrl: '/options', name: 'city', value: '2' }, { value: empty })
+
+        await select.init()
+
+        assert.deepEqual(select.selected, ['2'])
+        assert.deepEqual(chosen(field), ['2'])
+    })
+}
+
+test('a <select> with a value prop and an x-model that holds another value: the model wins', async () => {
     pageWithAxios(OPTIONS)
-    const { select, field } = selectWithModel({ loadUrl: '/options', name: 'city', value: '2' }, { value: '' })
+    const { select } = selectWithModel({ loadUrl: '/options', name: 'city', value: '2' }, { value: '1' })
 
     await select.init()
 
-    assert.deepEqual(select.selected, [])
-    assert.deepEqual(chosen(field), [])
+    assert.deepEqual(select.selected, ['1'])
 })
 
 test('a <select> with x-model whose model has a number: 2 and "2" are the same choice', async () => {
