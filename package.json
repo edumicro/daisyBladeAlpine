@@ -1,0 +1,15 @@
+{
+  "name": "daisyblade-dev",
+  "private": true,
+  "description": "Development tools only (browser tests). The package itself has no JavaScript dependencies.",
+  "scripts": {
+    "browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@tailwindcss/browser": "^4.3.4",
+    "alpinejs": "3.14.9",
+    "daisyui": "^5.7.50",
+    "maplibre-gl": "6.13.0",
+    "playwright": "^1.64.1"
+  }
+}

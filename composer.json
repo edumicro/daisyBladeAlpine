@@ -18,7 +18,8 @@
     "require-dev": {
         "pestphp/pest": "^4.3",
         "pestphp/pest-plugin-laravel": "^4.0",
-        "orchestra/testbench": "^10.9"
+        "orchestra/testbench": "^10.9",
+        "pestphp/pest-plugin-browser": "^4.3"
     },
     "suggest": {
         "maatwebsite/excel": "Required by the daisyblade import/spreadsheet component (^3.1)"
@@ -35,9 +36,13 @@
     },
     "scripts": {
         "test": [
-            "vendor/bin/pest",
-            "node --test tests/js/*.test.mjs"
-        ]
+            "@test:php",
+            "@test:browser",
+            "@test:js"
+        ],
+        "test:php": "vendor/bin/pest --testsuite=Unit,Feature",
+        "test:browser": "vendor/bin/pest --testsuite=Browser",
+        "test:js": "node --test tests/js/*.test.mjs"
     },
     "extra": {
         "laravel": {

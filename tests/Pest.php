@@ -7,7 +7,9 @@ uses(Edumicro\DaisyBlade\Tests\TestCase::class)
         File::deleteDirectory(resource_path('views/vendor/daisyblade'));
         File::delete(config_path('daisyblade.php'));
     })
-    ->in('Feature', 'Unit');
+    ->in('Feature', 'Unit', 'Browser');
+
+require_once __DIR__.'/Browser/Support/helpers.php';
 
 /**
  * Nada de lo que un test publique puede sobrevivirle.
@@ -35,3 +37,6 @@ function xDataConfig(string $html, string $factory): array
     // The JSON travels inside a JavaScript string, where every backslash is doubled: reading it as a JSON string undoes that.
     return json_decode(json_decode('"'.($found[1] ?? '{}').'"'), true, flags: JSON_THROW_ON_ERROR);
 }
+
+// A browser test that waits for something that never comes must fail in 5 seconds, not in the 30 of the default.
+pest()->browser()->timeout(5000);

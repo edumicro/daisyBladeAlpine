@@ -6,3 +6,4 @@
 Thumbs.db
 /.claude/
 /composer.lock
+/tests/Browser/Screenshots/
