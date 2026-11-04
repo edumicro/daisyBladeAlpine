@@ -5,7 +5,7 @@ y su fecha, y se etiqueta.
 
 ## [3.0.0] — sin publicar
 
-La 3.0 **cambia nombres** para que todo el paquete siga una sola convención. No arrastra los nombres viejos: **no hay alias ni avisos de obsoleto**. Quien no quiera migrar se queda en la línea `2.x`, que se sigue manteniendo. La sección `[2.4.0]` de más abajo es la de la 2.x y también está en esta línea (la 3.0 parte de ella).
+La 3.0 **cambia nombres** para que todo el paquete siga una sola convención. No arrastra los nombres viejos: **no hay alias ni avisos de obsoleto**. Quien no quiera migrar se queda en la línea `2.x`, que se sigue manteniendo. Las secciones `[2.4.1]` y `[2.4.0]` de más abajo son las de la 2.x y también están en esta línea (la 3.0 parte de ella).
 
 ### Guía de la 2 a la 3
 
@@ -197,7 +197,17 @@ Clases CSS: `db-calendar`, `db-flowchart`, `db-flowchart-handle`, `db-rich-text-
 - Todos los nombres de la tabla de arriba, sin alias.
 - `display.filters`, `form.filter`, la factoría `dbTabs`, y `component_map`, `defaults`, `toast` y `sidebar` de `config/daisyblade.php`.
 
-## [2.4.0] — sin publicar
+## [2.4.1] — sin publicar
+
+Solo arreglos, sin cambiar ningún nombre de propiedad, evento ni clase.
+
+### Corregido
+- `form.select` con `options-url` y `x-model` en el `<select>`: el modelo no se aplicaba nunca. Alpine aplica un modelo a un `<select>` cuando el modelo cambia, no cuando aparecen las `<option>`; la primera vez no había opciones y al llegar nadie lo repetía, así que el select quedaba vacío con el modelo en `'2'` (y con `value="2"` y el modelo vacío, al revés). Ahora, al llegar las opciones, lo que tenga el modelo es lo que queda elegido (el modelo manda sobre `value`, como en cualquier campo con `x-model`). Prueba: `tests/js/select-remote-model.test.mjs`.
+- `form.toggle` y `form.radio`: `required` pintaba el asterisco pero no llegaba al `<input>`, así que el navegador dejaba enviar el formulario con el toggle apagado o sin radio marcado. Ahora lo llevan el toggle y cada radio.
+- `form.radio`: el `id` que escribe quien lo usa iba a todos los radios del grupo (HTML inválido). Ahora va solo al primero; el resto de atributos siguen yendo a cada radio.
+- `form.toggle`: toma su `id` de `name`, como el checkbox (y el `id` que escribas manda). Pruebas de estos tres: `tests/Feature/ToggleRadioFixesTest.php`.
+
+## [2.4.0] — 2026-11-04
 
 ### Añadido
 - `form.select`: prop `depends-on` (solo junto a `options-url`), el `name` de otro control del mismo formulario (o del documento si no hay `<form>`). Al cargar y cada vez que ese control cambia, el select pide `options-url` añadiendo su valor como parámetro con el nombre del control (`?country_code=ES`). Si lo elegido ya no está en las opciones nuevas, se vacía y lanza `change` (para un tercer desplegable encadenado); con el control vacío no pide nada y el select queda vacío y deshabilitado. Si dos respuestas se cruzan, solo vale la de la última petición. Doc: `docs/components/select.md`.
