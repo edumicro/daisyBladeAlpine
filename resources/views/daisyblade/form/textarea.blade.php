@@ -13,24 +13,14 @@
     'value'          => null,
 ])
 
-{{-- With `max-length`, the counter counts: the container listens to `input` (events rise from the textarea, so the
-     `x-on:input` a caller writes on the textarea itself is not touched) and keeps the number of characters typed. --}}
-<div class="w-full {{ $containerClass }}"
-    @if($maxLength > 0)
-        x-data="{ dbTypedCharacters: {{ mb_strlen((string) $value) }} }"
-        x-on:input="dbTypedCharacters = $event.target.value.length"
-        {{-- With an `x-model` on the textarea, the counter also follows the MODEL: it changes from outside (a "clear" button, a
-             loaded record) without any `input` event, and an edit form starts with text the `value` prop does not carry. --}}
-        @if($attributes->get('x-model')) x-effect="dbTypedCharacters = String({{ $attributes->get('x-model') }} ?? '').length" @endif
-    @endif
->
+<div class="w-full {{ $containerClass }}">
     @if($label)
         {{-- Texto y contador en la misma linea: `flex justify-between` explicito, porque la
              clase `.label` de DaisyUI 4 que lo hacia ya no existe en la 5. --}}
         <label class="mb-1 flex items-center justify-between gap-2 text-sm font-medium"
                @if($name) for="{{ $name }}" @endif>
             <span>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
-            @if($maxLength > 0) <span class="text-xs font-normal text-base-content/60"><span x-text="dbTypedCharacters">{{ mb_strlen((string) $value) }}</span>/{{ $maxLength }}</span> @endif
+            @if($maxLength > 0) <span class="text-xs font-normal text-base-content/60">0/{{ $maxLength }}</span> @endif
         </label>
     @endif
 

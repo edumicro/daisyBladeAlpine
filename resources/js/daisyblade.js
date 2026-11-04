@@ -1,6 +1,6 @@
 'use strict'
 
-import { request, joinUrl, expectJson, rejectHtmlPage } from './http.js'
+import { request, joinUrl } from './http.js'
 
 // Every server call of this file goes through request() (see http.js): the client injected with
 // registerDaisyBlade(), else window.axios, else fetch.
@@ -10,6 +10,15 @@ const http = options => request(options, injectedDeps)
 // Texts for the user come translated from Blade, inside `config.messages` (e.g. `{ loadFailed: 'No se pudo…' }`).
 // `fallback` (English) is for views that do not pass them, such as a copy published before 2.4.
 const messageOf = (config, key, fallback) => config.messages?.[key] ?? fallback
+
+// What a component that loads JSON (select options, table rows, a resource) does with the body of the answer.
+// When the session has expired the server redirects to the login page; axios and fetch follow the redirect and hand
+// over its HTML as a normal 200 answer, which read as data looks like an empty list. So a text body is an error: the
+// component shows its "could not load" message with Retry. An empty body (a 204) is not text: it still means "nothing".
+const expectJson = data => {
+    if (typeof data === 'string' && data !== '') throw new Error('Expected JSON but the server sent text (an expired session redirected to the login page?)')
+    return data
+}
 
 // ── Tipo 2: local Alpine state, no server calls ────────────────────────────
 
@@ -180,16 +189,6 @@ const dbSelectRemote = (config = {}) => ({
             expectJson(data)
             if (requestNumber !== this.lastRequest) return false
             this.options = Array.isArray(data) ? data : (data.data ?? [])
-            // A user's `x-model` on the <select>: Alpine applied it once, before any <option> existed, and never
-            // applies it again when the options arrive. So the model is read here and becomes what is chosen
-            // (when it holds a value, it wins over the `value` prop, as on any input with `x-model`).
-            // An EMPTY model (null, '' or an empty list) is "nothing typed yet", not a choice: an edit form that
-            // starts its model empty keeps the `value` the view wrote, as it did in 2.4.0. And then the model
-            // receives that value, so a form that sends the model does not send an empty one.
-            const model = this.field._x_model?.get()
-            const modelIsEmpty = model === undefined || model === null || model === '' || (Array.isArray(model) && model.length === 0)
-            if (!modelIsEmpty) this.selected = toTexts(model)
-            else if (this.field._x_model && this.selected.length) this.field._x_model.set(this.field.multiple ? [...this.selected] : this.selected[0])
         } catch (error) {
             // No answer: show no options (better than the ones of the previous value) and leave what was chosen as it is.
             // The user sees a translated message with a retry button; the technical detail goes to the console.
@@ -296,7 +295,6 @@ const dbSpreadsheetImport = (config = {}) => ({
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: e => { this.progress = e.total ? Math.round(e.loaded * 100 / e.total) : 50 },
             })
-            rejectHtmlPage(data)    // an HTML page (the login page of an expired session) is a failure, not "Import complete"; plain text is still a success
             this.result = data; this.step = 'done'
         } catch (e) {
             this.error = e.response?.data?.message ?? messageOf(config, 'uploadFailed', 'Upload failed'); this.step = 'error'
