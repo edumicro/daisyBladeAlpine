@@ -90,14 +90,15 @@ $controlId = $attributes->get('id', $name ?: null);
     @elseif($searchable)
         {{-- Alpine searchable combobox — soporta flat {k:v} y grouped {group:{k:v}} --}}
         <div x-data="dblSelectSearch(@js(['name' => $name, 'search' => $selectedLabel, 'options' => $options]))" class="relative" @click.outside="open = false">
-            <div class="relative">
-                {{-- The text box is the control of this mode: it takes the attributes of the caller. Its text is bound with
-                     :value and @input, not x-model, so that an x-model of the caller can be written here without a second one. --}}
+            {{-- The text box is the control of this mode: it takes the attributes of the caller. So it carries none of ours that
+                 the caller could also write, since the browser keeps only the first of two equal attributes and the caller's
+                 would vanish: its own `@input` and `@focus` would be exactly that. They go on the box around it instead:
+                 `input` bubbles up to here, and so does `focusin` (`focus` does not). The text is bound with :value, not
+                 x-model, so that an x-model of the caller can be written on the text box without a second one. --}}
+            <div class="relative" x-on:input="search = $event.target.value" x-on:focusin="open = true">
                 <input
                     type="text"
                     :value="search"
-                    @input="search = $event.target.value"
-                    @focus="open = true"
                     placeholder="{{ $placeholder ?: __('Search...') }}"
                     {{ $attributes->merge(['id' => $controlId, 'class' => "input w-full {$sizeClass}"]) }}
                 />
