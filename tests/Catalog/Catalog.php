@@ -161,7 +161,7 @@ final class Catalog
             Example::of('form.toggle')->props(['name' => 'on', 'label' => "On{$user}", 'hint' => "Switch{$user}"])->texts('label', 'hint'),
             Example::of('form.upload')->props(['name' => 'files', 'label' => "Files{$user}", 'uploadUrl' => '/up', 'multiple' => true, 'existing' => [['id' => 1, 'name' => "a.pdf{$user}", 'url' => '/a.pdf']]])->texts('label', 'existing.*.name')->modules('upload'),
             Example::of('form.field-error', 'a message of the caller')->props(['message' => "Wrong{$user}"])->texts('message'),
-            Example::of('form.field-error', 'from the 422 of the server')->props(['name' => 'email', 'mode' => 'alpine']),
+            Example::of('form.field-error', 'from the 422 of the server')->props(['name' => 'email', 'mode' => 'alpine'])->inScope('{ errors: {} }'),
             Example::of('form.validator')->props(['field' => 'email', 'message' => "Wrong{$user}"])->texts('message'),
 
             // ── import ──

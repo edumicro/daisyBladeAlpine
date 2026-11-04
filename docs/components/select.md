@@ -50,7 +50,7 @@ Se sigue el **valor** del otro control, no su evento: si tiene modelo (`x-model`
 formulario de edición que rellena país y región al cargar) y pide una sola vez; si no tiene modelo, se entera por el `change` del usuario. Un valor que no cambia no recarga.
 El otro control puede ser cualquier cosa que tenga `name` (un `<select>`, un `<input>`).
 Su valor es el que el formulario enviaría: con un grupo de `form.radio` es el del radio **marcado** (sin ninguno marcado está vacío y el select espera); con un `form.checkbox` o `form.toggle` es `1` si está marcado y `0` si no.
-Un selector `searchable` guarda su valor en un `<input type="hidden">` que no lanza `change`, así que no sirve como origen.
+Vale como origen cualquier control del paquete, también uno que dibuja su propia interfaz (un selector `searchable`, `form.kv-editor`, `form.list-editor`, `form.upload`, `form.signature`, `form.rich-text`): todos escriben su valor en un campo con `name` y lanzan en él `input` y `change` (`resources/js/modelBinding.js`). Un padre que envía una **lista** (`name="country[]"`: un `multiple`, un grupo de casillas) se encuentra con `depends-on="country"` y su valor viaja como `?country[]=ES&country[]=FR`.
 
 ## La regla del modelo (`x-model`)
 

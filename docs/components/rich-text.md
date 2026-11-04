@@ -24,9 +24,11 @@ instala e inyecta la aplicación, así que decides tú qué extensiones (y qué 
 | `label`, `hint`, `required` | Como en el resto de campos, salvo que la etiqueta no lleva `for` (el editor es un `<div>`, que no se puede etiquetar): al pulsarla enfoca el editor |
 | `class`, `wrapper-class` | `class` y el resto de atributos van a la caja del editor (el control); `wrapper-class` a la caja de fuera |
 | `value` | HTML inicial |
+| `required` | Asterisco en la etiqueta y, como en un campo nativo, **detiene el envío** del formulario con un mensaje si el editor está vacío |
+| `x-model` | El modelo guarda el HTML y sigue la regla de los demás controles (`resources/js/modelBinding.js`): al arrancar manda el modelo si tiene valor; si está vacío se enseña el `value` y el modelo lo recibe; un cambio del modelo desde fuera se refleja en el editor; lo que se teclea va al modelo. Se lee en el ámbito del componente, así que una variable tuya llamada `error`, `length`, `buttons`, `tick`, `uploading`, `model` o `blocked` quedaría tapada |
 | `placeholder` | Texto con el editor vacío (requiere `Placeholder`) |
 | `upload-url` | Endpoint de subida de imágenes (requiere `Image`) |
-| `max-length` | Máximo en **caracteres de texto** (sin etiquetas). Muestra un contador que se pone rojo al pasarse; **no bloquea** la escritura: valida también en el servidor |
+| `max-length` | Máximo en **caracteres de texto** (sin etiquetas). Muestra un contador que se pone rojo al pasarse; **no bloquea** la escritura, pero un texto que se pasa **detiene el envío del formulario** con un mensaje; valida también en el servidor |
 | `minimal` | Barra reducida: negrita, cursiva, listas, enlace, deshacer y rehacer |
 
 ## Instalación de paquetes

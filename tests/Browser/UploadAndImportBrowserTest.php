@@ -10,7 +10,7 @@ it('upload: an HTML answer to the upload is an error and no id is kept', functio
 
     chooseFile($page, 'input[type=file]', 'f.csv');
 
-    $state = readPage($page, "({ hidden: [...document.querySelectorAll('input[name=\"files[]\"]')].map(i => i.value), err: document.querySelector('ul li p.text-error')?.textContent })", fn ($v) => ($v['err'] ?? '') !== '');
+    $state = readPage($page, "({ hidden: [...document.querySelectorAll('input[name=\"files[]\"]:not([disabled])')].map(i => i.value), err: document.querySelector('ul li p.text-error')?.textContent })", fn ($v) => ($v['err'] ?? '') !== '');
 
     expect($state['hidden'])->toBe([])
         ->and($state['err'])->not->toBeEmpty();

@@ -54,3 +54,9 @@ registerSignature(Alpine, { SignaturePad })
 - `required` se valida en el `submit` del formulario padre, con un mensaje claro y sin enviar.
 - Accesibilidad: descripción para lectores de pantalla y aviso de que firmar requiere dedo o puntero.
 - Textos en `resources/lang/{es,ca,en}/signature.php` (`daisyblade::signature.*`).
+
+## Dentro de una pestaña, un modal o un colapso
+
+El lienzo toma su tamaño de la página, así que mide 0 px mientras está oculto. La firma lo mide cuando se muestra y cada vez
+que cambia de tamaño (`resources/js/observeSize.js`, con `ResizeObserver`): se puede montar dentro de lo que sea y firmar al
+abrirlo. Los trazos ya hechos se conservan si se oculta y se vuelve a mostrar.

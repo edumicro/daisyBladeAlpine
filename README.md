@@ -42,13 +42,13 @@ composer require edumicro/daisyblade
 php artisan daisyblade:install
 ```
 
-The install command will ask whether to publish assets for **Vite** (recommended) or as a **public script tag**. Either way it copies, side by side, `daisyblade.js`, `http.js` (the one function every component uses to call the server), `modelBinding.js` (the one rule of the controls with a model), `factoryConfig.js` (the declared configuration of each component) and the `components/` folder (the optional components: map, upload, rich text, signature, calendar, flowchart):
+The install command will ask whether to publish assets for **Vite** (recommended) or as a **public script tag**. Either way it copies, side by side, `daisyblade.js`, `http.js` (the one function every component uses to call the server), `modelBinding.js` (the one rule of the controls with a model, and the events a control with JavaScript announces), `observeSize.js` (how a component learns its size when it starts hidden), `factoryConfig.js` (the declared configuration of each component) and the `components/` folder (the optional components: map, upload, rich text, signature, calendar, flowchart):
 
 ```bash
-# Vite — assets published to resources/js/ (daisyblade.js, http.js, modelBinding.js, factoryConfig.js) and resources/js/components/
+# Vite — assets published to resources/js/ (daisyblade.js, http.js, modelBinding.js, observeSize.js, factoryConfig.js) and resources/js/components/
 php artisan daisyblade:install --vite
 
-# Script tag — assets published to public/vendor/daisyblade/ (daisyblade.js, http.js, modelBinding.js, factoryConfig.js, components/)
+# Script tag — assets published to public/vendor/daisyblade/ (daisyblade.js, http.js, modelBinding.js, observeSize.js, factoryConfig.js, components/)
 php artisan daisyblade:install --public
 ```
 
@@ -660,6 +660,7 @@ Two consequences:
 
 - Alpine attributes that you write on a component need a scope above it. `layout.app` and `layout.auth` put `x-data` on the `<body>`; with your own layout, do the same.
 - A control with a model (`x-model` on a `select` with `load-url`, a `searchable` select, a `textarea` with `max-length`) follows one rule (`resources/js/modelBinding.js`): at the start the model wins if it holds something; if it is empty (`null`, `''`, `[]`) the `value` of the view is shown and the model receives it; a value the options do not offer is kept, not erased; a change of the model from outside is always shown; what the user chooses is written to the model and announced with `dbl-<component>-changed`.
+- A control that draws its own interface (searchable select, key-value and list editors, uploader, signature, rich text) behaves toward the page like the native control it replaces: its value lives in a field with a `name` and every change fires `input` and `change` there (`resources/js/modelBinding.js`), so a `depends-on`, a `@change` on the `<form>` or a library hears it. `depends-on="country"` also finds a parent named `country[]`. A component that measures its size (signature, flowchart) learns it with `resources/js/observeSize.js`, so it works when it starts inside a closed tab, modal or collapse.
 
 ---
 
@@ -681,7 +682,7 @@ One-time setup (browser tests only):
 
 ```bash
 composer install
-npm install                 # Alpine, Tailwind, DaisyUI, MapLibre and Playwright, for the tests only
+npm install                 # Alpine, Tailwind, DaisyUI, MapLibre, Playwright, axios, signature_pad, Tiptap and esbuild, for the tests only
 npx playwright install chromium
 ```
 
@@ -694,7 +695,7 @@ composer test:browser       # Pest + a real Chromium: tests/Browser
 composer test:js            # node --test tests/js/*.test.mjs (HTTP client, errors, dates, map, flowchart)
 ```
 
-Currently 1579 Pest tests (5420 assertions), 319 browser tests (687 assertions) and 306 JavaScript tests, all green and none skipped. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
+Currently 1677 Pest tests (5663 assertions), 395 browser tests (842 assertions) and 323 JavaScript tests, all green and none skipped. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
 
 ### Browser tests (`tests/Browser`)
 
@@ -716,14 +717,14 @@ it('checkbox: checked follows the x-model and clicking it updates the model', fu
 });
 ```
 
-- `browserPage($name, $blade, ['modules' => ['map']])` registers the page and gives back its URL (helpers in `tests/Browser/Support/helpers.php`). `modules` lists the optional components to register with Alpine (`calendar`, `flowchart`, `map`, `upload`, `signature`).
+- `browserPage($name, $blade, ['modules' => ['map']])` registers the page and gives back its URL (helpers in `tests/Browser/Support/helpers.php`). `modules` lists the optional components to register with Alpine (`calendar`, `flowchart`, `map`, `upload`, `signature`, `rich-text`; the last one gets the real Tiptap, bundled once by esbuild).
 - The fake server (`/options`, `/rowsA`, `/cal`, `/geo/a`, `/upload-html`, ...) lives in the same file. `window.__net` in every page records each `fetch` and lets a test delay (`__net.delay['start=2026-03-30'] = 500`) or fail one.
 - `readPage($page, $js, $until)` waits until the page shows what the test expects (components load their data after painting); `pause()` is only for things that must NOT happen.
 - A test per behaviour; the name says what it protects. Findings of the attack rounds are named in the header comment of each file.
 
 **Pending tests.** A test for a known, not yet fixed defect is written in full and marked `->skip('Pending: <report>, <finding>. Activate when fixed.')`. Whoever fixes the defect deletes the `->skip(...)` line and the test must go green. Today there are none.
 
-**Architecture tests: they read the painted HTML, not the source.** `tests/Catalog/Catalog.php` is the catalog of components: at least one example of every view, with the props it typically gets (a view without an example fails `CatalogCoversEveryViewTest`; write its example there). The tests of `tests/Feature/Catalog` paint the whole catalog and look at the result: `RenderedAttributesTest` (no tag repeats an attribute, alone and with a bag of user attributes, and the user's value wins), `RenderedTextsTest` (a translator that wraps every translated text in `⟦…⟧` paints the catalog; any visible text or text attribute without the mark, and not written by the caller, was not translated) and `RenderedEscapingTest` (a hostile text in every text prop never becomes markup). `tests/Browser/CatalogBrowserTest.php` opens every example in Chromium with Alpine, normal and hostile, and expects a silent console. Other guards: `AlpineAttributeOwnershipTest`, `FactoryConfigTest`, `OutputEscapingTest` (the list of `{!! !!}`), `LaravelAnswerShapesTest` (the answers of Laravel's own classes), `TranslatableTextsTest` and `CatalanTest`. `tests/js/model-binding.test.mjs` and `UserScopeBrowserTest` prove the model rule and the scope of the caller.
+**Architecture tests: they read the painted HTML, not the source.** `tests/Catalog/Catalog.php` is the catalog of components: at least one example of every view, with the props it typically gets (a view without an example fails `CatalogCoversEveryViewTest`; write its example there). The tests of `tests/Feature/Catalog` paint the whole catalog and look at the result: `RenderedAttributesTest` (no tag repeats an attribute, alone and with a bag of user attributes, and the user's value wins), `RenderedTextsTest` (a translator that wraps every translated text in `⟦…⟧` paints the catalog; any visible text or text attribute without the mark, and not written by the caller, was not translated) and `RenderedEscapingTest` (a hostile text in every text prop never becomes markup). `tests/Browser/CatalogBrowserTest.php` opens every example in Chromium with Alpine, normal and hostile, and expects a silent console. **The catalog is also derived from the `@props` of each view** (`tests/Catalog/DerivedVariants.php`): every text prop gets the hostile text and a marked text, every boolean its opposite, every prop with a closed list of values (the arms of its `match`) each value, every number one more; `EveryPropTest` applies the three rules above to all those variants and fails when a prop is never painted, so a new prop cannot hide from them. In the browser: `ControlContractBrowserTest` changes every control of the catalog like a user and expects `input` and `change` in its named field and the reload of a `depends-on` select; `HiddenStartBrowserTest` mounts each component that measures itself hidden and shows it afterwards; `FieldErrorBrowserTest` and `FieldErrorEveryTypeTest` give every type of field a 422; `RichTextBrowserTest`, `SignatureBrowserTest` and `RealAppBrowserTest` use the real Tiptap, the real signature_pad and a small Laravel app with real routes, Eloquent, `paginate()` and the real axios. Other guards: `AlpineAttributeOwnershipTest`, `FactoryConfigTest`, `OutputEscapingTest` (the list of `{!! !!}`), `LaravelAnswerShapesTest` (the answers of Laravel's own classes), `TranslatableTextsTest` and `CatalanTest`. `tests/js/model-binding.test.mjs` and `UserScopeBrowserTest` prove the model rule and the scope of the caller.
 
 **Caveats.** `attach()` of the plugin needs a local Playwright server, so files are chosen with `chooseFile()` (a real `File` set on the input). A bare selector such as `'input'` is read as *text*; write `input[type=text]`.
 

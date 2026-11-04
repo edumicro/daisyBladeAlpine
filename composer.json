@@ -54,6 +54,7 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "config": {
+        "process-timeout": 0,
         "allow-plugins": {
             "pestphp/pest-plugin": true
         }
