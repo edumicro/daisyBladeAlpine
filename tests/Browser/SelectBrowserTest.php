@@ -45,6 +45,20 @@ it('remote select: the user ::disabled and ::data-err read THEIR scope, not the 
         ->and($page->script("document.querySelector('select').getAttribute('data-err')"))->toBe('outer');
 });
 
+it('remote select: a saved value that the options do not offer is kept, not erased and not replaced by the first option', function () {
+    $page = visit(browserPage('select-remote-unknown', <<<'BLADE'
+        <div id="scope" x-data="{ form: { city: '9' } }"><form>
+            <x-dbl::form.select name="city" load-url="/options" x-model="form.city" :options="['9' => 'Nine']" value="9" />
+        </form></div>
+        BLADE));
+
+    readPage($page, "document.querySelectorAll('select[name=city] option').length", fn ($v) => $v >= 3);
+
+    expect($page->script("document.querySelector('select[name=city]').value"))->toBe('9')
+        ->and($page->script("document.querySelector('select[name=city] option:checked').textContent"))->toBe('Nine')
+        ->and($page->script(alpineData('#scope', 'form.city')))->toBe('9');
+});
+
 // ── Searchable select: the user's own listeners ────────────────────────────
 
 it('searchable select: the user @input and @focus are called (@ spelling)', function () {

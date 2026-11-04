@@ -22,14 +22,14 @@ it('a wizard treats a null value of a step like the default of its field', funct
 });
 
 // The counter of the textarea follows its x-model: the model changes from outside and an edit form starts with text.
-it('the counter of the textarea follows its x-model', function () {
-    $html = Blade::render('<x-dbl::form.textarea name="bio" max-length="20" x-model="form.bio" />');
+it('the counter of the textarea re-counts through x-effect, which follows the model of the textarea (see the browser tests)', function () {
+    $html = Blade::render('<x-dbl::form.textarea name="bio" label="Bio" max-length="20" x-model="form.bio" />');
 
-    expect($html)->toContain('x-effect="dblTypedCharacters = String(form.bio ?? \'\').length"');
+    expect($html)->toContain('x-effect="count()"');
 });
 
-it('the counter of the textarea has no model effect without an x-model', function () {
-    expect(Blade::render('<x-dbl::form.textarea name="bio" max-length="20" />'))->not->toContain('x-effect');
+it('writes no counter at all without max-length', function () {
+    expect(Blade::render('<x-dbl::form.textarea name="bio" label="Bio" x-model="form.bio" />'))->not->toContain('dblCharacterCounter');
 });
 
 // The importer: reachable with the keyboard, and it filters by `accept` also when a file is dropped.

@@ -77,6 +77,17 @@ it('textarea: a model that starts with "abc" makes the counter say 3/20', functi
     expect(readPage($page, "document.querySelector('label span.text-xs').textContent.trim()", fn ($v) => $v === '3/20'))->toBe('3/20');
 });
 
+it('textarea: the x-ref of the caller on the textarea is the one of THEIR scope, with the counter on', function () {
+    $page = visit(browserPage('textarea-xref', <<<'BLADE'
+        <div x-data="{ seen: '' }" x-init="$nextTick(() => seen = $refs.bio ? 'yes' : 'no')">
+            <x-dbl::form.textarea name="bio" label="Bio" max-length="20" x-ref="bio" />
+            <p id="seen" x-text="seen"></p>
+        </div>
+        BLADE));
+
+    expect(readPage($page, "document.querySelector('#seen').textContent", fn ($v) => $v !== ''))->toBe('yes');
+});
+
 // ── kv-editor ──────────────────────────────────────────────────────────────
 
 it('kv-editor: a true stays true, a false stays false and a number stays a number', function () {

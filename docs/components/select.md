@@ -50,6 +50,16 @@ El otro control puede ser cualquier cosa que lance `change` y tenga `name` (un `
 Su valor es el que el formulario enviaría: con un grupo de `form.radio` es el del radio **marcado** (sin ninguno marcado está vacío y el select espera); con un `form.checkbox` o `form.toggle` es `1` si está marcado y `0` si no.
 Un selector `searchable` guarda su valor en un `<input type="hidden">` que no lanza `change`, así que no sirve como origen.
 
+## La regla del modelo (`x-model`)
+
+El select con `load-url`, el `searchable` y el contador del `textarea` siguen **la misma regla**, escrita una sola vez en
+`resources/js/modelBinding.js`:
+
+1. Al arrancar manda el **modelo** si tiene valor. Si está vacío (`null`, `''`, `[]`), se enseña el `value` de la vista y **el modelo lo recibe**.
+2. Un valor que **no está entre las opciones** no se borra ni se cambia: el select lo conserva (con la etiqueta que escribió el servidor, o con el propio valor). Solo lo vacía el cambio del control del que depende (`depends-on`).
+3. Un cambio del modelo desde fuera siempre se refleja.
+4. Lo que el usuario elige se escribe en el modelo y se anuncia con `dbl-select-changed`.
+
 ## Evento
 
 Los tres modos (nativo, buscable y con `load-url`) anuncian lo elegido igual: `dbl-select-changed`, con

@@ -24,32 +24,21 @@ $sizeClass = match($size) {
 };
 // The id that links the label to the control: the caller's, if it wrote one; else the name.
 $controlId = $attributes->get('id', $name ?: null);
-// The expression of the caller's `x-model` (`x-model.lazy`, `x-model.debounce`... too), or null if there is none.
-$modelExpression = collect($attributes->getAttributes())->first(fn ($expression, $attribute) => str_starts_with($attribute, 'x-model'));
 @endphp
 
 {{-- The main element of a form control is the control itself: everything the caller writes (class, min, max, step,
      autocomplete, x-model, wire:model, data-*...) goes to it, as in Breeze's text-input. The box around it (label,
      hint, error) takes its classes from `wrapper-class`. --}}
-{{-- With `max-length`, the counter counts: the box listens to `input` (events rise from the textarea, which keeps all the
-     attributes of the caller) and keeps the number of characters typed. --}}
-<div class="w-full {{ $wrapperClass }}"
-    @if($maxLength > 0)
-        x-data="{ dblTypedCharacters: 0 }"
-        x-init="dblTypedCharacters = $el.querySelector('textarea').value.length"
-        x-on:input="dblTypedCharacters = $event.target.value.length"
-        {{-- With an `x-model` on the textarea the counter also follows the MODEL: it changes from outside (a "clear" button, a loaded
-             record) without any `input` event, and an edit form starts with text that the `value` prop does not carry. --}}
-        @if($modelExpression) x-effect="dblTypedCharacters = String({{ $modelExpression }} ?? '').length" @endif
-    @endif
->
+{{-- With `max-length` the counter (dblCharacterCounter, in the label) counts what is typed and follows the model. It is its own
+     little scope BESIDE the textarea, never around it: a scope around the textarea would hide the `x-ref` and the data of the caller. --}}
+<div class="w-full {{ $wrapperClass }}" data-dbl-textarea-box>
     @if($label)
         {{-- Texto y contador en la misma linea: `flex justify-between` explicito, porque la
              clase `.label` de DaisyUI 4 que lo hacia ya no existe en la 5. --}}
         <label class="mb-1 flex items-center justify-between gap-2 text-sm font-medium"
                @if($controlId) for="{{ $controlId }}" @endif>
             <span>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
-            @if($maxLength > 0) <span class="text-xs font-normal text-base-content/60"><span x-text="dblTypedCharacters">{{ mb_strlen((string) $value) }}</span>/{{ $maxLength }}</span> @endif
+            @if($maxLength > 0) <span class="text-xs font-normal text-base-content/60"><span x-data="dblCharacterCounter(@js(['start' => mb_strlen((string) $value)]))" x-effect="count()" x-text="typed">{{ mb_strlen((string) $value) }}</span>/{{ $maxLength }}</span> @endif
         </label>
     @endif
 

@@ -1,6 +1,7 @@
 'use strict'
 
 import { request, joinUrl, latestOnly, answerShapes } from './http.js'
+import { modelBinding, modelOfElement } from './modelBinding.js'
 
 // Every server call of this file goes through request() (see http.js): the client injected with
 // registerDaisyBlade(), else window.axios, else fetch.
@@ -184,13 +185,13 @@ const dblSelectSearch = (config = {}) => ({
     shown: String(config.chosen ?? ''),
     starting: true,   // true while the page starts: x-modelable copies the model into `chosen` a moment AFTER the first sync()
     init() { this.$nextTick(() => { this.starting = false }) },
+    // `chosen` IS the model of the caller (x-modelable): this is how the shared rule of modelBinding.js reads and writes it.
+    get binding() { return modelBinding({ get: () => this.chosen, set: key => { this.chosen = key } }) },
     // Keeps the text box and the hidden input in step with `chosen` (the view calls it from an x-effect).
     sync() {
-        // An EMPTY model at the start (null or '') is "nothing typed yet", not a choice: an edit form that starts its model
-        // empty keeps the `value` the view wrote, and the model receives it. (A model that already holds a key wins.)
-        // Only while starting: later, an empty model is the page resetting the field, and the box must empty.
-        const empty = value => value === null || value === undefined || value === ''
-        if (this.starting && empty(this.chosen) && !empty(config.chosen)) this.chosen = config.chosen
+        // The rule of modelBinding.js, only while starting: a model with a key wins, an empty one receives the `value` of the view.
+        // Later, an empty model is the page resetting the field, and the box must empty.
+        if (this.starting) this.binding.reconcile(config.chosen ?? '')
         const key = this.chosen === null || this.chosen === undefined ? '' : String(this.chosen)
         if (key !== this.shown) {
             // Changed from outside (the model): the box shows the label of that key, or nothing.
@@ -207,8 +208,6 @@ const dblSelectSearch = (config = {}) => ({
         for (const items of groups) if (key in items) return String(items[key])
         return ''
     },
-    // The text box of this mode. It takes the attributes of the caller (@input...), so the component finds it by its type.
-    get textBox() { return this.$root?.querySelector('input[type="text"]') ?? null },
     // The user typed in the text box (called by the `input` that rises to the box around it).
     typed(text) {
         this.search = text
@@ -216,7 +215,7 @@ const dblSelectSearch = (config = {}) => ({
         // What is typed no longer is the option that was chosen: the model and the form must not keep its key.
         if (String(this.chosen ?? '') !== '') {
             this.shown = ''
-            this.chosen = ''
+            this.binding.write('')
             if (this.$refs.value) this.$refs.value.value = ''
             this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: '' })
         }
@@ -234,7 +233,7 @@ const dblSelectSearch = (config = {}) => ({
         this.search = item.label
         this.open = false
         this.shown = String(item.key)
-        this.chosen = item.key
+        this.binding.write(item.key)
         // Telling the text box with an `input` lets an `@input` of the caller see the label (`choosing` stops typed() from emptying the choice).
         const box = this.textBox
         if (box) {
@@ -246,6 +245,27 @@ const dblSelectSearch = (config = {}) => ({
         if (this.$refs.value) this.$refs.value.value = item.key
         this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: item.key })
         this.tellTheForm()
+    },
+})
+
+// form.textarea with `max-length`: the number of characters typed (the "12/200" of the label).
+// It lives in the label, BESIDE the textarea and not around it, so it cuts no scope of the caller. It finds the textarea in the box
+// of the component. The count comes from the model of the textarea when it has an `x-model` (rule 3 of modelBinding.js: the model
+// changes from outside, a "clear" button, with no `input` event; an edit form starts with text), and from the textarea otherwise.
+const dblCharacterCounter = (config = {}) => ({
+    typed: config.start ?? 0,
+    ready: false,   // false until the textarea has started: its x-model does not exist before that, and the effect must run again
+    get textarea() { return this.$root.closest('[data-dbl-textarea-box]')?.querySelector('textarea') ?? null },
+    init() {
+        // What is typed reaches the textarea as `input` whether it has a model or not.
+        this.textarea?.addEventListener('input', () => this.count())
+        this.$nextTick(() => { this.ready = true })
+    },
+    // Run by the `x-effect` of the view. Reading the model here makes Alpine call it again when the model changes.
+    count() {
+        if (!this.ready || !this.textarea) return
+        const model = modelBinding(modelOfElement(this.textarea))
+        this.typed = String(model.current(this.textarea.value) ?? '').length
     },
 })
 
@@ -308,9 +328,11 @@ const dblSelectRemote = (config = {}) => ({
     // Alpine calls init() by itself when the component starts: load the options the first time.
     // A view published with 2.3 also has `x-init="init()"`, so Alpine calls it a second time while the first call is
     // still loading: that second call waits for the first one instead of asking the server again.
+    // The first load only SHOWS the options: a value that they do not offer (a saved one the list no longer has) is kept, not erased
+    // (rule 2 of modelBinding.js). Only a change of the control we depend on may empty it (see reload()).
     async init() {
         if (this.starting) return this.starting
-        this.starting = this.reload()
+        this.starting = this.loadAndShow()
         try { await this.starting } finally { this.starting = null }
     },
 
@@ -374,16 +396,23 @@ const dblSelectRemote = (config = {}) => ({
     // The "Retry" button of the error message.
     retry() { return this.reload() },
 
-    // Load the options and drop from the selection whatever they no longer offer.
+    // The control we depend on changed (or the user pressed Retry): load the options again and drop from the selection
+    // whatever they no longer offer, because a region of another country is out of date.
     async reload() {
-        this.waiting = this.dependencyValue() === ''   // empty control: ask for nothing
-        if (!await this.loadOptions()) return          // a newer request took over
+        if (!await this.loadAndShow()) return          // a newer request took over
         const kept = stillOffered(this.selected, this.options)
         if (kept.length === this.selected.length) return   // everything chosen is still offered
         this.selected = kept
+        this.showOptions()                             // without the option that was kept for the value that is gone
         if (!kept.length) this.field.value = ''        // nothing chosen: leave the select empty
         // Tell the others (a third select that depends on this one listens to this event).
         this.field.dispatchEvent(new Event('change', { bubbles: true }))
+    },
+
+    // Ask for the options and write them. Returns false if there is no usable answer (it failed, or a newer request took over).
+    async loadAndShow() {
+        this.waiting = this.dependencyValue() === ''   // empty control: ask for nothing
+        return this.loadOptions()
     },
 
     // Ask the server for the options. Returns false if there is no usable answer: it failed, or a newer request made it old.
@@ -411,8 +440,6 @@ const dblSelectRemote = (config = {}) => ({
             return false
         }
         this.options = outcome.value
-        // The options rendered by the server (the saved value) were only for before the JS: now they come from `options`.
-        this.field.querySelectorAll('option[data-initial]').forEach(option => option.remove())
         this.takeModel()
         this.showOptions()
         return true
@@ -420,33 +447,38 @@ const dblSelectRemote = (config = {}) => ({
 
     // `x-model` on the <select>: Alpine applies the model to a <select> when the MODEL changes, not when <option>s
     // appear. So the first application, which ran before our options existed, found none and chose nothing, and nobody
-    // applies it again once they arrive. The model is the truth of an input that has `x-model`, so we take what it holds
-    // as what is chosen, and showOptions() marks that one. An EMPTY model (null or '') is "nothing typed yet", not a choice: an edit
-    // form that starts its model empty (null, '' or an empty list) keeps the `value` the view wrote (the saved one), as in 2.4.0.
-    //
-    // Alpine has no public way to read the model of an element: `Alpine.evaluate()` needs the TEXT of the expression, and
-    // getting it means parsing the attribute by hand (`x-model`, `x-model.number`, `x-model.debounce.500ms`...), which misses
-    // a model that `Alpine.bind()` or another library attaches. So this uses `el._x_model`, a `{ get, set }` that the x-model
-    // directive leaves on the element whatever its spelling (Alpine's own `x-modelable` reads it too). Checked in Chrome
-    // with Alpine 3.14.9. If a future Alpine drops it, `_x_model` is undefined, this does nothing, and the select behaves
-    // as it did before this fix.
+    // applies it again once they arrive. So at every load the choice is decided by the shared rule of modelBinding.js:
+    // a model that holds something wins; an empty one (null, '' or an empty list: an edit form) receives the `value` of the view.
     takeModel() {
-        const model = this.field._x_model?.get()
-        const modelIsEmpty = model === undefined || model === null || model === '' || (Array.isArray(model) && model.length === 0)
-        if (!modelIsEmpty) this.selected = toTexts(model)
-        // An empty model with a `value` shown (an edit form): the model receives what the select shows, as the searchable one does,
-        // so a form that sends the model does not send an empty one.
-        else if (this.field._x_model && this.selected.length) this.field._x_model.set(config.multiple ? [...this.selected] : this.selected[0])
+        const binding = modelBinding(modelOfElement(this.field))
+        const valueOfTheView = config.multiple ? [...this.selected] : this.selected[0]
+        this.selected = toTexts(binding.reconcile(valueOfTheView))
     },
 
     // Write `options` as <option>s of the <select>, marking the ones in `selected`.
     // They are written by hand and not with a `<template x-for>` because the <select> is outside our x-data (a
     // template inside it could not see `options`). `data-loaded` marks them, to remove them before writing again;
-    // the placeholder and the options of the server (`data-initial`) are left alone here.
+    // the placeholder is left alone.
+    // A chosen value that the options do not offer is KEPT (rule 2 of modelBinding.js), or the browser would pick the first
+    // option in its place: the option the server wrote for it (`data-initial`, with its label) stays, or one with the value as its
+    // label is made. Every other option of the server is removed: from now on the options come from `options`.
     showOptions() {
         const field = this.field
+        const offered = this.options.map(option => String(option.value))
+        const missing = this.selected.filter(text => !offered.includes(text))
+
         field.querySelectorAll('option[data-loaded]').forEach(option => option.remove())
-        for (const { value, label } of this.options) {
+        const keptFromServer = []
+        field.querySelectorAll('option[data-initial]').forEach(option => {
+            if (missing.includes(option.value)) keptFromServer.push(option.value)
+            else option.remove()
+        })
+
+        const toWrite = [
+            ...this.options,
+            ...missing.filter(text => !keptFromServer.includes(text)).map(text => ({ value: text, label: text })),
+        ]
+        for (const { value, label } of toWrite) {
             const option = field.ownerDocument.createElement('option')
             option.value = value
             option.textContent = label
@@ -455,6 +487,8 @@ const dblSelectRemote = (config = {}) => ({
             option.setAttribute('data-loaded', '')
             field.append(option)
         }
+        // The options kept from the server are selected too (they were written selected, but a new choice may have changed that).
+        field.querySelectorAll('option[data-initial]').forEach(option => { option.selected = true })
     },
 })
 
@@ -806,7 +840,7 @@ const dblListEditor = (config = {}) => ({
 
 const _all = {
     dblModal, dblToast, dblToastSingle, dblTabs, dblSteps, dblCarousel, dblTextRotate, dblRepeater, dblSelectSearch,
-    dblNavbar, dblSidebar, dblSidebarTree,
+    dblNavbar, dblSidebar, dblSidebarTree, dblCharacterCounter,
     dblDataTable, dblAutoForm, dblWizard,
     dblSelectRemote, dblResourceDetails, dblTabsLazy, dblSpreadsheetImport,
     dblKvEditor, dblListEditor,
@@ -840,7 +874,7 @@ if (typeof window !== 'undefined') {
 export {
     registerDaisyBlade,
     dblModal, dblToast, dblToastSingle, dblTabs, dblSteps, dblCarousel, dblTextRotate, dblRepeater, dblSelectSearch,
-    dblNavbar, dblSidebar, dblSidebarTree,
+    dblNavbar, dblSidebar, dblSidebarTree, dblCharacterCounter,
     dblDataTable, dblAutoForm, dblWizard,
     dblSelectRemote, dblResourceDetails, dblTabsLazy, dblSpreadsheetImport,
     dblKvEditor, dblListEditor,

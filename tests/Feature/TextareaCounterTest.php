@@ -5,17 +5,19 @@ use Illuminate\Support\Facades\Blade;
 /**
  * `form.textarea` with `max-length` printed "0/20" and nothing ever changed it: eleven characters typed, still "0/20".
  */
-it('has a counter that listens to what is typed, not a fixed 0/N', function () {
+it('has a counter component that counts, not a fixed 0/N', function () {
     $html = Blade::render('<x-dbl::form.textarea name="bio" label="Bio" max-length="20" value="hello" />');
 
-    expect($html)->toContain('x-on:input="dblTypedCharacters = $event.target.value.length"')
-        ->and($html)->toContain('x-text="dblTypedCharacters"');
+    expect($html)->toContain('x-data="dblCharacterCounter(')
+        ->and($html)->toContain('x-text="typed"')
+        ->and(xDataConfig($html, 'dblCharacterCounter')['start'])->toBe(5);
 });
 
-it('starts the counter from the text the textarea already has when the page loads', function () {
-    $html = Blade::render('<x-dbl::form.textarea name="bio" label="Bio" max-length="20" value="hello" />');
+it('puts the counter BESIDE the textarea, never around it: a scope around it would hide the x-ref and the data of the caller', function () {
+    $html = Blade::render('<x-dbl::form.textarea name="bio" label="Bio" max-length="20" x-ref="bio" />');
 
-    expect($html)->toContain("dblTypedCharacters = \$el.querySelector('textarea').value.length");
+    // The element with the scope of the counter closes before the textarea opens.
+    expect(strpos($html, '</span>', strpos($html, 'dblCharacterCounter')))->toBeLessThan(strpos($html, '<textarea'));
 });
 
 it('leaves the x-on:input of the caller on the textarea alone', function () {
