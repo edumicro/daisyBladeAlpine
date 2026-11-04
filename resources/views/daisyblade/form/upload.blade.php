@@ -27,6 +27,8 @@
 ])
 
 @php
+    \Edumicro\DaisyBlade\Support\RequiredUrl::check('form.upload', 'upload-url', $uploadUrl, 'action');
+
     $t = fn (string $key) => __("daisyblade::upload.$key");
     $keys = ['drop', 'too_many', 'too_big', 'bad_type', 'uploaded', 'cancelled', 'failed', 'confirm_delete',
              'delete_failed', 'removed', 'moved', 'reorder_failed'];

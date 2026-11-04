@@ -13,6 +13,8 @@
 ])
 
 @php
+\Edumicro\DaisyBlade\Support\RequiredUrl::check('display.resource-details', 'load-url', $loadUrl);
+
 $config = [
     'loadUrl'  => $loadUrl,
     'fields'   => array_values($fields),

@@ -470,7 +470,9 @@ function conventionMinimalProps(): array
     return [
         'components/icon.blade.php' => 'name="home"',
         'display/calendar.blade.php' => 'load-url="/e"',
+        'display/data-table.blade.php' => 'load-url="/r"',
         'display/flowchart.blade.php' => '',
+        'display/resource-details.blade.php' => 'load-url="/r"',
         'form/kv-editor.blade.php' => 'name="k"',
         'form/list-editor.blade.php' => 'name="l"',
         'form/validator.blade.php' => 'message="Mal"',
@@ -478,8 +480,11 @@ function conventionMinimalProps(): array
         'form/radio.blade.php' => ':options="[\'a\' => \'A\']"',
         'form/select.blade.php' => ':options="[\'a\' => \'A\']"',
         'form/upload.blade.php' => 'upload-url="/u"',
+        'import/spreadsheet.blade.php' => 'upload-url="/u"',
         'layout/indicator.blade.php' => 'label="1"',
         'navigation/sidebar-tree.blade.php' => ':items="[[\'label\' => \'A\']]"',
+        'sections/auto-form.blade.php' => 'submit-url="/s"',
+        'sections/wizard.blade.php' => 'submit-url="/s"',
     ];
 }
 

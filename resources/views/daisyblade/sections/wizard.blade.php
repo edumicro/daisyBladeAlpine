@@ -9,7 +9,7 @@
     @prop formId  — form identifier for localStorage key
     @prop schemaVersion — bump to reset persisted state
 
-    Server contract:
+    Server contract (JSON; a text answer such as the login page counts as a failure):
       success: 200/201 with { redirect?: string, message?: string }
       error:   422 with { errors: { field: ['msg'] } }
       global:  500 with { message: 'error text' }
@@ -25,6 +25,8 @@
 ])
 
 @php
+\Edumicro\DaisyBlade\Support\RequiredUrl::check('sections.wizard', 'submit-url', $submitUrl, 'action');
+
 $stepCount  = count($steps);
 $initValues = [];
 foreach ($steps as $step) {

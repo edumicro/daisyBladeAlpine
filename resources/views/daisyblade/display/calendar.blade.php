@@ -1,5 +1,5 @@
 @props([
-    'loadUrl',
+    'loadUrl'      => '',
     'locale'       => null,
     'initialDate'  => null,
     'initialView'  => null,   // 'month' | 'list'. Sin valor: mes en escritorio, lista en móvil (< sm).
@@ -8,6 +8,8 @@
 ])
 
 @php
+\Edumicro\DaisyBlade\Support\RequiredUrl::check('display.calendar', 'load-url', $loadUrl);
+
 $config = [
     'loadUrl'      => $loadUrl,
     'locale'       => $locale ?? app()->getLocale(),

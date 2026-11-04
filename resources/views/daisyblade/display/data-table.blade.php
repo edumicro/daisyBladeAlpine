@@ -43,6 +43,8 @@
 ])
 
 @php
+\Edumicro\DaisyBlade\Support\RequiredUrl::check('display.data-table', 'load-url', $loadUrl);
+
 $config = [
     'loadUrl'  => $loadUrl,
     'params'   => array_merge(['per_page' => $perPage], $params),

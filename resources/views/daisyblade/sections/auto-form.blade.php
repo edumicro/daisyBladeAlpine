@@ -11,7 +11,7 @@
     @prop successMsg  — inline success message shown after Axios submit
     @prop redirect    — redirect URL on success (overrides successMsg if server returns data.redirect)
 
-    Server must return:
+    Server must return JSON (an empty body is fine; a text answer such as the login page counts as a failure):
       success: { redirect?: string, message?: string }
       error:   422 with { errors: { field: ['msg'] } }
 --}}
@@ -29,6 +29,11 @@
 ])
 
 @php
+// The URL is what the Alpine mode submits to. In `form` mode it is the <form action>, where an empty one is a valid choice (the same page).
+if ($mode === 'alpine') {
+    \Edumicro\DaisyBlade\Support\RequiredUrl::check('sections.auto-form', 'submit-url', $submitUrl, 'action');
+}
+
 // (object) y no $values a secas: en PHP un array asociativo VACIO se serializa
 // como [] —un array JS—, no como {}. x-model escribe values.email sin protestar,
 // pero JSON.stringify descarta las propiedades con nombre de un array y axios manda

@@ -17,6 +17,8 @@
 ])
 
 @php
+\Edumicro\DaisyBlade\Support\RequiredUrl::check('import.spreadsheet', 'upload-url', $uploadUrl);
+
 $config = [
     'uploadUrl'   => $uploadUrl,
     'templateUrl' => $templateUrl,
