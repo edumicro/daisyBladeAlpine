@@ -52,7 +52,7 @@ $edges = [
 | `x`, `y` | Posición. Sin ellas el nodo se coloca solo; con ellas se respeta. |
 | `shape` | `rectangle`, `rounded` (por defecto), `pill` (inicio/fin), `diamond` (decisión), `circle`. Las flechas cortan el borde de cada forma. |
 | `description` | Segunda línea de texto, más pequeña. |
-| `icon` | Nombre de un componente de icono (`heroicon-o-...`), el mismo sistema que `status`, `timeline` o `avatar`. Se pinta en el servidor; un nombre que no existe se omite. |
+| `icon` | Nombre de un icono de blade-icons (`heroicon-o-...`, o el de cualquier otro juego de iconos instalado). Se pinta en el servidor; solo valen iconos, no otros componentes Blade, y un nombre que no existe se omite. |
 | `badge` | Texto corto sobre la esquina de la caja. |
 | `group` | Nombre de grupo. Los nodos con el mismo nombre quedan dentro de una banda de fondo con ese nombre (departamentos, calles de un proceso). |
 | `variant` | `success`, `warning`, `error`, `neutral` (el mismo mapa que `node-graph`); cualquier otro valor se ignora. |
@@ -135,7 +135,7 @@ window.dispatchEvent(new CustomEvent('dbl-flowchart', { detail: { name: 'flujo',
 - **Flechas**: con punta, salen y llegan al borde de la caja. Varias entre el mismo par, y la ida y vuelta, se reparten en curvas separadas, con etiquetas que no se pisan. Una flecha de un nodo a sí mismo es un bucle bajo la caja.
 - **Teclado**: Tab recorre cajas y flechas; Enter (o Espacio) dispara el clic. Con `editable`, las flechas del teclado mueven la caja seleccionada 10 px (con Shift, un paso de `grid`, o 20 px si no hay rejilla) y **al soltar la tecla** se emite `node-move`. Cajas y flechas llevan `aria-label`.
 - **Tema**: usa las variables de color de DaisyUI (`--color-base-100`, `--color-primary`, ...), así que sigue el tema claro u oscuro. Funciona a 390 px de ancho: el lienzo hace scroll dentro, no la página.
-- El lienzo no tiene coordenadas negativas: las cajas no se pueden arrastrar más allá del borde superior o izquierdo.
+- El lienzo no tiene coordenadas negativas: las cajas no se pueden arrastrar más allá del borde superior o izquierdo, y una `x` o `y` negativa que mande el padre se lleva a 0.
 
 ## Slots
 

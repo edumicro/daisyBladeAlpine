@@ -30,6 +30,15 @@ const readStored = (storage, key) => {
     return legacy
 }
 
+// What a component that loads JSON (select options, table rows, a resource) does with the body of the answer.
+// When the session has expired the server redirects to the login page; axios and fetch follow the redirect and hand
+// over its HTML as a normal 200 answer, which read as data looks like an empty list. So a text body is an error: the
+// component shows its "could not load" message with Retry. An empty body (a 204) is not text: it still means "nothing".
+const expectJson = data => {
+    if (typeof data === 'string' && data !== '') throw new Error('Expected JSON but the server sent text (an expired session redirected to the login page?)')
+    return data
+}
+
 // ── Tipo 2: local Alpine state, no server calls ────────────────────────────
 
 // Every view starts its component the same way: `x-data="dblName(@js($config))"`. The factory gets
@@ -226,6 +235,8 @@ const stillOffered = (selected, options) => selected.filter(text => options.some
 const dblSelectRemote = (config = {}) => ({
     options: [],
     loading: false,
+    // `search`, `open` and `value` are left over from a searchable mode that no template uses (see the note above
+    // `filtered()`). `selected` is what the component really uses.
     search: '',
     open: false,
     value: config.value ?? null,
@@ -234,24 +245,56 @@ const dblSelectRemote = (config = {}) => ({
     waiting: false,                     // true while the control we depend on is empty
     error: '',                          // message when the options could not be loaded ('' = all fine)
     lastRequest: 0,                     // number of the newest request: older answers are ignored
+    disabledByUs: false,                // true while the <select> is disabled because of `waiting` or `disabled`
+    starting: null,                     // the first load of init() while it runs (null the rest of the time)
 
     // Alpine calls init() by itself when the component starts: load the options the first time.
-    async init() { await this.reload() },
+    // A view published with 2.3 also has `x-init="init()"`, so Alpine calls it a second time while the first call is
+    // still loading: that second call waits for the first one instead of asking the server again.
+    async init() {
+        if (this.starting) return this.starting
+        this.starting = this.reload()
+        try { await this.starting } finally { this.starting = null }
+    },
 
-    // The <select> itself. The Alpine scope is its container (so the error message can sit next to it),
-    // and the container holds no other <select>.
-    get field() { return this.$root.querySelector('select') },
+    // The <select> itself. In the current view the Alpine scope is its container (so the error message can sit next
+    // to it) and the container holds no other <select>. A view published with 2.3 has the scope on the <select>.
+    get field() { return this.$root.matches?.('select') ? this.$root : this.$root.querySelector('select') },
 
     // Value of the control we depend on (null if we depend on none), looked up by name
     // in our form or, if we are not in a form, in the whole page.
+    // It is the value the form would SEND for that name: a group of radios counts only through the checked one
+    // ('' if none is), and an unchecked checkbox sends nothing. `form.checkbox` and `form.toggle` write a hidden
+    // `0` before the checkbox, so when the checkbox is unchecked the value is that 0.
     dependencyValue() {
         if (!config.dependsOn) return null
-        return (this.field.form ?? document).querySelector(`[name="${config.dependsOn}"]`)?.value ?? ''
+        const controls = [...(this.field.form ?? document).querySelectorAll(`[name="${config.dependsOn}"]`)]
+        const sent = controls.filter(control => !['radio', 'checkbox'].includes(control.type) || control.checked)
+        // When several controls send the name (hidden 0 + checked checkbox), the last one wins, as in a submitted form.
+        return sent[sent.length - 1]?.value ?? ''
     },
 
     // Every control of the page fires `change`: reload only for the one we depend on.
     onDependencyChange(event) {
         if (event.target.name === config.dependsOn && event.target.form === this.field.form) this.reload()
+    },
+
+    // Keep the <select> in step with our state. The container runs this from its `x-effect`, so it runs again
+    // whenever `waiting`, `disabled` or `loading` change.
+    // The <select> can also carry a `:disabled` of the user (it is passed through as an attribute). So we disable
+    // it only when WE need it, and enable it again only if WE were the ones who disabled it: a select that the
+    // user's `:disabled` keeps locked must not be unlocked just because the options finished loading.
+    syncField() {
+        const mustBeDisabled = this.waiting || this.disabled
+        if (mustBeDisabled) {
+            this.field.disabled = true
+            this.disabledByUs = true
+        } else if (this.disabledByUs) {
+            this.field.disabled = false
+            this.disabledByUs = false
+        }
+        // setAttribute and not the `ariaBusy` property: it works in every browser (the property is newer).
+        this.field.setAttribute('aria-busy', String(this.loading))
     },
 
     // Remember what the user chose, to know later whether the new options still offer it,
@@ -280,18 +323,20 @@ const dblSelectRemote = (config = {}) => ({
 
     // Ask the server for the options. Returns false if there is no usable answer: it failed, or a newer request made it old.
     async fetch(q = '') {
-        const request = ++this.lastRequest
+        // The number of THIS request (a count, not the request() function of http.js): if a newer one starts, ours is old.
+        const requestNumber = ++this.lastRequest
         this.loading = true
         this.error = ''
         try {
             const params = { ...(q ? { search: q } : {}), ...(config.params ?? {}), ...dependencyParams(config.dependsOn, this.dependencyValue()) }
             const { data } = this.waiting ? { data: [] } : await http({ url: config.loadUrl, params })
-            if (request !== this.lastRequest) return false
+            expectJson(data)
+            if (requestNumber !== this.lastRequest) return false
             this.options = Array.isArray(data) ? data : (data.data ?? [])
         } catch (error) {
             // No answer: show no options (better than the ones of the previous value) and leave what was chosen as it is.
             // The user sees a translated message with a retry button; the technical detail goes to the console.
-            if (request === this.lastRequest) {
+            if (requestNumber === this.lastRequest) {
                 this.options = []
                 this.error = messageOf(config, 'loadFailed', 'Could not load the options')
             }
@@ -299,12 +344,15 @@ const dblSelectRemote = (config = {}) => ({
             return false
         } finally {
             // Only the newest request decides when the loading is over: an old one finishing late must not end it early.
-            if (request === this.lastRequest) this.loading = false
+            if (requestNumber === this.lastRequest) this.loading = false
         }
         // The options rendered by the server (the saved value) were only for before the JS: now they come from `options`.
         this.field.querySelectorAll('option[data-initial]').forEach(option => option.remove())
         return true
     },
+    // Left over from a searchable mode that no template uses: `search`, `open`, `value`, `filtered()`, `select()`,
+    // `labelFor()` and the `q` parameter of fetch(). They stay in 2.x because someone's own view could call them.
+    // 3.0: remove them, and rename fetch() to loadOptions() (it shares its name with the global `fetch` of http.js).
     filtered() {
         if (!this.search) return this.options
         const q = this.search.toLowerCase()
@@ -326,6 +374,7 @@ const dblResourceDetails = (config = {}) => ({
         this.loading = true; this.error = null
         try {
             const { data } = await http({ url: config.loadUrl })
+            expectJson(data)
             this.resource = data.data ?? data
         } catch (e) {
             this.error = e.response?.data?.message ?? messageOf(config, 'loadFailed', 'Error loading resource')
@@ -410,16 +459,18 @@ const dblDataTable = (config = {}) => ({
     filterKeys: [],     // the params that came from a filter bar, so that changing or clearing the filters removes them
     async init() { await this.load() },
     async load() {
-        const request = ++this.lastRequest
+        // The number of THIS load (a count, not the request() function of http.js): if a newer one starts, ours is old.
+        const requestNumber = ++this.lastRequest
         this.loading = true
         this.error = ''
         try {
             const { data } = await http({ url: config.loadUrl, params: this.queryState() })
-            if (request !== this.lastRequest) return    // a newer load() took over: this answer is old
+            expectJson(data)
+            if (requestNumber !== this.lastRequest) return    // a newer load() took over: this answer is old
             this.rows = data.data ?? []
             this.meta = data.meta ?? {}
         } catch (error) {
-            if (request !== this.lastRequest) return
+            if (requestNumber !== this.lastRequest) return
             // Empty the table (rows of another search or page would mislead) and offer a retry; the detail goes to the console.
             this.rows = []
             this.meta = {}
@@ -427,7 +478,7 @@ const dblDataTable = (config = {}) => ({
             console.error('dblDataTable: could not load the rows', error)
         } finally {
             // Whatever happened, the newest load() ends the loading: the spinner never stays on forever.
-            if (request === this.lastRequest) this.loading = false
+            if (requestNumber === this.lastRequest) this.loading = false
         }
     },
     // Everything the table is currently showing: page, search, sort and any filters. The one

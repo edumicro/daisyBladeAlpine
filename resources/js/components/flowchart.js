@@ -22,6 +22,12 @@ export const fmt = (tpl, vars = {}) => String(tpl).replace(/:(\w+)/g, (m, k) => 
 
 const num = v => (typeof v === 'number' && Number.isFinite(v) ? v : (v !== null && v !== '' && v !== undefined && Number.isFinite(+v) ? +v : null))
 
+/** Una coordenada del padre: un número que nunca es negativo (el lienzo no tiene coordenadas negativas), o `null` si no manda ninguna. */
+const coordinate = v => {
+    const n = num(v)
+    return n === null ? null : clampPos(n)
+}
+
 /**
  * Limpia lo que manda el padre: ids como texto (`key`), sin nodos repetidos y sin flechas
  * que apunten a un nodo que no existe. El id original se conserva en `id` para los eventos.
@@ -34,7 +40,7 @@ export function normalize(nodes = [], edges = []) {
         seen.add(String(n.id))
         cleanNodes.push({
             id: n.id, key: String(n.id), label: String(n.label ?? n.id),
-            x: num(n.x), y: num(n.y),
+            x: coordinate(n.x), y: coordinate(n.y),
             shape: normalizeShape(n.shape), group: n.group ? String(n.group) : null,
             description: n.description ? String(n.description) : '', icon: n.icon ? String(n.icon) : null,
             ...sizeOf(n.shape),

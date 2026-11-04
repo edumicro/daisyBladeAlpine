@@ -543,7 +543,7 @@ it('lets the remote select depend on another control', function () {
 
     expect(remoteSelectConfig($html))->toMatchArray(['dependsOn' => 'country_code'])
         ->and($html)->toContain('x-on:change.window="onDependencyChange($event)"')
-        ->and($html)->toContain(':disabled="waiting || disabled"');
+        ->and($html)->toContain('x-effect="syncField()"');   // disabled while waiting for the control it depends on
 });
 
 it('does not listen to other controls when the remote select depends on none', function () {

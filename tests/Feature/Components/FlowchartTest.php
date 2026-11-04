@@ -106,7 +106,7 @@ it('renders node icons on the server with the package icon system', function () 
     $c = flowchartConfig(Blade::render('<x-dbl::display.flowchart :nodes="$nodes" />', compact('nodes')));
 
     expect($c['icons']['heroicon-o-check-circle'])->toStartWith('<svg')
-        ->and($c['icons']['no-existe-este-icono'])->toBe('');
+        ->and($c['icons'])->not->toHaveKey('no-existe-este-icono');   // an icon that does not exist is left out
 });
 
 it('renders the texts in the app language', function (string $locale, string $muted, string $empty) {

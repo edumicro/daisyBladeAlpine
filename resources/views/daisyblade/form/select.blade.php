@@ -37,12 +37,20 @@ foreach ($options as $optVal => $optLabel) {
 @endphp
 
 {{-- With `load-url` the Alpine scope (dblSelectRemote) is this container, so the error message below can sit
-     next to the <select>; the factory finds the <select> inside it. --}}
-{{-- Everything the caller writes (class, id, data-*, aria-*...) goes to the root, as in any Laravel component.
+     next to the <select>; the factory finds the <select> inside it.
+     Everything Alpine needs from the component is written HERE, on the container, and not on the <select>:
+       x-on:change         the `change` of the <select> bubbles up to this container (capture: before any listener
+                           of the user, which may stop it).
+       x-on:change.window  the control we depend on is elsewhere in the form, so its `change` only reaches `window`.
+       x-effect            keeps `disabled` and `aria-busy` of the <select> in step with the component state.
+     Everything the caller writes (class, id, data-*, aria-*...) goes to the root, as in any Laravel component.
      The one exception is the binding of the value (x-model, wire:model): it only means something on the control. --}}
 <div {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => 'w-full']) }}
      @if($loadUrl)
          x-data="dblSelectRemote(@js(['loadUrl' => $loadUrl, 'name' => $name, 'multiple' => (bool) $multiple, 'value' => $value, 'dependsOn' => $dependsOn, 'disabled' => $disabled, 'messages' => ['loadFailed' => __('Could not load the options')]]))"
+         x-on:change.capture="remember()"
+         @if($dependsOn) x-on:change.window="onDependencyChange($event)" @endif
+         x-effect="syncField()"
      @elseif(! $searchable)
          {{-- The native select announces its change as `dbl-select-changed`, like the other two (this container is the root it is dispatched from). --}}
          x-data
@@ -55,10 +63,6 @@ foreach ($options as $optVal => $optLabel) {
     @if($loadUrl)
         {{-- Remote select: Alpine's dblSelectRemote asks `load-url` for the options (again each time `depends-on` changes). --}}
         <select
-            :aria-busy="loading"
-            x-on:change="remember()"
-            @if($dependsOn) x-on:change.window="onDependencyChange($event)" @endif
-            :disabled="waiting || disabled"
             @if($name) id="{{ $name }}" name="{{ $name }}{{ $multiple ? '[]' : '' }}" @endif
             @if($multiple) multiple @endif
             @if($disabled) disabled @endif

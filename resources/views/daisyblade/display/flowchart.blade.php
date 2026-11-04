@@ -54,21 +54,15 @@
 @php
     $height = preg_match('/^\d+(\.\d+)?(px|rem|em|vh|%)$/', (string) $height) ? $height : '28rem';
 
-    // Los iconos se pintan aquí, con el mismo sistema que el resto de componentes
-    // (<x-dynamic-component>), y el JS solo los coloca. Un icono que no existe se omite.
+    // Los iconos se pintan aquí y el JS solo los coloca. Se piden a blade-icons con svg(), que solo conoce iconos
+    // (heroicon-o-..., o los de cualquier otro juego instalado): con <x-dynamic-component> el nombre podría ser el
+    // de CUALQUIER componente Blade, y los nodos pueden venir de datos que edita una persona.
     $icons = [];
-    foreach ($nodes as $node) {
-        $iconName = $node['icon'] ?? null;
-        if (! is_string($iconName) || $iconName === '' || isset($icons[$iconName])) {
-            continue;
-        }
+    foreach (array_unique(array_filter(array_column($nodes, 'icon'), 'is_string')) as $iconName) {
         try {
-            $icons[$iconName] = trim(\Illuminate\Support\Facades\Blade::render(
-                '<x-dynamic-component :component="$icon" class="size-4 shrink-0" />',
-                ['icon' => $iconName],
-            ));
+            $icons[$iconName] = trim(svg($iconName, 'size-4 shrink-0')->toHtml());
         } catch (\Throwable) {
-            $icons[$iconName] = '';
+            // No es un icono (o su juego no está instalado): se omite y el nodo se queda sin icono.
         }
     }
 

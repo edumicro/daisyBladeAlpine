@@ -37,7 +37,7 @@ $config = [
     'submitUrl'     => $submitUrl,
     'method'        => strtoupper($method),
     'userId'        => (string) $userId,
-    'formId'        => $formId,
+    'formId'        => (string) $formId,
     'schemaVersion' => $schemaVersion,
     // The values of the steps are where the form starts; the progress saved for this same wizard (localStorage)
     // goes on top of them, in dblWizard's init(). (object): an empty PHP array would reach the JS as [], not {}.
