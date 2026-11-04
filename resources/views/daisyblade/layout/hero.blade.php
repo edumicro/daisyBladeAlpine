@@ -12,9 +12,12 @@
 @php
 $heroClasses    = trim("hero {$minHeight}");
 $contentClasses = trim("hero-content text-center {$contentClass}");
+// The address goes in quotes inside the CSS function, and the quote and the backslash of the address are escaped for CSS: an address with a
+// `)` or a `'` cannot get out of it. (The attribute around it is escaped for HTML by `merge`.)
+$backgroundImage = $bgImage ? "background-image: url('" . addcslashes(str_replace(["\r", "\n"], '', $bgImage), "\\'") . "')" : null;
 @endphp
 
-<div {{ $attributes->merge(['class' => $heroClasses])->style($bgImage ? ["background-image: url({$bgImage})"] : []) }}>
+<div {{ $attributes->merge(['class' => $heroClasses])->style($backgroundImage ? [$backgroundImage] : []) }}>
     @if($overlay && $bgImage)
         <div class="{{ $overlayClass }}"></div>
     @endif

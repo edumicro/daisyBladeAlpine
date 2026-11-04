@@ -38,7 +38,7 @@
                 @if($icon)
                     <x-dynamic-component :component="$icon" class="w-4 h-4 shrink-0 mt-0.5" />
                 @endif
-                <div>{!! $message ?: $label !!}{{ $slot }}</div>
+                <div>{{ $message ?: $label }}{{ $slot }}</div>
             </div>
         @endif
     </div>

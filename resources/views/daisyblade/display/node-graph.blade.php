@@ -102,7 +102,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
     $html .= "<span class=\"font-semibold text-sm\">{$label}</span>";
     $html .= "<span class=\"badge badge-xs {$ringCls}\">" . e($isRoot ? __('root') : __('child')) . "</span>";
     if ($status) {
-        $html .= "<span class=\"badge badge-xs {$statusCls}\">{$status}</span>";
+        $html .= "<span class=\"badge badge-xs {$statusCls}\">" . e($status) . "</span>";
     }
     if ($editable) {
         // Add child node
