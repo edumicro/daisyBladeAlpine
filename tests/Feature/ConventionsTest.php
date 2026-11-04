@@ -232,3 +232,81 @@ it('4. has no description prop on any form control', function () {
 
     expect($offenders)->toBe([]);
 });
+
+// ── 5. Size: always a token, xs | sm | md | lg | xl ────────────────────────
+
+/** The classes each size token turns into, per component: [blade tag => [token => class]]. */
+function conventionSizeClasses(): array
+{
+    $of = fn (string $prefix, array $tokens = ['xs', 'sm', 'md', 'lg', 'xl']) => array_combine($tokens, array_map(fn ($t) => "{$prefix}-{$t}", $tokens));
+
+    return [
+        '<x-dbl::actions.button label="X" size="%s" />' => $of('btn'),
+        '<x-dbl::actions.fab size="%s" />' => $of('btn'),
+        '<x-dbl::actions.swap size="%s" />' => $of('btn'),
+        '<x-dbl::actions.modal id="m" size="%s">x</x-dbl::actions.modal>' => ['xs' => 'max-w-xs', 'sm' => 'max-w-sm', 'md' => 'max-w-lg', 'lg' => 'max-w-2xl', 'xl' => 'max-w-4xl', 'full' => 'max-w-full'],
+        '<x-dbl::form.input name="x" size="%s" />' => $of('input'),
+        '<x-dbl::form.textarea name="x" size="%s" />' => $of('textarea'),
+        '<x-dbl::form.checkbox name="x" size="%s" />' => $of('checkbox'),
+        '<x-dbl::form.toggle name="x" size="%s" />' => $of('toggle'),
+        '<x-dbl::form.radio name="x" :options="[\'a\' => \'A\']" size="%s" />' => $of('radio'),
+        '<x-dbl::form.select name="x" size="%s" />' => $of('select'),
+        '<x-dbl::display.badge label="X" size="%s" />' => $of('badge'),
+        '<x-dbl::display.status status="active" position="badge" size="%s" />' => $of('badge'),
+        '<x-dbl::display.kbd key="K" size="%s" />' => $of('kbd'),
+        '<x-dbl::display.avatar initials="AB" size="%s" />' => ['xs' => 'w-6 h-6', 'sm' => 'w-8 h-8', 'md' => 'w-10 h-10', 'lg' => 'w-16 h-16', 'xl' => 'w-20 h-20'],
+        '<x-dbl::display.list :items="[\'a\']" size="%s" />' => ['xs' => 'text-xs', 'sm' => 'text-sm', 'md' => 'text-base', 'lg' => 'text-lg', 'xl' => 'text-xl'],
+        '<x-dbl::display.radial-progress :value="5" size="%s" />' => ['xs' => 'w-12 h-12', 'sm' => 'w-16 h-16', 'md' => 'w-24 h-24', 'lg' => 'w-32 h-32', 'xl' => 'w-40 h-40'],
+        '<x-dbl::display.text-rotate :texts="[\'a\']" size="%s" />' => ['xs' => 'text-xs', 'sm' => 'text-sm', 'md' => 'text-base', 'lg' => 'text-lg', 'xl' => 'text-xl'],
+        '<x-dbl::feedback.loading size="%s" />' => $of('loading'),
+        '<x-dbl::feedback.progress :value="5" size="%s" />' => $of('progress'),
+        '<x-dbl::feedback.skeleton type="text" size="%s" />' => ['xs' => 'h-2', 'sm' => 'h-3', 'md' => 'h-4', 'lg' => 'h-5', 'xl' => 'h-6'],
+        '<x-dbl::navigation.menu :items="[[\'label\' => \'A\']]" size="%s" />' => $of('menu'),
+        '<x-dbl::navigation.dock :items="[[\'label\' => \'A\', \'url\' => \'/\']]" icon-size="%s" />' => ['xs' => 'w-4 h-4', 'sm' => 'w-5 h-5', 'md' => 'w-6 h-6', 'lg' => 'w-8 h-8', 'xl' => 'w-10 h-10'],
+    ];
+}
+
+it('5. turns each size token into its class with a map written out in full, and an unknown token into the default', function () {
+    foreach (conventionSizeClasses() as $template => $classes) {
+        foreach ($classes as $token => $class) {
+            expect(Illuminate\Support\Facades\Blade::render(sprintf($template, $token)))->toContain($class);
+        }
+
+        // 'huge' is not a token: the component falls back to its default look and never writes the word.
+        expect(Illuminate\Support\Facades\Blade::render(sprintf($template, 'huge')))->not->toContain('huge');
+    }
+});
+
+it('5. gives every form control a size', function () {
+    $controls = ['form/input.blade.php', 'form/textarea.blade.php', 'form/checkbox.blade.php', 'form/toggle.blade.php', 'form/radio.blade.php', 'form/select.blade.php'];
+
+    expect(array_values(array_diff($controls, conventionViewsWithProp('size'))))->toBe([]);
+});
+
+it('5. has a token, not a class, as the default of every size prop', function () {
+    $offenders = [];
+
+    foreach (conventionViewProps() as $path => $props) {
+        foreach (['size', 'iconSize'] as $name) {
+            if (isset($props[$name]) && preg_match('/^\'(xs|sm|md|lg|xl)\'/', $props[$name]) !== 1) {
+                $offenders[$path] = $props[$name];
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('5. never writes the value of size into a class: it always goes through a match', function () {
+    // `$size` may appear in a view only as the subject of match($size); `{$size}` or `{{ $size }}` would be a 2.x class name.
+    $offenders = [];
+
+    foreach (conventionViews() as $path => $source) {
+        $source = preg_replace('/@props\(\[.*?\n\]\)/s', '', $source);
+        if (preg_match_all('/\$size\b/', $source) !== preg_match_all('/match\(\$size\)/', $source)) {
+            $offenders[] = $path;
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});

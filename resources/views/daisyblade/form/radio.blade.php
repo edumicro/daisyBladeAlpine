@@ -7,6 +7,7 @@
     'disabled'       => false,
     'required'       => false,
     'color'          => 'primary',
+    'size'           => 'md',   // xs | sm | md | lg | xl
     'inline'         => false,
     'class'          => '',
     'containerClass' => '',
@@ -27,6 +28,15 @@ $colorClass = match($color) {
     'error' => 'radio-error',
     default => 'radio-primary',
 };
+
+// The size is a token; the class name is written out in full so Tailwind can find it.
+$sizeClass = match($size) {
+    'xs' => 'radio-xs',
+    'sm' => 'radio-sm',
+    'lg' => 'radio-lg',
+    'xl' => 'radio-xl',
+    default => 'radio-md',
+};
 @endphp
 
 <div class="w-full {{ $containerClass }}">
@@ -43,7 +53,7 @@ $colorClass = match($color) {
                     @if($name) name="{{ $name }}" @endif
                     @if($value !== null && (string)$value === (string)$optVal) checked @endif
                     @if($disabled) disabled @endif
-                    {{ $attributes->merge(['class' => trim("radio {$colorClass} " . $class)]) }}
+                    {{ $attributes->merge(['class' => trim("radio {$colorClass} {$sizeClass} " . $class)]) }}
                 />
                 <span class="text-sm">{{ $optLabel }}</span>
             </label>

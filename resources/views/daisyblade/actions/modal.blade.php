@@ -1,17 +1,18 @@
 @props([
     'id'       => null,
     'title'    => null,
-    'size'     => 'md',   // sm | md | lg | xl | full
+    'size'     => 'md',   // xs | sm | md | lg | xl | full
     'closable' => true,
 ])
 
 @php
 $sizeClass = match($size) {
+    'xs'   => 'max-w-xs',
     'sm'   => 'max-w-sm',
     'lg'   => 'max-w-2xl',
     'xl'   => 'max-w-4xl',
     'full' => 'max-w-full',
-    default => 'max-w-lg',
+    default => 'max-w-lg',   // md
 };
 @endphp
 

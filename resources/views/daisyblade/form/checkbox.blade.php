@@ -6,6 +6,7 @@
     'disabled'       => false,
     'required'       => false,
     'color'          => 'primary',
+    'size'           => 'md',   // xs | sm | md | lg | xl
     'class'          => '',
     'containerClass' => '',
 ])
@@ -26,6 +27,15 @@ $colorClass = match($color) {
     default => 'checkbox-primary',
 };
 
+// The size is a token; the class name is written out in full so Tailwind can find it.
+$sizeClass = match($size) {
+    'xs' => 'checkbox-xs',
+    'sm' => 'checkbox-sm',
+    'lg' => 'checkbox-lg',
+    'xl' => 'checkbox-xl',
+    default => 'checkbox-md',
+};
+
 // `value` is the current value of the control: checked when it is true, 1, '1', 'on'... and not when it is false, 0, '0', '' or null.
 $checked = filter_var($value, FILTER_VALIDATE_BOOLEAN);
 @endphp
@@ -42,7 +52,7 @@ $checked = filter_var($value, FILTER_VALIDATE_BOOLEAN);
             @if($disabled) disabled @endif
             @if($required) required @endif
             @checked($checked)
-            {{ $attributes->merge(['class' => trim("checkbox {$colorClass} " . $class)]) }}
+            {{ $attributes->merge(['class' => trim("checkbox {$colorClass} {$sizeClass} " . $class)]) }}
         />
         @if($label)
             <span class="text-sm font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>

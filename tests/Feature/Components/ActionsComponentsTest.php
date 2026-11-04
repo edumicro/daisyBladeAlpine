@@ -14,8 +14,8 @@ it('button with variant=btn-secondary has btn-secondary', function () {
     expect($html)->toContain('btn-secondary');
 });
 
-it('button with size=btn-sm has btn-sm', function () {
-    $html = Blade::render('<x-dbl::actions.button label="X" size="btn-sm" />');
+it('button with size=sm has btn-sm', function () {
+    $html = Blade::render('<x-dbl::actions.button label="X" size="sm" />');
     expect($html)->toContain('btn-sm');
 });
 

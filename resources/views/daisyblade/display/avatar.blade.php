@@ -1,7 +1,7 @@
 @props([
     'src'      => '',
     'alt'      => 'Avatar',
-    'size'     => 'md',
+    'size'     => 'md',   // xs | sm | md | lg | xl | 2xl
     'online'   => false,
     'offline'  => false,
     'initials' => '',
@@ -35,7 +35,7 @@ $sizeClass = match($size) {
     'lg'  => 'w-16 h-16',
     'xl'  => 'w-20 h-20',
     '2xl' => 'w-24 h-24',
-    default => 'w-10 h-10',
+    default => 'w-10 h-10',   // md
 };
 @endphp
 

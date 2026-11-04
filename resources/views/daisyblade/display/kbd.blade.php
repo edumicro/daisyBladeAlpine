@@ -2,7 +2,7 @@
     'key'     => '',
     'keys'    => [],
     'variant' => 'default',
-    'size'    => 'md',
+    'size'    => 'md',   // xs | sm | md | lg | xl
     'label'   => '',
     'class'   => '',
 ])
@@ -18,7 +18,8 @@ $kbdClass = 'kbd' . match($variant) {
     'xs' => 'kbd-xs',
     'sm' => 'kbd-sm',
     'lg' => 'kbd-lg',
-    default => '',
+    'xl' => 'kbd-xl',
+    default => 'kbd-md',
 };
 @endphp
 

@@ -3,7 +3,7 @@
     'position'           => 'bottom-center',
     'direction'          => 'horizontal',
     'showLabelsOnHover'  => true,
-    'iconSize'           => 'w-6 h-6',
+    'iconSize'           => 'md',   // xs | sm | md | lg | xl
     'class'              => '',
     'containerClass'     => '',
 ])
@@ -16,6 +16,14 @@ $posClass = match($position) {
     'top-left'     => 'top-0 left-0',
     'top-right'    => 'top-0 right-0',
     default        => 'bottom-0 left-1/2 -translate-x-1/2',
+};
+// The size of the icons is a token; the class names are written out in full so Tailwind can find them.
+$iconSizeClass = match($iconSize) {
+    'xs' => 'w-4 h-4',
+    'sm' => 'w-5 h-5',
+    'lg' => 'w-8 h-8',
+    'xl' => 'w-10 h-10',
+    default => 'w-6 h-6',   // md
 };
 $dirClass = $direction === 'vertical' ? 'flex-col' : 'flex-row';
 @endphp
@@ -30,7 +38,7 @@ $dirClass = $direction === 'vertical' ? 'flex-col' : 'flex-row';
                         class="btn btn-ghost btn-sm btn-circle relative transition-all duration-200 hover:bg-primary hover:text-primary-content"
                         title="{{ $item['label'] ?? '' }}"
                     >
-                        <x-dynamic-component :component="$item['icon'] ?? 'heroicon-o-question-mark-circle'" class="{{ $iconSize }}" />
+                        <x-dynamic-component :component="$item['icon'] ?? 'heroicon-o-question-mark-circle'" class="{{ $iconSizeClass }}" />
                         @if(($item['badge'] ?? 0) > 0)
                             <span class="absolute -top-1 -right-1 bg-error text-error-content text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{{ $item['badge'] }}</span>
                         @endif
@@ -41,7 +49,7 @@ $dirClass = $direction === 'vertical' ? 'flex-col' : 'flex-row';
                         class="btn btn-ghost btn-sm btn-circle relative transition-all duration-200 hover:bg-primary hover:text-primary-content"
                         title="{{ $item['label'] ?? '' }}"
                     >
-                        <x-dynamic-component :component="$item['icon'] ?? 'heroicon-o-question-mark-circle'" class="{{ $iconSize }}" />
+                        <x-dynamic-component :component="$item['icon'] ?? 'heroicon-o-question-mark-circle'" class="{{ $iconSizeClass }}" />
                         @if(($item['badge'] ?? 0) > 0)
                             <span class="absolute -top-1 -right-1 bg-error text-error-content text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{{ $item['badge'] }}</span>
                         @endif
@@ -53,7 +61,7 @@ $dirClass = $direction === 'vertical' ? 'flex-col' : 'flex-row';
                         class="btn btn-ghost btn-sm btn-circle relative transition-all duration-200 hover:bg-primary hover:text-primary-content"
                         title="{{ $item['label'] ?? '' }}"
                     >
-                        <x-dynamic-component :component="$item['icon'] ?? 'heroicon-o-question-mark-circle'" class="{{ $iconSize }}" />
+                        <x-dynamic-component :component="$item['icon'] ?? 'heroicon-o-question-mark-circle'" class="{{ $iconSizeClass }}" />
                         @if(($item['badge'] ?? 0) > 0)
                             <span class="absolute -top-1 -right-1 bg-error text-error-content text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{{ $item['badge'] }}</span>
                         @endif

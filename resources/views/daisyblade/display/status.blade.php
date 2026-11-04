@@ -4,7 +4,7 @@
     'label'    => '',
     'icon'     => '',
     'pulse'    => false,
-    'size'     => 'md',
+    'size'     => 'md',   // xs | sm | md | lg | xl
     'position' => 'inline',  // inline | badge | dot
     'class'    => '',
 ])
@@ -24,7 +24,13 @@ $info      = $map[$status] ?? $map['pending'];
 $colorClass = $info['color'];
 $iconName   = $icon ?: $info['icon'];
 $displayText = $text ?: $label ?: $info['label'];
-$sizeClass  = match($size) { 'xs' => 'badge-xs', 'sm' => 'badge-sm', 'lg' => 'badge-lg', default => '' };
+$sizeClass  = match($size) {
+    'xs' => 'badge-xs',
+    'sm' => 'badge-sm',
+    'lg' => 'badge-lg',
+    'xl' => 'badge-xl',
+    default => 'badge-md',
+};
 @endphp
 
 @if($position === 'badge')

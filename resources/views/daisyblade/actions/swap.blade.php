@@ -5,12 +5,20 @@
     'onLabel'   => '',
     'animation' => 'rotate',   // rotate | flip | bounce
     'variant'   => 'btn-ghost',
-    'size'      => 'btn-md',
+    'size'      => 'md',   // xs | sm | md | lg | xl
     'disabled'  => false,
     'class'     => '',
 ])
 
 @php
+// The size is a token; the class name is written out in full so Tailwind can find it.
+$sizeClass = match($size) {
+    'xs' => 'btn-xs',
+    'sm' => 'btn-sm',
+    'lg' => 'btn-lg',
+    'xl' => 'btn-xl',
+    default => 'btn-md',
+};
 $animClass = match($animation) {
     'flip'   => 'swap-flip',
     'bounce' => 'swap-bounce',
@@ -22,7 +30,7 @@ $animClass = match($animation) {
     <input type="checkbox" @disabled($disabled) {{ $attributes->whereStartsWith('x-model') }} />
 
     <div class="swap-off">
-        <button type="button" @disabled($disabled) class="btn {{ $variant }} {{ $size }} {{ $class }}">
+        <button type="button" @disabled($disabled) class="btn {{ $variant }} {{ $sizeClass }} {{ $class }}">
             @if($offIcon)
                 <x-dynamic-component :component="$offIcon" class="w-5 h-5" />
             @endif
@@ -33,7 +41,7 @@ $animClass = match($animation) {
     </div>
 
     <div class="swap-on">
-        <button type="button" @disabled($disabled) class="btn {{ $variant }} {{ $size }} {{ $class }}">
+        <button type="button" @disabled($disabled) class="btn {{ $variant }} {{ $sizeClass }} {{ $class }}">
             @if($onIcon)
                 <x-dynamic-component :component="$onIcon" class="w-5 h-5" />
             @endif

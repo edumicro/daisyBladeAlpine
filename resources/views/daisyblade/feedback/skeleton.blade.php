@@ -2,7 +2,7 @@
     'type'           => 'card',
     'lines'          => 3,
     'animated'       => true,
-    'size'           => 'md',
+    'size'           => 'md',   // xs | sm | md | lg | xl
     'width'          => 100,
     'label'          => '',
     'class'          => '',
@@ -11,7 +11,13 @@
 
 @php
 $pulse    = $animated ? 'animate-pulse' : '';
-$sizeH    = match($size) { 'xs'=>'h-2','sm'=>'h-3','lg'=>'h-5','xl'=>'h-6', default=>'h-4' };
+$sizeH    = match($size) {
+    'xs' => 'h-2',
+    'sm' => 'h-3',
+    'lg' => 'h-5',
+    'xl' => 'h-6',
+    default => 'h-4',   // md
+};
 // Written out in full so Tailwind finds the class names (see the note in the other components).
 $gridColsClass = $width < 50 ? 'grid-cols-2' : ($width < 75 ? 'grid-cols-3' : 'grid-cols-4');
 @endphp

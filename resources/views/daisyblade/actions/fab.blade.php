@@ -4,13 +4,21 @@
     'tooltip'  => '',
     'href'     => '',
     'variant'  => 'btn-primary',
-    'size'     => 'btn-lg',
+    'size'     => 'lg',   // xs | sm | md | lg | xl
     'position' => 'bottom-right',
     'disabled' => false,
     'class'    => '',
 ])
 
 @php
+// The size is a token; the class name is written out in full so Tailwind can find it.
+$sizeClass = match($size) {
+    'xs' => 'btn-xs',
+    'sm' => 'btn-sm',
+    'lg' => 'btn-lg',
+    'xl' => 'btn-xl',
+    default => 'btn-md',
+};
 $posClass = match($position) {
     'bottom-left'  => 'bottom-6 left-6',
     'top-right'    => 'top-6 right-6',
@@ -34,7 +42,7 @@ $posClass = match($position) {
         @if($href)
             <a
                 href="{{ $href }}"
-                {{ $attributes->merge(['class' => "btn btn-circle {$variant} {$size} shadow-lg hover:shadow-xl transition-all duration-200 {$class}"]) }}
+                {{ $attributes->merge(['class' => "btn btn-circle {$variant} {$sizeClass} shadow-lg hover:shadow-xl transition-all duration-200 {$class}"]) }}
             >
                 <x-dynamic-component :component="$icon" class="w-6 h-6" />
                 @if($label) <span class="ml-2">{{ __($label) }}</span> @endif
@@ -44,7 +52,7 @@ $posClass = match($position) {
                 type="button"
                 @if($slot->isNotEmpty()) @click="menuOpen = !menuOpen" @endif
                 @disabled($disabled)
-                {{ $attributes->merge(['class' => "btn btn-circle {$variant} {$size} shadow-lg hover:shadow-xl transition-all duration-200 {$class}"]) }}
+                {{ $attributes->merge(['class' => "btn btn-circle {$variant} {$sizeClass} shadow-lg hover:shadow-xl transition-all duration-200 {$class}"]) }}
             >
                 <x-dynamic-component :component="$icon" class="w-6 h-6" />
                 @if($label) <span class="ml-2">{{ __($label) }}</span> @endif

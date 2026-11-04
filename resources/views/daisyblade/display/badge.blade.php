@@ -3,7 +3,7 @@
     'text'    => '',
     'color'   => '',
     'variant' => 'primary',
-    'size'    => 'md',
+    'size'    => 'md',   // xs | sm | md | lg | xl
     'icon'    => '',
     'iconSide'=> 'left',
     'outline' => false,
@@ -31,7 +31,13 @@ $colorClass = match($color ?: $variant) {
     default => 'badge-primary',
 };
 $variantClass = $ghost ? 'badge-ghost' : (($outline ? 'badge-outline ' : '') . $colorClass);
-$sizeClass    = match($size) { 'xs' => 'badge-xs', 'sm' => 'badge-sm', 'lg' => 'badge-lg', default => '' };
+$sizeClass    = match($size) {
+    'xs' => 'badge-xs',
+    'sm' => 'badge-sm',
+    'lg' => 'badge-lg',
+    'xl' => 'badge-xl',
+    default => 'badge-md',
+};
 @endphp
 
 <span {{ $attributes->merge(['class' => "badge {$variantClass} {$sizeClass} gap-1 {$class}"]) }}>

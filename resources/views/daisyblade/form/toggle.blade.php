@@ -6,6 +6,7 @@
     'disabled'       => false,
     'required'       => false,
     'color'          => 'primary',
+    'size'           => 'md',   // xs | sm | md | lg | xl
     'class'          => '',
     'containerClass' => '',
 ])
@@ -26,6 +27,15 @@ $colorClass = match($color) {
     default => 'toggle-primary',
 };
 
+// The size is a token; the class name is written out in full so Tailwind can find it.
+$sizeClass = match($size) {
+    'xs' => 'toggle-xs',
+    'sm' => 'toggle-sm',
+    'lg' => 'toggle-lg',
+    'xl' => 'toggle-xl',
+    default => 'toggle-md',
+};
+
 // `value` is the current value of the control: on when it is true, 1, '1', 'on'... and off when it is false, 0, '0', '' or null.
 $checked = filter_var($value, FILTER_VALIDATE_BOOLEAN);
 @endphp
@@ -44,7 +54,7 @@ $checked = filter_var($value, FILTER_VALIDATE_BOOLEAN);
             @if($name) name="{{ $name }}" value="1" @endif
             @if($disabled) disabled @endif
             @checked($checked)
-            {{ $attributes->merge(['class' => trim("toggle {$colorClass} " . $class)]) }}
+            {{ $attributes->merge(['class' => trim("toggle {$colorClass} {$sizeClass} " . $class)]) }}
         />
     </label>
 

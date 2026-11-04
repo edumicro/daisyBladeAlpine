@@ -2,6 +2,7 @@
     'name'           => '',
     'label'          => '',
     'type'           => 'text',
+    'size'           => 'md',   // xs | sm | md | lg | xl
     'placeholder'    => '',
     'icon'           => '',
     'iconSide'       => 'left',
@@ -14,6 +15,17 @@
     'class'          => '',
     'containerClass' => '',
 ])
+
+@php
+// The size is a token; the class name is written out in full so Tailwind can find it.
+$sizeClass = match($size) {
+    'xs' => 'input-xs',
+    'sm' => 'input-sm',
+    'lg' => 'input-lg',
+    'xl' => 'input-xl',
+    default => 'input-md',
+};
+@endphp
 
 <div class="w-full {{ $containerClass }}">
     @if($label)
@@ -35,7 +47,7 @@
             @if($disabled) disabled @endif
             @if($readonly) readonly @endif
             @if($required) required @endif
-            {{ $attributes->merge(['class' => trim('input w-full '
+            {{ $attributes->merge(['class' => trim('input w-full ' . $sizeClass . ' '
                 . ($icon && $iconSide === 'left' ? 'pl-10 ' : '')
                 . ($icon && $iconSide === 'right' ? 'pr-10 ' : '')
                 . ($error ? 'input-error ' : ($name && isset($errors) && $errors->has($name) ? 'input-error ' : ''))

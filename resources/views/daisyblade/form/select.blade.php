@@ -10,14 +10,20 @@
     'searchable'     => false,
     'disabled'       => false,
     'required'       => false,
-    'size'           => 'md',
+    'size'           => 'md',   // xs | sm | md | lg | xl
     'class'          => '',
     'containerClass' => '',
     'value'          => null,
 ])
 
 @php
-$sizeClass = match($size) { 'xs'=>'select-xs','sm'=>'select-sm','lg'=>'select-lg', default=>'' };
+$sizeClass = match($size) {
+    'xs' => 'select-xs',
+    'sm' => 'select-sm',
+    'lg' => 'select-lg',
+    'xl' => 'select-xl',
+    default => 'select-md',
+};
 // Valor(es) seleccionados como texto, para comparar con las claves de `options` sea cual sea su tipo.
 $selected = $value === null ? [] : array_map('strval', (array) $value);
 $isSelected = fn ($key) => in_array((string) $key, $selected, true);

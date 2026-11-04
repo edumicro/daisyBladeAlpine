@@ -1,7 +1,7 @@
 @props([
     'message'        => '',
     'type'           => 'spinner',
-    'size'           => 'md',
+    'size'           => 'md',   // xs | sm | md | lg | xl
     'color'          => 'primary',
     'fullScreen'     => false,
     'showMessage'    => true,
@@ -10,7 +10,13 @@
 ])
 
 @php
-$sizeClass  = match($size) { 'sm'=>'loading-sm','lg'=>'loading-lg', default=>'loading-md' };
+$sizeClass = match($size) {
+    'xs' => 'loading-xs',
+    'sm' => 'loading-sm',
+    'lg' => 'loading-lg',
+    'xl' => 'loading-xl',
+    default => 'loading-md',
+};
 // Class names written out in full, not glued together from a prefix and the color: Tailwind finds classes
 // by scanning the source for complete names, so one built at run time never reaches the CSS.
 // A value that is not listed gets the default look.

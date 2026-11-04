@@ -3,6 +3,7 @@
     'label'          => '',
     'placeholder'    => '',
     'rows'           => 4,
+    'size'           => 'md',   // xs | sm | md | lg | xl
     'maxLength'      => 0,
     'disabled'       => false,
     'readonly'       => false,
@@ -12,6 +13,17 @@
     'containerClass' => '',
     'value'          => null,
 ])
+
+@php
+// The size is a token; the class name is written out in full so Tailwind can find it.
+$sizeClass = match($size) {
+    'xs' => 'textarea-xs',
+    'sm' => 'textarea-sm',
+    'lg' => 'textarea-lg',
+    'xl' => 'textarea-xl',
+    default => 'textarea-md',
+};
+@endphp
 
 <div class="w-full {{ $containerClass }}">
     @if($label)
@@ -32,7 +44,7 @@
         @if($readonly) readonly @endif
         @if($required) required @endif
         @if($maxLength > 0) maxlength="{{ $maxLength }}" @endif
-        {{ $attributes->merge(['class' => trim('textarea w-full '
+        {{ $attributes->merge(['class' => trim('textarea w-full ' . $sizeClass . ' '
             . ($name && isset($errors) && $errors->has($name) ? 'textarea-error ' : '')
             . $class)]) }}
     >{{ $value }}</textarea>

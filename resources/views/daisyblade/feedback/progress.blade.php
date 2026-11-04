@@ -4,7 +4,7 @@
     'label'          => '',
     'showPercent'    => true,
     'showValue'      => false,
-    'size'           => 'md',
+    'size'           => 'md',   // xs | sm | md | lg | xl
     'color'          => 'primary',
     'indeterminate'  => false,
     'class'          => '',
@@ -12,7 +12,13 @@
 ])
 
 @php
-$sizeClass  = match($size) { 'xs'=>'progress-xs','sm'=>'progress-sm','lg'=>'progress-lg', default=>'progress-md' };
+$sizeClass = match($size) {
+    'xs' => 'progress-xs',
+    'sm' => 'progress-sm',
+    'lg' => 'progress-lg',
+    'xl' => 'progress-xl',
+    default => 'progress-md',
+};
 // Class names written out in full, not glued together from a prefix and the color: Tailwind finds classes
 // by scanning the source for complete names, so one built at run time never reaches the CSS.
 // A value that is not listed gets the default look.

@@ -1,6 +1,6 @@
 @props([
     'items'          => [],
-    'size'           => 'md',
+    'size'           => 'md',   // xs | sm | md | lg | xl
     'direction'      => 'vertical',
     'showIcons'      => true,
     'compact'        => false,
@@ -10,7 +10,13 @@
 ])
 
 @php
-$sizeClass = match($size) { 'xs'=>'menu-xs','sm'=>'menu-sm','lg'=>'menu-lg','xl'=>'menu-xl', default=>'menu-md' };
+$sizeClass = match($size) {
+    'xs' => 'menu-xs',
+    'sm' => 'menu-sm',
+    'lg' => 'menu-lg',
+    'xl' => 'menu-xl',
+    default => 'menu-md',
+};
 $dirClass  = $direction === 'horizontal' ? 'menu-horizontal' : 'menu-vertical';
 // Class names written out in full, not glued together from a prefix and the value: Tailwind finds classes
 // by scanning the source for complete names, so one built at run time never reaches the CSS.

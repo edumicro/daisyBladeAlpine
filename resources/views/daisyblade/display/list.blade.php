@@ -2,7 +2,7 @@
     'items'          => [],
     'ordered'        => false,
     'divided'        => true,
-    'size'           => 'md',
+    'size'           => 'md',   // xs | sm | md | lg | xl
     'icon'           => '',
     'hoverable'      => false,
     'label'          => '',
@@ -11,7 +11,13 @@
 ])
 
 @php
-$sizeClass = match($size) { 'xs'=>'text-xs','sm'=>'text-sm','lg'=>'text-lg', default=>'text-base' };
+$sizeClass = match($size) {
+    'xs' => 'text-xs',
+    'sm' => 'text-sm',
+    'lg' => 'text-lg',
+    'xl' => 'text-xl',
+    default => 'text-base',   // md
+};
 $tag = $ordered ? 'ol' : 'ul';
 @endphp
 
