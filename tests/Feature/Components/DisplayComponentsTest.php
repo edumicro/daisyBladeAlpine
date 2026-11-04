@@ -181,9 +181,9 @@ it('data-table contains dblDataTable and load-url', function () {
     $html = Blade::render('<x-dbl::display.data-table load-url="/api/products" :columns="[]" />');
     expect($html)
         ->toContain('dblDataTable')
-        ->toContain('/api/products')
         ->toContain('x-data')
-        ->not->toContain('wire:');
+        ->not->toContain('wire:')
+        ->and(xDataConfig($html, 'dblDataTable')['loadUrl'])->toBe('/api/products');
 });
 
 it('data-table renders column header', function () {
@@ -196,7 +196,7 @@ it('data-table renders column header', function () {
 
 it('data-table serializes per-page in x-data', function () {
     $html = Blade::render('<x-dbl::display.data-table load-url="/api/x" :columns="[]" :per-page="25" />');
-    expect($html)->toContain('25');
+    expect(xDataConfig($html, 'dblDataTable')['params'])->toBe(['per_page' => 25]);
 });
 
 it('data-table renders no toolbar links by default', function () {
@@ -379,9 +379,9 @@ it('resource-details contains Alpine factory and load-url', function () {
     $html = Blade::render('<x-dbl::display.resource-details load-url="/api/products/1" />');
     expect($html)
         ->toContain('dblResourceDetails')
-        ->toContain('/api/products/1')
         ->toContain('x-data')
-        ->not->toContain('wire:');
+        ->not->toContain('wire:')
+        ->and(xDataConfig($html, 'dblResourceDetails')['loadUrl'])->toBe('/api/products/1');
 });
 
 // ── card: `class` es del elemento, no de su interior ─────────────────────────

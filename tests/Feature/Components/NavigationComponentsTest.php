@@ -110,7 +110,8 @@ it('tabs with active=1 marks second tab active', function () {
         '<x-dbl::navigation.tabs :items="$items" :active="1" />',
         ['items' => [['label' => 'Uno', 'content' => 'A'], ['label' => 'Dos', 'content' => 'B']]]
     );
-    expect($html)->toContain('active === 1');
+    expect(xDataConfig($html, 'dblTabs'))->toBe(['active' => 1])
+        ->and($html)->toContain('isActive(1)');
 });
 
 it('tabs has no wire: attributes', function () {

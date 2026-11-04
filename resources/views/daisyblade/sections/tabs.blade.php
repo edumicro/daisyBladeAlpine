@@ -26,11 +26,15 @@ $styleClass = match($style) {
     'box' => 'tabs-box',
     default => 'tabs-lifted',
 };
-$tabsJson = json_encode(array_map(fn($t) => ['label' => $t['label'] ?? '', 'loadUrl' => $t['load_url'] ?? ''], $tabs), JSON_UNESCAPED_SLASHES);
+$config = [
+    'active'   => (int) $active,
+    'tabs'     => array_map(fn ($t) => ['label' => $t['label'] ?? '', 'loadUrl' => $t['load_url'] ?? ''], array_values($tabs)),
+    'messages' => ['loadFailed' => __('Could not load the content')],
+];
 @endphp
 
 <div
-    x-data="dblTabsLazy({ active: {{ (int)$active }}, tabs: {{ $tabsJson }}, messages: @js(['loadFailed' => __('Could not load the content')]) })"
+    x-data="dblTabsLazy(@js($config))"
     {{ $attributes->merge(['class' => 'space-y-0']) }}
 >
     {{-- Tab headers --}}

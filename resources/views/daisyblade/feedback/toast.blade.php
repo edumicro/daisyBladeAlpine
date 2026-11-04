@@ -36,15 +36,7 @@ $typeClass = match($type) {
 @if($message)
     {{-- Static single toast --}}
     <div
-        x-data="{
-            visible: true,
-            duration: {{ (int)$duration }},
-            init() {
-                if ({{ $autoClose ? 'true' : 'false' }}) {
-                    setTimeout(() => this.visible = false, this.duration)
-                }
-            }
-        }"
+        x-data="dblToastSingle(@js(['duration' => (int) $duration, 'autoClose' => (bool) $autoClose]))"
         x-show="visible"
         {{ $attributes->merge(['class' => "toast {$verticalClass} {$positionClass} z-50"]) }}
     >
@@ -58,8 +50,8 @@ $typeClass = match($type) {
 @else
     {{-- Event-driven toast container --}}
     <div
-        x-data="dblToast()"
-        @dbl-toast-show.window="add($event.detail.message, $event.detail.type ?? 'info', $event.detail.duration ?? {{ $duration }})"
+        x-data="dblToast(@js(['duration' => (int) $duration]))"
+        @dbl-toast-show.window="show($event.detail)"
         {{ $attributes->merge(['class' => "toast {$verticalClass} {$positionClass} z-50 pointer-events-none"]) }}
     >
         <template x-for="toast in toasts" :key="toast.id">

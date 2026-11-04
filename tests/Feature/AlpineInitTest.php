@@ -25,12 +25,11 @@ it('has no view that calls init() from x-init', function () {
     expect($offenders)->toBe([]);
 });
 
-it('keeps the wizard applying its initial values from x-init, without calling init() again', function () {
+it('hands the initial values of the wizard to its factory in the configuration, and has no x-init that could overwrite the saved progress', function () {
     $html = Illuminate\Support\Facades\Blade::render(
-        '<x-dbl::sections.wizard :steps="[[\'label\' => \'A\', \'values\' => [\'name\' => \'Ana\']]]" action="/save" />'
+        '<x-dbl::sections.wizard :steps="[[\'label\' => \'A\', \'values\' => [\'name\' => \'Ana\']], [\'label\' => \'B\', \'values\' => [\'city\' => \'Vigo\']]]" submit-url="/save" />'
     );
 
-    // @js() writes the values as JSON.parse('...'), so only the start of the expression is stable.
-    expect($html)->toContain('x-init="Object.assign(data, ')
-        ->and($html)->not->toContain('init();');
+    expect(xDataConfig($html, 'dblWizard')['values'])->toBe(['name' => 'Ana', 'city' => 'Vigo'])
+        ->and($html)->not->toContain('x-init');
 });

@@ -98,8 +98,8 @@
                         @if($mode==='form')
                             id="{{ $key }}" name="{{ $key }}"
                         @else
-                            x-model="{{ $aD }}.{{ $key }}"
-                            :class="{ 'textarea-error': ({{ $aE }}['{{ $key }}']||[]).length }"
+                            x-model="{{ $aD }}[@js($key)]"
+                            :class="{ 'textarea-error': ({{ $aE }}[@js($key)]||[]).length }"
                         @endif
                         placeholder="{{ $placeholder }}"
                         {{ $attrs }}
@@ -111,7 +111,7 @@
                     @if($mode==='form')
                         @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror
                     @else
-                        <p class="mt-1 text-xs text-error" x-show="({{ $aE }}['{{ $key }}']||[]).length" x-cloak x-text="({{ $aE }}['{{ $key }}']||[])[0]"></p>
+                        <p class="mt-1 text-xs text-error" x-show="({{ $aE }}[@js($key)]||[]).length" x-cloak x-text="({{ $aE }}[@js($key)]||[])[0]"></p>
                     @endif
                 </div>
             @break
@@ -126,7 +126,7 @@
                             @if($mode==='form')
                                 id="{{ $key }}" name="{{ $key }}" value="1" @checked((bool)$value)
                             @else
-                                x-model="{{ $aD }}.{{ $key }}"
+                                x-model="{{ $aD }}[@js($key)]"
                             @endif
                             @if($disabled) disabled @endif
                             class="checkbox checkbox-primary"
@@ -151,7 +151,7 @@
                             @if($mode==='form')
                                 name="{{ $key }}" value="1" @checked((bool)$value)
                             @else
-                                x-model="{{ $aD }}.{{ $key }}"
+                                x-model="{{ $aD }}[@js($key)]"
                             @endif
                             @if($disabled) disabled @endif
                             class="toggle toggle-primary shrink-0"
@@ -174,7 +174,7 @@
                                     @if($mode==='form')
                                         name="{{ $key }}" @checked((string)$value === (string)$optVal)
                                     @else
-                                        x-model="{{ $aD }}.{{ $key }}"
+                                        x-model="{{ $aD }}[@js($key)]"
                                     @endif
                                     class="radio radio-primary"
                                 />
@@ -198,8 +198,8 @@
                         @if($mode==='form')
                             id="{{ $key }}" name="{{ $key }}{{ $multiple ? '[]' : '' }}"
                         @else
-                            x-model="{{ $aD }}.{{ $key }}"
-                            :class="{ 'select-error': ({{ $aE }}['{{ $key }}']||[]).length }"
+                            x-model="{{ $aD }}[@js($key)]"
+                            :class="{ 'select-error': ({{ $aE }}[@js($key)]||[]).length }"
                         @endif
                         @if($multiple) multiple @endif
                         @if($disabled) disabled @endif
@@ -225,7 +225,7 @@
                     @if($mode==='form')
                         @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror
                     @else
-                        <p class="mt-1 text-xs text-error" x-show="({{ $aE }}['{{ $key }}']||[]).length" x-cloak x-text="({{ $aE }}['{{ $key }}']||[])[0]"></p>
+                        <p class="mt-1 text-xs text-error" x-show="({{ $aE }}[@js($key)]||[]).length" x-cloak x-text="({{ $aE }}[@js($key)]||[])[0]"></p>
                     @endif
                 </div>
             @break
@@ -257,8 +257,8 @@
                             id="{{ $key }}" name="{{ $key }}"
                             @if(!in_array($inputType, ['password','file'])) value="{{ $value }}" @endif
                         @else
-                            x-model="{{ $aD }}.{{ $key }}"
-                            :class="{ 'input-error': ({{ $aE }}['{{ $key }}']||[]).length }"
+                            x-model="{{ $aD }}[@js($key)]"
+                            :class="{ 'input-error': ({{ $aE }}[@js($key)]||[]).length }"
                         @endif
                         @if($disabled) disabled @endif
                         @if($required) required @endif
@@ -268,7 +268,7 @@
                     @if($mode==='form')
                         @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror
                     @else
-                        <p class="mt-1 text-xs text-error" x-show="({{ $aE }}['{{ $key }}']||[]).length" x-cloak x-text="({{ $aE }}['{{ $key }}']||[])[0]"></p>
+                        <p class="mt-1 text-xs text-error" x-show="({{ $aE }}[@js($key)]||[]).length" x-cloak x-text="({{ $aE }}[@js($key)]||[])[0]"></p>
                     @endif
                 </div>
 

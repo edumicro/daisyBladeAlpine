@@ -2,12 +2,10 @@
 
 use Illuminate\Support\Facades\Blade;
 
-/** Extrae y decodifica el JSON de data-config del componente. */
+/** La configuración que el Blade pasa a `dblFlowchart(@js($config))`. */
 function flowchartConfig(string $html): array
 {
-    preg_match('/data-config="([^"]*)"/', $html, $m);
-
-    return json_decode(html_entity_decode($m[1]), true, flags: JSON_THROW_ON_ERROR);
+    return xDataConfig($html, 'dblFlowchart');
 }
 
 $nodes = [['id' => 'a', 'label' => 'Pedido'], ['id' => 'b', 'label' => 'Envío', 'x' => 300, 'y' => 40]];
@@ -17,7 +15,7 @@ it('renders the flowchart with its nodes and edges as config', function () use (
     $html = Blade::render('<x-dbl::display.flowchart :nodes="$nodes" :edges="$edges" />', compact('nodes', 'edges'));
     $c = flowchartConfig($html);
 
-    expect($html)->toContain('x-data="dblFlowchart(JSON.parse($el.dataset.config))"')
+    expect($html)->toContain('x-data="dblFlowchart(JSON.parse(')
         ->and($c['nodes'])->toHaveCount(2)
         ->and($c['nodes'][1]['x'])->toBe(300)
         ->and($c['edges'][0]['label'])->toBe('genera')

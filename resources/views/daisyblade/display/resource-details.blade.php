@@ -12,8 +12,16 @@
     'contentClass'   => '',
 ])
 
+@php
+$config = [
+    'loadUrl'  => $loadUrl,
+    'fields'   => array_values($fields),
+    'messages' => ['loadFailed' => __('Error loading resource')],
+];
+@endphp
+
 <div
-    x-data="dblResourceDetails({ loadUrl: '{{ $loadUrl }}', fields: @js($fields), messages: @js(['loadFailed' => __('Error loading resource')]) })"
+    x-data="dblResourceDetails(@js($config))"
     {{ $attributes }}
 >
     @if($label)

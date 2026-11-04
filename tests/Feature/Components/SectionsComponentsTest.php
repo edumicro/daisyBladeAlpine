@@ -71,7 +71,7 @@ it('sections tabs includes load-urls in config', function () {
         '<x-dbl::sections.tabs :tabs="$tabs" />',
         ['tabs' => [['label' => 'A', 'load_url' => '/api/panel/1']]]
     );
-    expect($html)->toContain('/api/panel/1');
+    expect(xDataConfig($html, 'dblTabsLazy')['tabs'])->toBe([['label' => 'A', 'loadUrl' => '/api/panel/1']]);
 });
 
 it('sections tabs has no wire: attributes', function () {
@@ -87,5 +87,5 @@ it('sections tabs with active=1 sets initial active tab', function () {
         '<x-dbl::sections.tabs :tabs="$tabs" :active="1" />',
         ['tabs' => [['label' => 'A', 'load_url' => '/x'], ['label' => 'B', 'load_url' => '/y']]]
     );
-    expect($html)->toContain('active: 1');
+    expect(xDataConfig($html, 'dblTabsLazy')['active'])->toBe(1);
 });

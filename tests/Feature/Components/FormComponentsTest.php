@@ -109,9 +109,7 @@ it('textarea renders label', function () {
 /** Config que el Blade pasa a `dblSelectRemote(...)`, leída del HTML renderizado. */
 function remoteSelectConfig(string $html): array
 {
-    preg_match("/dblSelectRemote\\(JSON\\.parse\\('(.*?)'\\)\\)/", $html, $found);
-
-    return json_decode(json_decode('"'.$found[1].'"'), true);
+    return xDataConfig($html, 'dblSelectRemote');
 }
 
 // ── form/select ───────────────────────────────────────────────────────────────
@@ -323,8 +321,9 @@ it('auto-form seeds values as an object so an empty form still submits its field
         ['fields' => ['email' => ['type' => 'email'], 'password' => ['type' => 'password']]],
     );
 
-    expect($html)->toContain('values: {}')
-        ->not->toContain('values: []');
+    // {} and not []: an empty PHP array would reach the JavaScript as an array, and JSON.stringify drops what an array holds under a name.
+    expect($html)->toContain('\u0022values\u0022:{}')
+        ->not->toContain('\u0022values\u0022:[]');
 });
 
 it('auto-form keeps the values it is given', function () {
@@ -333,7 +332,7 @@ it('auto-form keeps the values it is given', function () {
         ['fields' => ['email' => ['type' => 'email']], 'values' => ['email' => 'ana@example.com']],
     );
 
-    expect($html)->toContain('ana@example.com');
+    expect(xDataConfig($html, 'dblAutoForm')['values'])->toBe(['email' => 'ana@example.com']);
 });
 
 // ── hidden: ni celda, ni etiqueta, ni caja editable ──────────────────────────
@@ -352,9 +351,9 @@ it('auto-form does not paint a hidden field as an editable box', function () {
     );
 
     expect($html)
-        ->not->toContain('x-model="values.student_id"')   // no hay input ligado al campo oculto
-        ->not->toContain('col-span-1')                    // ni celda de rejilla para él
-        ->toContain('x-model="values.name"');             // y el resto del formulario sigue igual
+        ->not->toContain('x-model="values[\'student_id\']"')   // no hay input ligado al campo oculto
+        ->not->toContain('col-span-1')                           // ni celda de rejilla para él
+        ->toContain('x-model="values[\'name\']"');              // y el resto del formulario sigue igual
 });
 
 it('repeater does not paint a hidden row key as an editable box', function () {

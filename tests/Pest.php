@@ -23,3 +23,15 @@ uses(Edumicro\DaisyBlade\Tests\TestCase::class)
  *
  * Va aquí y no en cada test para que valga también para los que se escriban después.
  */
+
+/**
+ * The configuration a view hands to an Alpine factory: `x-data="dblName(@js($config))"` is written as
+ * `dblName(JSON.parse('{...}'))`, and this reads it back from the rendered HTML as an array.
+ */
+function xDataConfig(string $html, string $factory): array
+{
+    preg_match('/'.preg_quote($factory, '/')."\\(JSON\\.parse\\('(.*?)'\\)\\)/s", $html, $found);
+
+    // The JSON travels inside a JavaScript string, where every backslash is doubled: reading it as a JSON string undoes that.
+    return json_decode(json_decode('"'.($found[1] ?? '{}').'"'), true, flags: JSON_THROW_ON_ERROR);
+}

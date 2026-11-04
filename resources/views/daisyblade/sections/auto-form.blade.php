@@ -28,20 +28,24 @@
     'formClass'    => '',
 ])
 
+@php
+// (object) y no $values a secas: en PHP un array asociativo VACIO se serializa
+// como [] —un array JS—, no como {}. x-model escribe values.email sin protestar,
+// pero JSON.stringify descarta las propiedades con nombre de un array y axios manda
+// [] al servidor: el formulario se envia vacio y el fallo se ve como un 422 de
+// "campo obligatorio". Afecta a todo formulario sin valores iniciales, es decir a
+// todos los de alta.
+$config = [
+    'submitUrl' => $submitUrl,
+    'method'    => strtoupper($method),
+    'values'    => (object) $values,
+    'messages'  => ['failed' => __('An error occurred')],
+];
+@endphp
+
 @if($mode === 'alpine')
     <div
-        x-data="dblAutoForm({
-            submitUrl: '{{ $submitUrl }}',
-            method: '{{ strtoupper($method) }}',
-            {{-- (object) y no @js($values) a secas: en PHP un array asociativo VACIO se serializa
-                 como [] —un array JS—, no como {}. x-model escribe values.email sin protestar,
-                 pero JSON.stringify descarta las propiedades con nombre de un array y axios manda
-                 [] al servidor: el formulario se envia vacio y el fallo se ve como un 422 de
-                 "campo obligatorio". Afecta a todo formulario sin valores iniciales, es decir a
-                 todos los de alta. --}}
-            values: @js((object) $values),
-            messages: @js(['failed' => __('An error occurred')]),
-        })"
+        x-data="dblAutoForm(@js($config))"
         {{ $attributes }}
     >
         @if($label)

@@ -122,9 +122,7 @@ it('hands the translated error texts to the javascript of the components that lo
 it('gives the map a translated message for when it cannot start, in the three languages', function () {
     foreach (['es', 'ca', 'en'] as $locale) {
         App::setLocale($locale);
-        $config = json_decode(html_entity_decode(
-            preg_match('/data-config="([^"]*)"/', Illuminate\Support\Facades\Blade::render('<x-dbl::display.map />'), $found) ? $found[1] : '{}'
-        ), true);
+        $config = xDataConfig(Illuminate\Support\Facades\Blade::render('<x-dbl::display.map />'), 'dblMap');
 
         expect($config['labels']['init_failed'])->toBe(trans('daisyblade::map.init_failed'))
             ->and($config['labels']['init_failed'])->not->toBe('daisyblade::map.init_failed');

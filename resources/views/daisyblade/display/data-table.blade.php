@@ -42,12 +42,16 @@
     'toolbar'        => [],
 ])
 
+@php
+$config = [
+    'loadUrl'  => $loadUrl,
+    'params'   => array_merge(['per_page' => $perPage], $params),
+    'messages' => ['loadFailed' => __('Could not load the data')],
+];
+@endphp
+
 <div
-    x-data="dblDataTable({
-        loadUrl: '{{ $loadUrl }}',
-        params:  @js(array_merge(['per_page' => $perPage], $params)),
-        messages: @js(['loadFailed' => __('Could not load the data')]),
-    })"
+    x-data="dblDataTable(@js($config))"
     {{-- form.filters announces these two events, and the table listens to nothing else. --}}
     @dbl-filters-applied.window="applyFilters($event.detail.filters)"
     @dbl-filters-cleared.window="clearFilters()"
@@ -111,15 +115,15 @@
                         <th>
                             @if($col['sortable'] ?? false)
                                 <button type="button"
-                                    @click="sortBy('{{ $col['key'] }}')"
+                                    @click="sortBy(@js($col['key']))"
                                     class="flex items-center gap-1 font-semibold hover:text-primary transition-colors"
                                 >
                                     {{ $col['label'] ?? ucfirst($col['key']) }}
                                     <span class="flex flex-col text-base-content/30">
                                         <x-heroicon-m-chevron-up class="w-3 h-3 -mb-1"
-                                            ::class="sort === '{{ $col['key'] }}' && direction === 'asc' ? 'text-primary' : ''" />
+                                            ::class="sort === @js($col['key']) && direction === 'asc' ? 'text-primary' : ''" />
                                         <x-heroicon-m-chevron-down class="w-3 h-3"
-                                            ::class="sort === '{{ $col['key'] }}' && direction === 'desc' ? 'text-primary' : ''" />
+                                            ::class="sort === @js($col['key']) && direction === 'desc' ? 'text-primary' : ''" />
                                     </span>
                                 </button>
                             @else
@@ -163,7 +167,7 @@
                     <template x-for="(row, idx) in rows" :key="row.id ?? idx">
                         <tr class="hover">
                             @foreach($columns as $col)
-                                <td x-text="row['{{ $col['key'] }}'] ?? '—'"></td>
+                                <td x-text="row[@js($col['key'])] ?? '—'"></td>
                             @endforeach
                             @if(isset($rowActions))
                                 <td class="text-right" x-data="{ row: row }">

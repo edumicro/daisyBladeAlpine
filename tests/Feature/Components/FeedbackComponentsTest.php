@@ -31,7 +31,8 @@ it('toast without message uses event-driven mode with dblToast', function () {
 
 it('toast without message listens to the dbl-toast-show order', function () {
     $html = Blade::render('<x-dbl::feedback.toast />');
-    expect($html)->toContain('@dbl-toast-show.window="add(')->not->toContain('@notify.window');
+    expect($html)->toContain('@dbl-toast-show.window="show($event.detail)"')->not->toContain('@notify.window')
+        ->and(xDataConfig($html, 'dblToast'))->toBe(['duration' => 4000]);
 });
 
 // ── feedback/skeleton ─────────────────────────────────────────────────────────

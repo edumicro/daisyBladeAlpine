@@ -55,10 +55,7 @@ $sizeClass = match($size) {
 @endphp
 
 <div
-    x-data="{ current: 0, texts: @js($texts) }"
-    @if($autoRotate)
-    x-init="setInterval(() => current = (current + 1) % texts.length, {{ $duration }})"
-    @endif
+    x-data="dblTextRotate(@js(['texts' => array_values($texts), 'duration' => (int) $duration, 'autoRotate' => (bool) $autoRotate]))"
     {{ $attributes }}
 >
     @if($label)

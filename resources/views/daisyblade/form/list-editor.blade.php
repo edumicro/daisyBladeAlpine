@@ -10,7 +10,7 @@
 $placeholder = $placeholder !== '' ? $placeholder : __('Type and press Enter or comma…');
 @endphp
 
-<div x-data="dblListEditor({ items: {{ \Illuminate\Support\Js::from(array_values((array) $value)) }} })" {{ $attributes }}>
+<div x-data="dblListEditor(@js(['items' => array_values((array) $value)]))" {{ $attributes }}>
 
     @if($label)
     <div class="mb-1 text-sm font-medium">{{ $label }}</div>

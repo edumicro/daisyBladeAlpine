@@ -65,9 +65,8 @@
 @endphp
 
 <div {{ $attributes->merge(['class' => 'w-full space-y-2']) }}
-     x-data="dblMap(JSON.parse($el.dataset.config))"
-     x-on:dbl-map-focus.window="onFocusEvent($event.detail)"
-     data-config="{{ json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) }}">
+     x-data="dblMap(@js($config))"
+     x-on:dbl-map-focus.window="onFocusEvent($event.detail)">
 
     @if($config['picker'] && $config['geocodeUrl'])
         <form class="join w-full" role="search" x-on:submit.prevent="search()">

@@ -23,7 +23,7 @@ it('announces row changes so a parent can react without reaching in', function (
 
     expect($html)
         ->toContain('x-on:input="notify()"')
-        ->toContain("dbl-repeater-changed");
+        ->toContain('dblRepeater(');
 });
 
 // ── events prop ───────────────────────────────────────────────────────────────
@@ -103,10 +103,11 @@ it('refuses an event handler smuggled in through attrs', function () {
 
 // ── the min/max expressions the buttons guard with ────────────────────────────
 
-it('hides the remove button while at the minimum', function () {
-    $html = repeater(':min="1"');
+it('hands the minimum and the maximum to the factory, whose canRemove and canAdd decide the buttons', function () {
+    $html = repeater(':min="1" :max="5"');
 
-    expect($html)->toContain('x-show="1 === 0 || rows.length > 1"');
+    expect(xDataConfig($html, 'dblRepeater'))->toMatchArray(['min' => 1, 'max' => 5])
+        ->and($html)->toContain('x-show="canRemove"')->toContain('x-show="canAdd"');
 });
 
 it('does not reference rows outside the Alpine scope in x-data', function () {
@@ -116,7 +117,7 @@ it('does not reference rows outside the Alpine scope in x-data', function () {
 
     $xData = str($html)->after('x-data="')->before('"')->toString();
 
-    expect($xData)->not->toContain('canRemove')->not->toContain('canAdd');
+    expect($xData)->not->toContain('canRemove')->not->toContain('canAdd')->not->toContain('rows.length');
 });
 
 // ── field defaults ────────────────────────────────────────────────────────────
@@ -124,18 +125,18 @@ it('does not reference rows outside the Alpine scope in x-data', function () {
 it('starts the first row from the field defaults', function () {
     $html = repeater(fields: "[['key'=>'unit','type'=>'select','options'=>['mg'=>'mg'],'default'=>'mg']]");
 
-    expect($html)->toContain('rows: JSON.parse(\'[{\u0022unit\u0022:\u0022mg\u0022}]\')');
+    expect(xDataConfig($html, 'dblRepeater')['rows'])->toBe([['unit' => 'mg']]);
 });
 
 it('gives an added row the same defaults as the first', function () {
     $html = repeater(fields: "[['key'=>'unit','type'=>'select','options'=>['mg'=>'mg'],'default'=>'mg']]");
 
-    // add() pushes this literal, so row two arrives with the unit already chosen.
-    expect($html)->toContain('this.rows.push(JSON.parse(\'{\u0022unit\u0022:\u0022mg\u0022}\'))');
+    // add() pushes a copy of `emptyRow`, so row two arrives with the unit already chosen.
+    expect(xDataConfig($html, 'dblRepeater')['emptyRow'])->toBe(['unit' => 'mg']);
 });
 
 it('still starts blank when no default is declared', function () {
     $html = repeater(fields: "[['key'=>'a']]");
 
-    expect($html)->toContain('rows: JSON.parse(\'[{\u0022a\u0022:\u0022\u0022}]\')');
+    expect(xDataConfig($html, 'dblRepeater')['rows'])->toBe([['a' => '']]);
 });

@@ -91,12 +91,11 @@
 @endphp
 
 <div {{ $attributes->merge(['class' => 'dbl-flowchart min-w-0 max-w-full']) }}
-     x-data="dblFlowchart(JSON.parse($el.dataset.config))"
+     x-data="dblFlowchart(@js($config))"
      x-on:dbl-flowchart-set.window="onSet($event.detail)"
      x-on:dbl-flowchart-focus.window="onFocus($event.detail)"
      x-on:dbl-flowchart-remove-edge.window="onRemoveEdge($event.detail)"
-     x-on:dbl-flowchart-remove-node.window="onRemoveNode($event.detail)"
-     data-config="{{ json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) }}">
+     x-on:dbl-flowchart-remove-node.window="onRemoveNode($event.detail)">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
         @if($label)
             <h3 class="font-semibold text-base">{{ $label }}</h3>

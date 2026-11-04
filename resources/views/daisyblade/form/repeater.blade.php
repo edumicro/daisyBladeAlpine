@@ -56,13 +56,8 @@
 @endphp
 
 <div
-    x-data="{
-        rows: {{ Js::from($rows) }},
-        add()      { this.rows.push({{ Js::from($emptyRow) }}); this.notify() },
-        remove(i)  { if ({{ (int)$min }} === 0 || this.rows.length > {{ (int)$min }}) { this.rows.splice(i, 1); this.notify() } },
-        notify()   { this.$dispatch('dbl-repeater-changed', { name: {{ Js::from($name) }}, rows: this.rows }) },
-    }"
-    @if($mode === 'alpine') x-effect="{{ $alpineData }}.{{ $name }} = rows" @endif
+    x-data="dblRepeater(@js(['name' => $name, 'rows' => $rows, 'emptyRow' => (object) $emptyRow, 'min' => (int) $min, 'max' => (int) $max]))"
+    @if($mode === 'alpine') x-effect="{{ $alpineData }}[@js($name)] = rows" @endif
     {{ $bind('root', ['input' => 'notify()']) }}
     {{ $attributes->merge(['class' => 'space-y-2']) }}
 >
@@ -77,7 +72,7 @@
             <button
                 type="button"
                 {{ $bind('remove', ['click' => 'remove(index)']) }}
-                x-show="{{ (int)$min }} === 0 || rows.length > {{ (int)$min }}"
+                x-show="canRemove"
                 class="absolute top-1.5 right-1.5 btn btn-ghost btn-xs btn-square text-error opacity-50 hover:opacity-100"
                 title="{{ __('Remove row') }}"
             >
@@ -122,8 +117,8 @@
                     @if($fType === 'hidden')
                         @if($mode === 'form')
                             <input type="hidden"
-                                :name="`{{ $name }}[${index}][{{ $fKey }}]`"
-                                :value="row['{{ $fKey }}']"
+                                :name="@js($name) + '[' + index + '][' + @js($fKey) + ']'"
+                                :value="row[@js($fKey)]"
                             />
                         @endif
                         @continue
@@ -138,14 +133,14 @@
                             @if(in_array($fType, ['toggle', 'boolean', 'checkbox']))
                                 @if($mode === 'form')
                                     <input type="hidden"
-                                        :name="`{{ $name }}[${index}][{{ $fKey }}]`"
-                                        :value="row['{{ $fKey }}'] ? '1' : '0'"
+                                        :name="@js($name) + '[' + index + '][' + @js($fKey) + ']'"
+                                        :value="row[@js($fKey)] ? '1' : '0'"
                                     />
                                 @endif
                                 <label class="flex w-full cursor-pointer items-center justify-start gap-2 py-2">
                                     <input
                                         type="checkbox"
-                                        x-model="row['{{ $fKey }}']"
+                                        x-model="row[@js($fKey)]"
                                         {{ Attrs::render($fAttrs) }}
                                         class="{{ $fType === 'toggle' ? 'toggle toggle-primary toggle-sm' : 'checkbox checkbox-primary checkbox-sm' }}"
                                     />
@@ -153,8 +148,8 @@
 
                             @elseif($fType === 'select')
                                 <select
-                                    @if($mode === 'form') :name="`{{ $name }}[${index}][{{ $fKey }}]`" @endif
-                                    x-model="row['{{ $fKey }}']"
+                                    @if($mode === 'form') :name="@js($name) + '[' + index + '][' + @js($fKey) + ']'" @endif
+                                    x-model="row[@js($fKey)]"
                                     {{ Attrs::render($fAttrs) }}
                                     class="select select-sm w-full"
                                 >
@@ -166,8 +161,8 @@
 
                             @elseif($fType === 'textarea')
                                 <textarea
-                                    @if($mode === 'form') :name="`{{ $name }}[${index}][{{ $fKey }}]`" @endif
-                                    x-model="row['{{ $fKey }}']"
+                                    @if($mode === 'form') :name="@js($name) + '[' + index + '][' + @js($fKey) + ']'" @endif
+                                    x-model="row[@js($fKey)]"
                                     rows="{{ $field['rows'] ?? 2 }}"
                                     placeholder="{{ $fPh }}"
                                     {{ Attrs::render($fAttrs) }}
@@ -177,8 +172,8 @@
                             @else
                                 <input
                                     type="{{ $inputType }}"
-                                    @if($mode === 'form') :name="`{{ $name }}[${index}][{{ $fKey }}]`" @endif
-                                    x-model="row['{{ $fKey }}']"
+                                    @if($mode === 'form') :name="@js($name) + '[' + index + '][' + @js($fKey) + ']'" @endif
+                                    x-model="row[@js($fKey)]"
                                     placeholder="{{ $fPh }}"
                                     @isset($field['step']) step="{{ $field['step'] }}" @endisset
                                     @isset($field['field_min']) min="{{ $field['field_min'] }}" @endisset
@@ -197,7 +192,7 @@
     <button
         type="button"
         {{ $bind('add', ['click' => 'add()']) }}
-        x-show="{{ (int)$max }} === 0 || rows.length < {{ (int)$max }}"
+        x-show="canAdd"
         class="btn btn-ghost btn-sm gap-1.5 text-primary"
     >
         <x-heroicon-o-plus class="w-4 h-4" />

@@ -16,14 +16,18 @@
     'label'       => '',
 ])
 
+@php
+$config = [
+    'uploadUrl'   => $uploadUrl,
+    'templateUrl' => $templateUrl,
+    'chunkSize'   => (int) $chunkSize,
+    'maxPreview'  => (int) $maxPreview,
+    'messages'    => ['uploadFailed' => __('Upload failed')],
+];
+@endphp
+
 <div
-    x-data="dblSpreadsheetImport({
-        uploadUrl:   '{{ $uploadUrl }}',
-        templateUrl: '{{ $templateUrl }}',
-        chunkSize:   {{ (int)$chunkSize }},
-        maxPreview:  {{ (int)$maxPreview }},
-        messages:    @js(['uploadFailed' => __('Upload failed')]),
-    })"
+    x-data="dblSpreadsheetImport(@js($config))"
     {{ $attributes }}
 >
     @if($label)

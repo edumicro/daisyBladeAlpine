@@ -19,16 +19,16 @@ $styleClass = match($style) {
 };
 @endphp
 
-<div x-data="{ active: {{ (int)$active }} }" {{ $attributes }}>
+<div x-data="dblTabs(@js(['active' => (int) $active]))" {{ $attributes }}>
     <div role="tablist" class="tabs {{ $styleClass }}">
         @foreach($items as $i => $item)
             <button
                 type="button"
                 role="tab"
                 class="tab gap-2"
-                :class="{ 'tab-active': active === {{ $i }} }"
-                :aria-selected="active === {{ $i }}"
-                @click="active = {{ $i }}"
+                :class="{ 'tab-active': isActive({{ $i }}) }"
+                :aria-selected="isActive({{ $i }})"
+                @click="select({{ $i }})"
             >
                 @if(!empty($item['icon']))
                     <x-dynamic-component :component="$item['icon']" class="w-4 h-4" />
@@ -42,7 +42,7 @@ $styleClass = match($style) {
     </div>
 
     @foreach($items as $i => $item)
-        <div x-show="active === {{ $i }}" x-cloak class="pt-4">
+        <div x-show="isActive({{ $i }})" x-cloak class="pt-4">
             {!! $item['content'] ?? '' !!}
         </div>
     @endforeach

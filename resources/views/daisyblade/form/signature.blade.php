@@ -15,7 +15,7 @@
     ];
 @endphp
 
-<div x-data="dblSignature({{ \Illuminate\Support\Js::from($config) }})"
+<div x-data="dblSignature(@js($config))"
      {{ $attributes->merge(['class' => 'w-full']) }}>
 
     @if($label)

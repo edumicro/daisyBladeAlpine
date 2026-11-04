@@ -32,6 +32,9 @@ const readStored = (storage, key) => {
 
 // ── Tipo 2: local Alpine state, no server calls ────────────────────────────
 
+// Every view starts its component the same way: `x-data="dblName(@js($config))"`. The factory gets
+// the configuration as one object; nothing from PHP is glued into JavaScript text.
+
 const dblModal = (config = {}) => ({
     open: config.open ?? false,
     show() { this.open = true },
@@ -39,22 +42,140 @@ const dblModal = (config = {}) => ({
     toggle() { this.open = !this.open },
 })
 
-const dblToast = (config = {}) => ({
-    toasts: [],
-    add(message, type = 'info', duration = 4000) {
-        const id = Date.now()
-        this.toasts.push({ id, message, type })
-        if (duration > 0) setTimeout(() => this.remove(id), duration)
-    },
-    remove(id) {
-        this.toasts = this.toasts.filter(t => t.id !== id)
+// The container of the toasts that come from the order `dbl-toast-show` ({ message, type?, duration? }).
+const dblToast = (config = {}) => {
+    let sequence = 0    // ids of the toasts: Date.now() repeats when two arrive in the same millisecond, and removing one removed both
+
+    return {
+        toasts: [],
+        // The order of the window: the duration of the prop is the default of the toasts that do not bring theirs.
+        show(detail = {}) {
+            this.add(detail.message, detail.type ?? 'info', detail.duration ?? config.duration ?? 4000)
+        },
+        add(message, type = 'info', duration = 4000) {
+            const id = ++sequence
+            this.toasts.push({ id, message, type })
+            if (duration > 0) setTimeout(() => this.remove(id), duration)
+        },
+        remove(id) {
+            this.toasts = this.toasts.filter(t => t.id !== id)
+        },
+    }
+}
+
+// One toast that is already in the page (`<x-dbl::feedback.toast message="...">`); it can close itself.
+const dblToastSingle = (config = {}) => ({
+    visible: true,
+    init() {
+        if (config.autoClose) setTimeout(() => { this.visible = false }, config.duration ?? 4000)
     },
 })
 
+// navigation.tabs: tabs whose panels are already in the page. `active` is the index of the open one.
 const dblTabs = (config = {}) => ({
-    active: config.default ?? '',
-    select(tab) { this.active = tab },
-    isActive(tab) { return this.active === tab },
+    active: config.active ?? 0,
+    select(index) { this.active = index },
+    isActive(index) { return this.active === index },
+})
+
+// navigation.steps: the steps with Back / Next. `current` counts from 1.
+const dblSteps = (config = {}) => ({
+    current: config.current ?? 1,
+    total: config.total ?? 0,
+    go(step) {
+        this.current = step
+        this.$dispatch('dbl-steps-step-changed', { step: this.current })
+    },
+    prev() { if (this.current > 1) this.go(this.current - 1) },
+    next() { if (this.current < this.total) this.go(this.current + 1) },
+})
+
+// display.carousel: one slide visible at a time.
+const dblCarousel = (config = {}) => ({
+    active: 0,
+    total: config.total ?? 0,
+    go(index) { this.active = index },
+    prev() { this.active = (this.active - 1 + this.total) % this.total },
+    next() { this.active = (this.active + 1) % this.total },
+})
+
+// display.text-rotate: changes the visible text every `duration` ms when `autoRotate` is on.
+const dblTextRotate = (config = {}) => {
+    let timer = null    // out of the reactive object: Alpine does not need to watch it
+
+    return {
+        current: 0,
+        texts: config.texts ?? [],
+        init() {
+            if (config.autoRotate && this.texts.length > 1) timer = setInterval(() => this.next(), config.duration ?? 3000)
+        },
+        next() { this.current = (this.current + 1) % this.texts.length },
+        destroy() { clearInterval(timer) },
+    }
+}
+
+// form.repeater: a list of rows that the user can add and remove.
+// config: { name, rows, emptyRow, min, max }. Announces `dbl-repeater-changed` { name, rows } after every change.
+const dblRepeater = (config = {}) => ({
+    rows: config.rows ?? [],
+    get canRemove() { return !config.min || this.rows.length > config.min },
+    get canAdd() { return !config.max || this.rows.length < config.max },
+    add() {
+        // A copy of the empty row: every new row starts from the defaults of the fields, and none shares an object with another.
+        this.rows.push(JSON.parse(JSON.stringify(config.emptyRow ?? {})))
+        this.notify()
+    },
+    remove(index) {
+        if (!this.canRemove) return
+        this.rows.splice(index, 1)
+        this.notify()
+    },
+    notify() { this.$dispatch('dbl-repeater-changed', { name: config.name, rows: this.rows }) },
+})
+
+// form.select with `searchable`: a text box that filters the options (flat { value: label } or grouped { group: { value: label } }).
+// config: { name, search (the text to show at the start), options }. Announces `dbl-select-changed` { name, value }.
+const dblSelectSearch = (config = {}) => ({
+    search: config.search ?? '',
+    open: false,
+    options: config.options ?? {},
+    get isGrouped() {
+        const first = Object.values(this.options)[0]
+        return typeof first === 'object' && first !== null
+    },
+    // The options whose label or value contains what was typed (the groups that keep none disappear).
+    get filtered() {
+        if (!this.search) return this.options
+        const q = this.search.toLowerCase()
+        const matching = items => Object.fromEntries(
+            Object.entries(items).filter(([key, label]) => String(label).toLowerCase().includes(q) || String(key).toLowerCase().includes(q)),
+        )
+        if (!this.isGrouped) return matching(this.options)
+        const result = {}
+        for (const [group, items] of Object.entries(this.options)) {
+            const found = matching(items)
+            if (Object.keys(found).length > 0) result[group] = found
+        }
+        return result
+    },
+    // One flat list for x-for: a header for each group, then its options.
+    get flatList() {
+        if (!this.isGrouped) return Object.entries(this.filtered).map(([key, label]) => ({ type: 'option', key, label: String(label) }))
+        const list = []
+        Object.entries(this.filtered).forEach(([group, items], index) => {
+            list.push({ type: 'group', label: group, first: index === 0 })
+            Object.entries(items).forEach(([key, label]) => list.push({ type: 'option', key, label: String(label) }))
+        })
+        return list
+    },
+    get isEmpty() { return this.flatList.filter(item => item.type === 'option').length === 0 },
+    // The user chose an option: show its label, write its value in the hidden input (x-ref="value") and announce it.
+    choose(item) {
+        this.search = item.label
+        this.open = false
+        if (this.$refs.value) this.$refs.value.value = item.key
+        this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: item.key })
+    },
 })
 
 const dblNavbar = (config = {}) => ({
@@ -386,9 +507,11 @@ const dblAutoForm = (config = {}) => ({
 const dblWizard = (config = {}) => {
     const key = `dbl_wizard_${config.userId ?? 'guest'}_${config.formId ?? 'wizard'}_v${config.schemaVersion ?? 1}`
     return {
-        step: 0, data: {}, errors: {}, globalError: '', loading: false,
+        // The values the Blade gives (`config.values`, those of all the steps) are the starting point of the form...
+        step: 0, data: { ...(config.values ?? {}) }, errors: {}, globalError: '', loading: false,
         init() {
             const saved = readStored(localStorage, key)
+            // ...and the progress saved for this same wizard goes on top of them: what the user typed is not lost.
             if (saved) { try { const p = JSON.parse(saved); this.step = p.step ?? 0; this.data = { ...this.data, ...p.data } } catch {} }
         },
         save() { localStorage.setItem(key, JSON.stringify({ step: this.step, data: this.data })) },
@@ -484,7 +607,8 @@ const dblListEditor = (config = {}) => ({
 // ── Registration ───────────────────────────────────────────────────────────
 
 const _all = {
-    dblModal, dblToast, dblTabs, dblNavbar, dblSidebar, dblSidebarTree,
+    dblModal, dblToast, dblToastSingle, dblTabs, dblSteps, dblCarousel, dblTextRotate, dblRepeater, dblSelectSearch,
+    dblNavbar, dblSidebar, dblSidebarTree,
     dblDataTable, dblAutoForm, dblWizard,
     dblSelectRemote, dblResourceDetails, dblTabsLazy, dblSpreadsheetImport,
     dblKvEditor, dblListEditor,
@@ -517,7 +641,8 @@ if (typeof window !== 'undefined') {
 // ESM export for Vite / import
 export {
     registerDaisyBlade,
-    dblModal, dblToast, dblTabs, dblNavbar, dblSidebar, dblSidebarTree,
+    dblModal, dblToast, dblToastSingle, dblTabs, dblSteps, dblCarousel, dblTextRotate, dblRepeater, dblSelectSearch,
+    dblNavbar, dblSidebar, dblSidebarTree,
     dblDataTable, dblAutoForm, dblWizard,
     dblSelectRemote, dblResourceDetails, dblTabsLazy, dblSpreadsheetImport,
     dblKvEditor, dblListEditor,

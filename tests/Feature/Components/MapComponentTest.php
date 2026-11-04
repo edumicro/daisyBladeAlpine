@@ -2,12 +2,10 @@
 
 use Illuminate\Support\Facades\Blade;
 
-/** Extrae y decodifica el JSON de data-config del componente. */
+/** La configuración que el Blade pasa a `dblMap(@js($config))`. */
 function mapConfig(string $html): array
 {
-    preg_match('/data-config="([^"]*)"/', $html, $m);
-
-    return json_decode(html_entity_decode($m[1]), true, flags: JSON_THROW_ON_ERROR);
+    return xDataConfig($html, 'dblMap');
 }
 
 it('map renders with the defaults from config', function () {

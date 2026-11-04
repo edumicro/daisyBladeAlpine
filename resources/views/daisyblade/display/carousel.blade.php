@@ -6,7 +6,7 @@
     'slideClass'     => '',
 ])
 
-<div x-data="{ active: 0, total: {{ count($items) }} }" {{ $attributes }}>
+<div x-data="dblCarousel(@js(['total' => count($items)]))" {{ $attributes }}>
     <div class="carousel carousel-center max-w-4xl mx-auto rounded-box bg-neutral p-4 {{ $carouselClass }}">
         @forelse($items as $index => $item)
             <div
@@ -42,20 +42,20 @@
 
     @if($showControls && !empty($items))
         <div class="flex justify-center gap-2 mt-4">
-            <button type="button" @click="active = (active - 1 + total) % total" class="btn btn-circle btn-sm btn-outline">❮</button>
+            <button type="button" @click="prev()" class="btn btn-circle btn-sm btn-outline">❮</button>
 
             @if($showIndicators)
                 @foreach($items as $index => $item)
                     <button
                         type="button"
-                        @click="active = {{ $index }}"
+                        @click="go({{ $index }})"
                         :class="active === {{ $index }} ? 'btn-primary' : 'btn-outline'"
                         class="btn btn-xs"
                     >{{ $index + 1 }}</button>
                 @endforeach
             @endif
 
-            <button type="button" @click="active = (active + 1) % total" class="btn btn-circle btn-sm btn-outline">❯</button>
+            <button type="button" @click="next()" class="btn btn-circle btn-sm btn-outline">❯</button>
         </div>
     @endif
 </div>

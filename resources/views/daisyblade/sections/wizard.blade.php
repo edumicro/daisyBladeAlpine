@@ -32,19 +32,22 @@ foreach ($steps as $step) {
         $initValues[$k] = $v;
     }
 }
+
+$config = [
+    'submitUrl'     => $submitUrl,
+    'method'        => strtoupper($method),
+    'userId'        => (string) $userId,
+    'formId'        => $formId,
+    'schemaVersion' => $schemaVersion,
+    // The values of the steps are where the form starts; the progress saved for this same wizard (localStorage)
+    // goes on top of them, in dblWizard's init(). (object): an empty PHP array would reach the JS as [], not {}.
+    'values'        => (object) $initValues,
+    'messages'      => ['failed' => __('An error occurred')],
+];
 @endphp
 
 <div
-    x-data="dblWizard({
-        submitUrl:     '{{ $submitUrl }}',
-        method:        '{{ strtoupper($method) }}',
-        userId:        '{{ $userId }}',
-        formId:        '{{ $formId }}',
-        schemaVersion: {{ $schemaVersion }},
-        messages:      @js(['failed' => __('An error occurred')]),
-    })"
-    {{-- Alpine already calls dblWizard's init() (it restores the saved progress) before x-init runs. --}}
-    x-init="Object.assign(data, @js($initValues))"
+    x-data="dblWizard(@js($config))"
     {{ $attributes->merge(['class' => 'space-y-6']) }}
 >
     {{-- Steps indicator --}}

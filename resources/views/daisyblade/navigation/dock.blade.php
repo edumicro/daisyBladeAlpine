@@ -56,7 +56,7 @@ $dirClass = $direction === 'vertical' ? 'flex-col' : 'flex-row';
                 @else
                     <button
                         type="button"
-                        @if($item['action'] ?? false) @click="$dispatch('{{ $item['action'] }}')" @endif
+                        @if($item['action'] ?? false) @click="$dispatch(@js($item['action']))" @endif
                         class="btn btn-ghost btn-sm btn-circle relative transition-all duration-200 hover:bg-primary hover:text-primary-content"
                         title="{{ $item['label'] ?? '' }}"
                     >

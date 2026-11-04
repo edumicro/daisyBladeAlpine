@@ -27,12 +27,7 @@ $stepColorClass = match($color) {
 @endphp
 
 <div
-    x-data="{
-        current: {{ $currentStep }},
-        total: {{ $stepCount }},
-        prev() { if (this.current > 1) { this.current--; this.$dispatch('dbl-steps-step-changed', { step: this.current }); } },
-        next() { if (this.current < this.total) { this.current++; this.$dispatch('dbl-steps-step-changed', { step: this.current }); } },
-    }"
+    x-data="dblSteps(@js(['current' => (int) $currentStep, 'total' => $stepCount]))"
     {{ $attributes }}
 >
     <ul class="steps {{ $vertical ? 'steps-vertical' : '' }} w-full {{ $stepsClass }}">
@@ -45,7 +40,7 @@ $stepColorClass = match($color) {
                     '{{ $stepColorClass }}': current === {{ $num }}
                 }"
                 class="step {{ $clickable ? 'cursor-pointer' : '' }}"
-                @if($clickable) @click="current = {{ $num }}; $dispatch('dbl-steps-step-changed', { step: {{ $num }} })" @endif
+                @if($clickable) @click="go({{ $num }})" @endif
             >
                 <div class="flex flex-col gap-1">
                     <span class="font-medium text-sm">{{ $step['label'] ?? '' }}</span>

@@ -1,6 +1,6 @@
 // One test (or a few) per convention of the 3.x line, on the JavaScript side.
 // Run with: node --test tests/js/conventions.test.mjs
-import test from 'node:test'
+import test, { mock } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -8,6 +8,7 @@ import { join, relative } from 'node:path'
 import * as daisyblade from '../../resources/js/daisyblade.js'
 import {
     readStored, dblSidebar, dblWizard, dblAutoForm, dblDataTable, dblResourceDetails, dblSelectRemote, dblTabsLazy, dblSpreadsheetImport,
+    dblToast, dblToastSingle, dblTabs, dblSteps, dblCarousel, dblTextRotate, dblRepeater, dblSelectSearch,
 } from '../../resources/js/daisyblade.js'
 import { dblCalendar } from '../../resources/js/components/calendar.js'
 import { dblUpload } from '../../resources/js/components/upload.js'
@@ -251,4 +252,137 @@ test('8. the flowchart announces dbl-flowchart-* from its root, takes the orders
     flowchart.focus = id => { focused = id }
     flowchart.onFocus({ name: 'flujo', id: 7 })
     assert.equal(focused, 7)
+})
+
+// ── 10. The factories that took their configuration from PHP text now take it as one object ──
+
+test('10. dblSteps counts from 1, stops at both ends, and announces every change', () => {
+    const [steps, announced] = recording(dblSteps({ current: 2, total: 3 }))
+    steps.prev(); steps.prev(); steps.next(); steps.next(); steps.next()
+    assert.equal(steps.current, 3)
+    assert.deepEqual(announced.map(event => event.detail), [{ step: 1 }, { step: 2 }, { step: 3 }])
+    assert.ok(announced.every(event => event.name === 'dbl-steps-step-changed'))
+})
+
+test('10. dblTabs starts on the index it is given and selects another', () => {
+    const tabs = dblTabs({ active: 1 })
+    assert.equal(tabs.isActive(1), true)
+    tabs.select(0)
+    assert.equal(tabs.isActive(0), true)
+    assert.equal(dblTabs().active, 0)
+})
+
+test('10. dblCarousel goes round in both directions', () => {
+    const carousel = dblCarousel({ total: 3 })
+    carousel.prev()
+    assert.equal(carousel.active, 2)
+    carousel.next(); carousel.next()
+    assert.equal(carousel.active, 1)
+    carousel.go(0)
+    assert.equal(carousel.active, 0)
+})
+
+test('10. dblTextRotate rotates by itself only when asked to, and stops when it is destroyed', () => {
+    mock.timers.enable({ apis: ['setInterval'] })
+    try {
+        const rotating = dblTextRotate({ texts: ['a', 'b', 'c'], duration: 1000, autoRotate: true })
+        rotating.init()
+        mock.timers.tick(2000)
+        assert.equal(rotating.current, 2)
+        rotating.destroy()
+        mock.timers.tick(5000)
+        assert.equal(rotating.current, 2, 'destroyed: it no longer moves')
+
+        const still = dblTextRotate({ texts: ['a', 'b'], duration: 1000, autoRotate: false })
+        still.init()
+        mock.timers.tick(5000)
+        assert.equal(still.current, 0)
+    } finally { mock.timers.reset() }
+})
+
+test('10. dblRepeater adds copies of the empty row, respects min and max, and announces { name, rows }', () => {
+    const [repeater, announced] = recording(dblRepeater({ name: 'items', rows: [{ unit: 'mg' }], emptyRow: { unit: 'mg' }, min: 1, max: 2 }))
+    assert.equal(repeater.canRemove, false, 'at the minimum')
+    repeater.add()
+    assert.equal(repeater.canAdd, false, 'at the maximum')
+    assert.equal(repeater.canRemove, true)
+    assert.notEqual(repeater.rows[0], repeater.rows[1], 'each row is its own object')
+    repeater.remove(1)
+    repeater.remove(0)
+    assert.equal(repeater.rows.length, 1, 'removing at the minimum does nothing')
+    assert.deepEqual(announced.map(event => event.name), ['dbl-repeater-changed', 'dbl-repeater-changed'])
+    assert.deepEqual(announced[0].detail, { name: 'items', rows: repeater.rows })
+    assert.equal(dblRepeater({ rows: [] }).canRemove && dblRepeater({ rows: [] }).canAdd, true, 'no limits')
+})
+
+test('10. dblSelectSearch filters flat and grouped options, and announces the chosen one', () => {
+    const flat = dblSelectSearch({ name: 'lang', options: { es: 'Español', en: 'English' } })
+    assert.equal(flat.isGrouped, false)
+    flat.search = 'eng'
+    assert.deepEqual(flat.flatList, [{ type: 'option', key: 'en', label: 'English' }])
+
+    const grouped = dblSelectSearch({ options: { Europa: { es: 'España', fr: 'Francia' }, Asia: { jp: 'Japón' } } })
+    assert.equal(grouped.isGrouped, true)
+    grouped.search = 'fra'
+    assert.deepEqual(grouped.flatList, [{ type: 'group', label: 'Europa', first: true }, { type: 'option', key: 'fr', label: 'Francia' }])
+    grouped.search = 'zzz'
+    assert.equal(grouped.isEmpty, true)
+
+    const [chooser, announced] = recording(dblSelectSearch({ name: 'lang', options: { es: 'Español' } }))
+    chooser.$refs = { value: { value: '' } }
+    chooser.choose({ key: 'es', label: 'Español' })
+    assert.equal(chooser.search, 'Español')
+    assert.equal(chooser.$refs.value.value, 'es')
+    assert.deepEqual(announced, [{ name: 'dbl-select-changed', detail: { name: 'lang', value: 'es' } }])
+})
+
+test('10. dblToast shows what the order dbl-toast-show brings, with the duration of the prop as the default', () => {
+    mock.timers.enable({ apis: ['setTimeout'] })
+    try {
+        const toast = dblToast({ duration: 1500 })
+        toast.show({ message: 'Guardado', type: 'success' })
+        toast.show({ message: 'Largo', duration: 0 })
+        assert.deepEqual(toast.toasts.map(t => [t.message, t.type]), [['Guardado', 'success'], ['Largo', 'info']])
+        mock.timers.tick(1500)
+        assert.deepEqual(toast.toasts.map(t => t.message), ['Largo'], 'the one without duration stays')
+    } finally { mock.timers.reset() }
+})
+
+test('10. dblToastSingle closes itself after its duration, only when asked to', () => {
+    mock.timers.enable({ apis: ['setTimeout'] })
+    try {
+        const closing = dblToastSingle({ autoClose: true, duration: 1000 })
+        closing.init()
+        mock.timers.tick(1000)
+        assert.equal(closing.visible, false)
+
+        const staying = dblToastSingle({ autoClose: false, duration: 1000 })
+        staying.init()
+        mock.timers.tick(5000)
+        assert.equal(staying.visible, true)
+    } finally { mock.timers.reset() }
+})
+
+// ── 12. The wizard: the saved progress goes on top of the values of the Blade ──
+
+test('12. the wizard starts from the values of the Blade and puts the saved progress on top of them', () => {
+    const storage = memoryStorage({ dbl_wizard_guest_alta_v1: JSON.stringify({ step: 1, data: { name: 'Beatriz' } }) })
+    const wizard = withBrowser(storage, () => {
+        const w = dblWizard({ formId: 'alta', values: { name: 'Ana', city: 'Vigo' } })
+        w.init()
+        return w
+    })
+
+    assert.equal(wizard.step, 1)
+    assert.deepEqual({ ...wizard.data }, { name: 'Beatriz', city: 'Vigo' })
+})
+
+test('12. a wizard with nothing saved keeps the values of the Blade, and the form of a new wizard starts empty', () => {
+    const fresh = withBrowser(memoryStorage(), () => {
+        const w = dblWizard({ formId: 'alta', values: { name: 'Ana' } })
+        w.init()
+        return w
+    })
+    assert.deepEqual({ ...fresh.data }, { name: 'Ana' })
+    assert.deepEqual({ ...dblWizard({}).data }, {})
 })

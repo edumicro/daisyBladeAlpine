@@ -535,7 +535,7 @@ function conventionDispatchedNames(string $source): array
     preg_match_all('/\$dispatch\(([^,)]*)/', $source, $calls);
 
     foreach ($calls[1] as $argument) {
-        if (str_contains($argument, '{{')) {
+        if (str_contains($argument, '{{') || str_contains($argument, '@js(')) {
             continue;
         }
 
@@ -577,12 +577,13 @@ it('8. names an announced event after its own component: dbl-<component>-<what h
 
     // The scripts: calendar.js is the calendar, rich-text.js the rich text... The one order that goes to another component
     // is flowchart's `dbl-toast-show` (to feedback.toast).
-    $scripts = ['components/calendar.js' => 'calendar', 'components/map.js' => 'map', 'components/upload.js' => 'upload',
-        'components/signature.js' => 'signature', 'components/rich-text.js' => 'rich-text', 'daisyblade.js' => 'select'];
+    // daisyblade.js holds many factories: the three that announce something are the select, the steps and the repeater.
+    $scripts = ['components/calendar.js' => ['calendar'], 'components/map.js' => ['map'], 'components/upload.js' => ['upload'],
+        'components/signature.js' => ['signature'], 'components/rich-text.js' => ['rich-text'], 'daisyblade.js' => ['select', 'steps', 'repeater']];
 
-    foreach ($scripts as $path => $component) {
+    foreach ($scripts as $path => $components) {
         foreach (conventionDispatchedNames(conventionScripts()[$path]) as $name) {
-            if (! str_starts_with($name, "dbl-{$component}-")) {
+            if (array_filter($components, fn (string $component) => str_starts_with($name, "dbl-{$component}-")) === []) {
                 $offenders[$path][] = $name;
             }
         }
@@ -656,7 +657,7 @@ it('8. makes the native select announce dbl-select-changed with { name, value },
     $render = fn (string $blade) => Illuminate\Support\Facades\Blade::render($blade);
 
     expect($render('<x-dbl::form.select name="a" :options="[1 => \'x\']" />'))->toContain("x-on:change=\"\$dispatch('dbl-select-changed', { name: 'a'")
-        ->and($render('<x-dbl::form.select name="a" :options="[1 => \'x\']" searchable />'))->toContain("\$dispatch('dbl-select-changed', { name: 'a', value: item.key })")
+        ->and($render('<x-dbl::form.select name="a" :options="[1 => \'x\']" searchable />'))->toContain('dblSelectSearch(')->toContain('choose(item)')
         ->and($render('<x-dbl::form.select name="a" load-url="/o" />'))->toContain('dblSelectRemote(')->toContain('\u0022name\u0022:\u0022a\u0022');
 });
 
@@ -699,4 +700,113 @@ it('9. lets the data-table filter with what form.filters announces', function ()
 
     // The table carries the panel inside it, and listens to what the panel says.
     expect($html)->toContain("\$dispatch('dbl-filters-applied'")->toContain('@dbl-filters-applied.window="applyFilters($event.detail.filters)"');
+});
+
+// ── 10. The configuration reaches the JavaScript in one way: x-data="dblName(@js($config))" ──
+
+/** The value of every x-data="..." attribute of a view (the attribute may span several lines). */
+function conventionXData(string $source): array
+{
+    preg_match_all('/\sx-data="([^"]*)"/s', $source, $found);
+
+    return $found[1];
+}
+
+it('10. starts a component with a factory and @js($config), or with an inline object that has no PHP data in it', function () {
+    $offenders = [];
+
+    foreach (conventionViews() as $path => $source) {
+        foreach (conventionXData($source) as $value) {
+            $factoryCall = preg_match('/^dbl[A-Z]\w*\((?:@js\(.+\))?\)$/s', trim($value)) === 1;
+            $inlineWithoutPhp = str_starts_with(trim($value), '{') && ! preg_match('/\{\{|@js|@json|Js::from|<\?php/', $value);
+
+            if (! $factoryCall && ! $inlineWithoutPhp) {
+                $offenders[$path][] = trim($value);
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('10. has no JSON.parse of a data attribute, no data-config and no Js::from in the views', function () {
+    expect(conventionOffenders(conventionViews(), '/dataset\.config|data-config|Js::from|@json/'))->toBe([]);
+});
+
+it('10. never glues a PHP value inside quotes into the JavaScript of an attribute', function () {
+    // '{{ $key }}' breaks as soon as the value has a quote. Whole numbers and the closed lists of classes of the
+    // component itself are safe; what the user writes (keys, ids, URLs, event names) goes through @js().
+    $safe = ['num', 'i', 'bgColorClass', 'stepColorClass', 'maxLength'];
+    $offenders = [];
+
+    foreach (conventionViews() as $path => $source) {
+        // Only inside the value of an Alpine attribute: x-*, :attr, ::attr, @event.
+        preg_match_all('/\s(?:x-[\w:.-]+|:{1,2}[\w.-]+|@[\w.:-]+)="([^"]*)"/s', $source, $attributes);
+
+        foreach ($attributes[1] as $javascript) {
+            preg_match_all('/[\'`]\{\{\s*\(?(?:int\)\s*)?\$(\w+)/', $javascript, $found);
+
+            foreach ($found[1] as $variable) {
+                if (! in_array($variable, $safe, true)) {
+                    $offenders[$path][] = $variable;
+                }
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('10. registers a factory for every dbl factory a view starts', function () {
+    $registered = [];
+
+    // daisyblade.js: `const _all = { dblModal, dblToast... }`; the components: Alpine.data('dblCalendar', ...).
+    preg_match('/const _all = \{(.*?)\n\}/s', conventionScripts()['daisyblade.js'], $all);
+    preg_match_all('/dbl[A-Z]\w*/', $all[1], $names);
+    $registered = $names[0];
+
+    foreach (conventionScripts() as $source) {
+        preg_match_all('/Alpine\.data\(\'(dbl[A-Z]\w*)\'/', $source, $names);
+        $registered = [...$registered, ...$names[1]];
+    }
+
+    $started = [];
+    foreach (conventionViews() as $path => $source) {
+        foreach (conventionXData($source) as $value) {
+            if (preg_match('/^(dbl[A-Z]\w*)\(/', trim($value), $factory)) {
+                $started[$path] = $factory[1];
+            }
+        }
+    }
+
+    expect(array_values(array_diff($started, $registered)))->toBe([])
+        ->and($started)->toHaveCount(count(array_filter($started)));
+});
+
+it('10. passes a URL, a key or a text with quotes to the JavaScript without breaking it', function () {
+    $render = fn (string $blade) => Illuminate\Support\Facades\Blade::render($blade);
+    $tricky = "/a'b\"c?x=1&y=2";
+
+    expect(xDataConfig(Illuminate\Support\Facades\Blade::render('<x-dbl::display.data-table :load-url="$url" :columns="[]" />', ['url' => $tricky]), 'dblDataTable')['loadUrl'])->toBe($tricky)
+        ->and(xDataConfig($render('<x-dbl::sections.wizard :steps="[]" submit-url="/it\'s" form-id="o\'k" />'), 'dblWizard'))->toMatchArray(['submitUrl' => "/it's", 'formId' => "o'k"])
+        ->and(xDataConfig($render('<x-dbl::display.resource-details load-url="/r\'s" />'), 'dblResourceDetails')['loadUrl'])->toBe("/r's");
+});
+
+it('10. gives the factories of the static components their configuration the same way', function () {
+    $render = fn (string $blade) => Illuminate\Support\Facades\Blade::render($blade);
+
+    expect(xDataConfig($render('<x-dbl::navigation.steps :steps="[[\'label\' => \'A\'], [\'label\' => \'B\']]" :current-step="2" />'), 'dblSteps'))->toBe(['current' => 2, 'total' => 2])
+        ->and(xDataConfig($render('<x-dbl::display.carousel :items="[[\'image\' => \'/a.jpg\'], [\'image\' => \'/b.jpg\']]" />'), 'dblCarousel'))->toBe(['total' => 2])
+        ->and(xDataConfig($render('<x-dbl::display.text-rotate :texts="[\'a\', \'b\']" :duration="1000" />'), 'dblTextRotate'))->toBe(['texts' => ['a', 'b'], 'duration' => 1000, 'autoRotate' => true])
+        ->and(xDataConfig($render('<x-dbl::feedback.toast message="Hola" :auto-close="true" :duration="2500" />'), 'dblToastSingle'))->toBe(['duration' => 2500, 'autoClose' => true])
+        ->and(xDataConfig($render('<x-dbl::form.select name="a" :options="[1 => \'x\']" searchable value="1" />'), 'dblSelectSearch'))->toBe(['name' => 'a', 'search' => 'x', 'options' => [1 => 'x']]);
+});
+
+// ── 12. The wizard: the saved progress does not overwrite the values of the Blade ──
+
+it('12. hands the values of every step to the wizard factory, as an object even when there are none', function () {
+    $render = fn (string $blade) => Illuminate\Support\Facades\Blade::render($blade);
+
+    expect(xDataConfig($render('<x-dbl::sections.wizard :steps="[]" submit-url="/s" />'), 'dblWizard')['values'])->toBe([])
+        ->and($render('<x-dbl::sections.wizard :steps="[]" submit-url="/s" />'))->toContain('\\u0022values\\u0022:{}');
 });

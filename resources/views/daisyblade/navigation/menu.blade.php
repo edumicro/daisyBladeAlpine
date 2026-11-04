@@ -88,7 +88,7 @@ $badgeClass = fn ($color) => match($color) {
                                                                 @if($nested['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($nested['badge_color'] ?? 'primary') }}">{{ $nested['badge'] }}</span> @endif
                                                             </a>
                                                         @else
-                                                            <button type="button" @if($nested['action'] ?? false) @click="$dispatch('{{ $nested['action'] }}')" @endif>
+                                                            <button type="button" @if($nested['action'] ?? false) @click="$dispatch(@js($nested['action']))" @endif>
                                                                 @if($showIcons && ($nested['icon'] ?? false)) <x-dynamic-component :component="$nested['icon']" class="w-4 h-4" /> @endif
                                                                 <span>{{ $nested['label'] ?? '' }}</span>
                                                                 @if($nested['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($nested['badge_color'] ?? 'primary') }}">{{ $nested['badge'] }}</span> @endif
@@ -111,7 +111,7 @@ $badgeClass = fn ($color) => match($color) {
                                             @if($child['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($child['badge_color'] ?? 'primary') }}">{{ $child['badge'] }}</span> @endif
                                         </a>
                                     @else
-                                        <button type="button" @if($child['action'] ?? false) @click="$dispatch('{{ $child['action'] }}')" @endif>
+                                        <button type="button" @if($child['action'] ?? false) @click="$dispatch(@js($child['action']))" @endif>
                                             @if($showIcons && ($child['icon'] ?? false)) <x-dynamic-component :component="$child['icon']" class="w-4 h-4" /> @endif
                                             <span>{{ $child['label'] ?? '' }}</span>
                                             @if($child['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($child['badge_color'] ?? 'primary') }}">{{ $child['badge'] }}</span> @endif
@@ -134,7 +134,7 @@ $badgeClass = fn ($color) => match($color) {
                         @if($item['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($item['badge_color'] ?? 'primary') }}">{{ $item['badge'] }}</span> @endif
                     </a>
                 @else
-                    <button type="button" @if($item['action'] ?? false) @click="$dispatch('{{ $item['action'] }}')" @endif>
+                    <button type="button" @if($item['action'] ?? false) @click="$dispatch(@js($item['action']))" @endif>
                         @if($showIcons && ($item['icon'] ?? false)) <x-dynamic-component :component="$item['icon']" class="w-4 h-4" /> @endif
                         <span>{{ $item['label'] ?? '' }}</span>
                         @if($item['badge'] ?? false) <span class="badge badge-sm {{ $badgeClass($item['badge_color'] ?? 'primary') }}">{{ $item['badge'] }}</span> @endif

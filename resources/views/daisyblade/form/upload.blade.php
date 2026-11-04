@@ -45,7 +45,7 @@
     $hasHint = $maxSize || $maxFiles;
 @endphp
 
-<div {{ $attributes->merge(['class' => 'w-full']) }} x-data="dblUpload({{ \Illuminate\Support\Js::from($config) }})">
+<div {{ $attributes->merge(['class' => 'w-full']) }} x-data="dblUpload(@js($config))">
     @if($label)
         <label class="mb-1 block text-sm font-medium" for="{{ $id }}">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif

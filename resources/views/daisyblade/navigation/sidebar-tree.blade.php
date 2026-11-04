@@ -20,7 +20,7 @@
                     <button
                         type="button"
                         class="flex justify-between {{ $isActive ? 'active' : '' }}"
-                        @click="toggle('{{ $nodeKey }}')"
+                        @click="toggle(@js($nodeKey))"
                     >
                         @if(!empty($item['icon']))
                             <x-dynamic-component :component="$item['icon']" class="w-5 h-5 shrink-0" />
@@ -30,10 +30,10 @@
                         </span>
                         <x-heroicon-o-chevron-right
                             class="w-4 h-4 shrink-0 transition-transform duration-200"
-                            ::class="{ 'rotate-90': isOpen('{{ $nodeKey }}') }"
+                            ::class="{ 'rotate-90': isOpen(@js($nodeKey)) }"
                         />
                     </button>
-                    <ul x-show="isOpen('{{ $nodeKey }}')" x-cloak>
+                    <ul x-show="isOpen(@js($nodeKey))" x-cloak>
                         @foreach($item['children'] as $child)
                             @php
                                 $childUrl    = $child['url'] ?? '#';
