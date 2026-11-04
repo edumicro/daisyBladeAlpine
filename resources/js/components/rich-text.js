@@ -74,6 +74,12 @@ export const dblRichText = (config = {}, deps = {}) => {
             this.$dispatch('dbl-rich-text-changed', { name: config.name ?? '', value: this.$refs.input.value })
         },
 
+        // Puts the cursor in the editor. The label of the component calls it when it is pressed (it cannot use `for`:
+        // the editor is a <div>, which is not a labelable element).
+        focus() {
+            editor?.commands.focus()
+        },
+
         get overLimit() {
             return config.maxLength > 0 && this.length > config.maxLength
         },

@@ -52,8 +52,9 @@
      caller. The box around it (label, hint, error), which is also the Alpine scope, takes `wrapper-class`. --}}
 <div class="w-full {{ $wrapperClass }}" x-data="dblRichText(@js($config))">
     @if($label)
-        <label class="mb-1 flex items-center justify-between gap-2 text-sm font-medium"
-               @if($name) for="{{ $name }}-editor" @endif>
+        {{-- No `for`: the editor is a <div>, and `for` only works on elements that can be labelled (input, select, textarea,
+             button...), so pressing the label did nothing. The click focuses the editor instead. --}}
+        <label class="mb-1 flex items-center justify-between gap-2 text-sm font-medium" x-on:click.prevent="focus()">
             <span>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
             @if($maxLength > 0)
                 <span class="text-xs font-normal"
