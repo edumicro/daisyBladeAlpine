@@ -241,7 +241,7 @@ Receive a `load-url`, `submit-url` or `upload-url` prop. Call plain Laravel cont
 | `display.data-table` | Paginated, sortable, filterable table (listens to `form.filters`) |
 | `display.resource-details` | Detail view loaded from `load-url` |
 | `form.select` | Select whose options come from `load-url`; `depends-on="other_field"` asks again when that field changes (`docs/components/select.md`) |
-| `import.spreadsheet` | Excel/CSV chunked import |
+| `import.spreadsheet` | Excel/CSV import: choose the file, confirm (name and size; the browser does not read the rows), progress. The server reads the file and answers `{ imported }` |
 | `sections.auto-form` | Declarative form from schema array |
 | `sections.tabs` | Tabs with lazy-loaded content |
 | `sections.wizard` | Multi-step form with localStorage resume |
@@ -668,7 +668,7 @@ vendor/bin/pest
 node --test tests/js/*.test.mjs
 ```
 
-`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 499 Pest tests (2135 assertions) and 184 JavaScript tests, all green. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
+`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 538 Pest tests (2215 assertions) and 214 JavaScript tests, all green. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
 
 ---
 
