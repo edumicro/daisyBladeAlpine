@@ -26,6 +26,11 @@ $styleClass = match($style) {
     'box' => 'tabs-box',
     default => 'tabs-lifted',
 };
+// Every tab loads its panel from a URL. A tab written with the 2.x key (`'load-url'`) has none now, and would be an empty
+// panel for ever: no request, no spinner, no error. So it is refused here, naming the key.
+foreach (array_values($tabs) as $position => $tab) {
+    \Edumicro\DaisyBlade\Support\RequiredUrl::check('sections.tabs', "tabs[{$position}].load_url", (string) ($tab['load_url'] ?? ''), 'load-url');
+}
 $config = [
     'active'   => (int) $active,
     'tabs'     => array_map(fn ($t) => ['label' => $t['label'] ?? '', 'loadUrl' => $t['load_url'] ?? ''], array_values($tabs)),

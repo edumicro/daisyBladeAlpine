@@ -176,3 +176,11 @@ it('app layout puts the content canvas a shade below the cards', function () {
 
     expect($html)->toContain('bg-base-200');
 });
+
+it('tabs names a tab without label in the language of the page, not in English', function () {
+    App::setLocale('es');
+    $html = Blade::render('<x-dbl::navigation.tabs :items="$items" />', ['items' => [['content' => 'x']]]);
+    App::setLocale('en');
+
+    expect($html)->toContain('Pestaña 0')->not->toContain('Tab 0');
+});

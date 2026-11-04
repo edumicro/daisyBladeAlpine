@@ -33,7 +33,7 @@ $styleClass = match($style) {
                 @if(!empty($item['icon']))
                     <x-dynamic-component :component="$item['icon']" class="w-4 h-4" />
                 @endif
-                {{ $item['label'] ?? "Tab {$i}" }}
+                {{ $item['label'] ?? __('Tab :number', ['number' => $i]) }}
                 @if(!empty($item['badge']))
                     <span class="badge badge-sm">{{ $item['badge'] }}</span>
                 @endif
