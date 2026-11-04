@@ -15,7 +15,13 @@ $initialRows = collect($value)->map(function ($v, $k) {
     };
     return [
         'key'   => $k,
-        'value' => is_array($v) ? json_encode($v, JSON_UNESCAPED_UNICODE) : (string) $v,
+        // A bool is written as the word `true` or `false`: `(string) true` is "1", and the editor reads a bool by comparing with 'true',
+        // so every `true` came back as `false` and saving the form corrupted the data.
+        'value' => match (true) {
+            is_array($v) => json_encode($v, JSON_UNESCAPED_UNICODE),
+            is_bool($v)  => $v ? 'true' : 'false',
+            default      => (string) $v,
+        },
         'type'  => $type,
         'dirty' => true,
     ];
