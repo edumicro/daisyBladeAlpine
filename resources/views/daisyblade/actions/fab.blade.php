@@ -3,7 +3,7 @@
     'label'    => '',
     'tooltip'  => '',
     'href'     => '',
-    'variant'  => 'btn-primary',
+    'color'    => 'primary',   // primary | secondary | accent | neutral | info | success | warning | error | ghost | link
     'size'     => 'lg',   // xs | sm | md | lg | xl
     'position' => 'bottom-right',
     'disabled' => false,
@@ -11,6 +11,22 @@
 ])
 
 @php
+// The color is a token; the class name is written out in full so Tailwind can find it.
+// A value that is not listed gets the default look.
+$colorClass = match($color) {
+    'neutral' => 'btn-neutral',
+    'primary' => 'btn-primary',
+    'secondary' => 'btn-secondary',
+    'accent' => 'btn-accent',
+    'info' => 'btn-info',
+    'success' => 'btn-success',
+    'warning' => 'btn-warning',
+    'error' => 'btn-error',
+    'ghost' => 'btn-ghost',
+    'link' => 'btn-link',
+    default => 'btn-primary',
+};
+
 // The size is a token; the class name is written out in full so Tailwind can find it.
 $sizeClass = match($size) {
     'xs' => 'btn-xs',
@@ -42,7 +58,7 @@ $posClass = match($position) {
         @if($href)
             <a
                 href="{{ $href }}"
-                {{ $attributes->merge(['class' => "btn btn-circle {$variant} {$sizeClass} shadow-lg hover:shadow-xl transition-all duration-200 {$class}"]) }}
+                {{ $attributes->merge(['class' => "btn btn-circle {$colorClass} {$sizeClass} shadow-lg hover:shadow-xl transition-all duration-200 {$class}"]) }}
             >
                 <x-dynamic-component :component="$icon" class="w-6 h-6" />
                 @if($label) <span class="ml-2">{{ __($label) }}</span> @endif
@@ -52,7 +68,7 @@ $posClass = match($position) {
                 type="button"
                 @if($slot->isNotEmpty()) @click="menuOpen = !menuOpen" @endif
                 @disabled($disabled)
-                {{ $attributes->merge(['class' => "btn btn-circle {$variant} {$sizeClass} shadow-lg hover:shadow-xl transition-all duration-200 {$class}"]) }}
+                {{ $attributes->merge(['class' => "btn btn-circle {$colorClass} {$sizeClass} shadow-lg hover:shadow-xl transition-all duration-200 {$class}"]) }}
             >
                 <x-dynamic-component :component="$icon" class="w-6 h-6" />
                 @if($label) <span class="ml-2">{{ __($label) }}</span> @endif

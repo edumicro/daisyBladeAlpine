@@ -392,7 +392,7 @@ it('resource-details contains Alpine factory and load-url', function () {
 it('card puts class on the card itself, not inside it', function () {
     $html = Blade::render('<x-dbl::display.card class="mb-6">contenido</x-dbl::display.card>');
 
-    expect($html)->toContain('card bg-base-100 shadow-md mb-6')
+    expect($html)->toContain('card bg-base-100 text-base-content shadow-md mb-6')
         ->not->toContain('card-body mb-6');
 });
 

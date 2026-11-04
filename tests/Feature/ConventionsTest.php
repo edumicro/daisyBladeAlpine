@@ -97,6 +97,17 @@ function conventionProps(string $source): array
 
     $props = [];
 
+    // The one-line form lists its props separated by commas: `'name', 'variant' => 'o'`.
+    if (! str_contains($block[1], "\n")) {
+        foreach (preg_split('/,\s*(?=\')/', trim($block[1])) as $entry) {
+            if (preg_match('/^\'([A-Za-z][A-Za-z0-9_-]*)\'\s*(?:=>\s*(.*))?$/s', trim($entry), $match) === 1) {
+                $props[$match[1]] = $match[2] ?? '';
+            }
+        }
+
+        return $props;
+    }
+
     // A prop is a quoted name at the start of a line (or after the opening bracket), then `=>` and its default, or a comma.
     preg_match_all('/(?:^|\n|\[)\s*\'([A-Za-z][A-Za-z0-9_-]*)\'\s*(?:=>\s*([^\n]*?))?(?:,\s*(?:\/\/[^\n]*)?)?(?=\n|$)/', $block[1], $found, PREG_SET_ORDER);
 
@@ -325,4 +336,71 @@ it('2. takes the badge color of a menu item from badge_color, and the line numbe
     expect(Illuminate\Support\Facades\Blade::render('<x-dbl::navigation.menu :items="[[\'label\' => \'A\', \'badge\' => 3, \'badge_color\' => \'error\']]" />'))->toContain('badge-error')
         ->and(Illuminate\Support\Facades\Blade::render('<x-dbl::display.diff :changes="[[\'type\' => \'add\', \'content\' => \'x\', \'line_number\' => 42]]" />'))->toContain('42')
         ->and(Illuminate\Support\Facades\Blade::render('<x-dbl::display.hover-gallery :images="[[\'src\' => \'/a.jpg\', \'view_url\' => \'/ver/1\']]" />'))->toContain('/ver/1');
+});
+
+// ── 6. Color: always a token, never the class ──────────────────────────────
+
+/** The eight colors of DaisyUI. */
+const CONVENTION_COLORS = ['primary', 'secondary', 'accent', 'neutral', 'info', 'success', 'warning', 'error'];
+
+it('6. takes the color of a button, a fab and a swap as a token, and turns it into its class', function () {
+    foreach (['<x-dbl::actions.button label="X" color="%s" />', '<x-dbl::actions.fab color="%s" />', '<x-dbl::actions.swap color="%s" />'] as $template) {
+        foreach ([...CONVENTION_COLORS, 'ghost', 'link'] as $color) {
+            expect(Illuminate\Support\Facades\Blade::render(sprintf($template, $color)))->toContain("btn-{$color}");
+        }
+
+        // `btn-secondary` is the 2.x spelling: it is not a token, so it falls back to the default look.
+        expect(Illuminate\Support\Facades\Blade::render(sprintf($template, 'btn-secondary')))->not->toContain('btn-secondary');
+    }
+});
+
+it('6. calls the color prop of every component color, and none of them variant', function () {
+    // button, fab, swap, badge, kbd, timeline: `variant` was a color there. chat-bubble (sent | received), the
+    // heroicon of components.icon and the `variant` of the nodes of node-graph and flowchart are not colors.
+    $withVariant = conventionViewsWithProp('variant');
+
+    expect($withVariant)->toBe(['components/icon.blade.php', 'display/chat-bubble.blade.php']);
+});
+
+it('6. has one name for a background: background, with a token', function () {
+    expect(conventionViewsWithProp('background'))->toBe(['display/card.blade.php', 'display/collapse.blade.php', 'display/stat.blade.php', 'layout/footer.blade.php'])
+        ->and(array_merge(conventionViewsWithProp('backgroundColor'), conventionViewsWithProp('bgClass'), conventionViewsWithProp('borderColor')))->toBe([]);
+});
+
+it('6. paints a card, a stat and a footer with the class of the background token, and an unknown one with the default', function () {
+    $templates = [
+        '<x-dbl::display.card background="%s">x</x-dbl::display.card>',
+        '<x-dbl::display.stat title="T" background="%s" />',
+        '<x-dbl::layout.footer background="%s">x</x-dbl::layout.footer>',
+    ];
+
+    foreach ($templates as $template) {
+        foreach ([...CONVENTION_COLORS, 'base-100', 'base-200', 'base-300'] as $background) {
+            expect(Illuminate\Support\Facades\Blade::render(sprintf($template, $background)))->toContain("bg-{$background}");
+        }
+
+        expect(Illuminate\Support\Facades\Blade::render(sprintf($template, 'bg-primary')))->not->toContain('bg-bg-primary')
+            ->and(Illuminate\Support\Facades\Blade::render(sprintf($template, 'magenta')))->not->toContain('magenta');
+    }
+});
+
+it('6. does not mount bg-{$background} or border-{$borderColor} in the card, and keeps the border in class', function () {
+    $html = Illuminate\Support\Facades\Blade::render('<x-dbl::display.card class="border border-primary">x</x-dbl::display.card>');
+
+    expect($html)->toContain('border border-primary');
+});
+
+it('6. paints the badge, the tooltip, the collapse and the timeline with the class of their color token', function () {
+    foreach (CONVENTION_COLORS as $color) {
+        expect(Illuminate\Support\Facades\Blade::render("<x-dbl::feedback.tooltip text=\"t\" color=\"{$color}\" />"))->toContain("text-{$color}")
+            ->and(Illuminate\Support\Facades\Blade::render("<x-dbl::display.collapse title=\"t\" background=\"{$color}\">x</x-dbl::display.collapse>"))->toContain("bg-{$color}/10")
+            ->and(Illuminate\Support\Facades\Blade::render("<x-dbl::display.timeline :items=\"[['title' => 'a', 'color' => '{$color}', 'tags' => [['label' => 'z', 'color' => '{$color}']]]]\" />"))
+            ->toContain("bg-{$color}")->toContain("badge-{$color}");
+    }
+});
+
+it('6. has no card action that takes a class as its color', function () {
+    $html = Illuminate\Support\Facades\Blade::render('<x-dbl::display.card :actions="[[\'label\' => \'Ver\', \'url\' => \'/x\', \'color\' => \'error\']]">x</x-dbl::display.card>');
+
+    expect($html)->toContain('btn-error')->and(Illuminate\Support\Facades\Blade::render('<x-dbl::display.card :actions="[[\'label\' => \'Ver\']]">x</x-dbl::display.card>'))->toContain('btn-primary');
 });

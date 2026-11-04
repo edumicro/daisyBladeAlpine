@@ -5,13 +5,15 @@
     'open'           => false,
     'icon'           => '',
     'iconSide'       => 'left',
-    'variant'        => 'default',
+    'background'     => 'base-200',   // base-200 | primary | secondary | accent | info | success | warning | error
     'class'          => '',
     'containerClass' => '',
 ])
 
 @php
-$contentClass = match($variant) {
+// The tint of the content area is a token; the class names are written out in full so Tailwind can find them.
+$contentClass = match($background) {
+    'neutral'   => 'bg-neutral/10',
     'primary'   => 'bg-primary/10',
     'secondary' => 'bg-secondary/10',
     'accent'    => 'bg-accent/10',
@@ -19,7 +21,7 @@ $contentClass = match($variant) {
     'success'   => 'bg-success/10',
     'warning'   => 'bg-warning/10',
     'error'     => 'bg-error/10',
-    default     => 'bg-base-200/50',
+    default     => 'bg-base-200/50',   // base-200
 };
 @endphp
 

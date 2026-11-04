@@ -1,7 +1,7 @@
 @props([
     'text'         => '',
     'position'     => 'top',
-    'color'        => 'info',
+    'color'        => 'info',   // primary | secondary | accent | neutral | info | success | warning | error
     'icon'         => 'heroicon-o-question-mark-circle',
     'display'      => 'icon',
     'class'        => '',
@@ -10,7 +10,18 @@
 
 @php
 $posClass   = match($position) { 'bottom'=>'tooltip-bottom','left'=>'tooltip-left','right'=>'tooltip-right', default=>'tooltip-top' };
-$colorClass = match($color) { 'success'=>'text-success','warning'=>'text-warning','error'=>'text-error', default=>'text-info' };
+// The color is a token; the class names are written out in full so Tailwind can find them.
+// A value that is not listed gets the default look.
+$colorClass = match($color) {
+    'neutral' => 'text-neutral',
+    'primary' => 'text-primary',
+    'secondary' => 'text-secondary',
+    'accent' => 'text-accent',
+    'success' => 'text-success',
+    'warning' => 'text-warning',
+    'error' => 'text-error',
+    default => 'text-info',
+};
 @endphp
 
 <div class="tooltip {{ $posClass }} {{ $tooltipClass }}" data-tip="{{ $text }}">

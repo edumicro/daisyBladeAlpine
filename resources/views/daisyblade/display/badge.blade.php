@@ -1,13 +1,11 @@
 @props([
     'label'   => '',
     'text'    => '',
-    'color'   => '',
-    'variant' => 'primary',
+    'color'   => 'primary',   // primary | secondary | accent | neutral | info | success | warning | error | ghost
     'size'    => 'md',   // xs | sm | md | lg | xl
     'icon'    => '',
     'iconSide'=> 'left',
     'outline' => false,
-    'ghost'   => false,
     'class'   => '',
 ])
 
@@ -15,7 +13,7 @@
 // Class names written out in full, not glued together from a prefix and the value: Tailwind finds classes
 // by scanning the source for complete names, so one built at run time never reaches the CSS.
 // A value that is not listed gets the default look.
-$colorClass = match($color ?: $variant) {
+$colorClass = match($color) {
     'neutral' => 'badge-neutral',
     'primary' => 'badge-primary',
     'secondary' => 'badge-secondary',
@@ -25,12 +23,9 @@ $colorClass = match($color ?: $variant) {
     'warning' => 'badge-warning',
     'error' => 'badge-error',
     'ghost' => 'badge-ghost',
-    'outline' => 'badge-outline',
-    'soft' => 'badge-soft',
-    'dash' => 'badge-dash',
     default => 'badge-primary',
 };
-$variantClass = $ghost ? 'badge-ghost' : (($outline ? 'badge-outline ' : '') . $colorClass);
+$variantClass = ($outline ? 'badge-outline ' : '') . $colorClass;
 $sizeClass    = match($size) {
     'xs' => 'badge-xs',
     'sm' => 'badge-sm',

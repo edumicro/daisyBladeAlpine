@@ -9,8 +9,8 @@ it('button renders label', function () {
     expect($html)->toContain('Guardar')->toContain('<button');
 });
 
-it('button with variant=btn-secondary has btn-secondary', function () {
-    $html = Blade::render('<x-dbl::actions.button label="X" variant="btn-secondary" />');
+it('button with color=secondary has btn-secondary', function () {
+    $html = Blade::render('<x-dbl::actions.button label="X" color="secondary" />');
     expect($html)->toContain('btn-secondary');
 });
 

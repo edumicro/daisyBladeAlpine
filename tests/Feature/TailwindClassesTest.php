@@ -30,9 +30,8 @@ it('builds no class name at run time in any view', function () {
         }
     }
 
-    // card.blade.php is the one left: its `background` and `border-color` props take any Tailwind color
-    // (`base-200`, `primary/10`...), so they cannot be a closed list without refusing values people use.
-    expect(array_keys($offenders))->toBe(['card.blade.php']);
+    // Not even card: its `background` is a token now, and a border color goes in `class`.
+    expect($offenders)->toBe([]);
 });
 
 it('paints each color of checkbox, radio and toggle with its class, and an unknown one with the default', function (string $component, string $extra) {
@@ -93,8 +92,7 @@ it('maps the color of badge, progress, loading and radial progress to classes wr
     foreach ([...SEMANTIC_COLORS, 'ghost'] as $color) {
         expect(Blade::render("<x-dbl::display.badge label=\"X\" color=\"{$color}\" />"))->toContain("badge-{$color}");
     }
-    expect(Blade::render('<x-dbl::display.badge label="X" variant="warning" />'))->toContain('badge-warning')
-        ->and(Blade::render('<x-dbl::display.badge label="X" />'))->toContain('badge-primary')
+    expect(Blade::render('<x-dbl::display.badge label="X" />'))->toContain('badge-primary')
         ->and(Blade::render('<x-dbl::display.badge label="X" color="magenta" />'))->not->toContain('magenta');
 
     foreach (SEMANTIC_COLORS as $color) {

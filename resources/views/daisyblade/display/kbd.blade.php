@@ -1,7 +1,7 @@
 @props([
     'key'     => '',
     'keys'    => [],
-    'variant' => 'default',
+    'color'   => 'neutral',   // neutral | primary | secondary | accent
     'size'    => 'md',   // xs | sm | md | lg | xl
     'label'   => '',
     'class'   => '',
@@ -9,7 +9,7 @@
 
 @php
 $keys = is_array($keys) ? $keys : ($keys !== '' && $keys !== [] ? [$keys] : []);
-$kbdClass = 'kbd' . match($variant) {
+$kbdClass = 'kbd' . match($color) {
     'primary'   => ' kbd-primary',
     'secondary' => ' kbd-secondary',
     'accent'    => ' kbd-accent',

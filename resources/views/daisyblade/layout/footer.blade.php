@@ -4,14 +4,29 @@
     'iconSide'       => 'left',
     'center'         => false,
     'direction'      => 'vertical',
-    'bgClass'        => 'bg-base-200 text-base-content',
+    'background'     => 'base-200',   // base-100 | base-200 | base-300 | primary | secondary | accent | neutral | info | success | warning | error
     'class'          => '',
     'containerClass' => '',
 ])
 
 @php
+// The background is a token; the class names are written out in full so Tailwind can find them.
+// A value that is not listed gets the default look.
+$backgroundClass = match($background) {
+    'base-100' => 'bg-base-100 text-base-content',
+    'base-300' => 'bg-base-300 text-base-content',
+    'neutral' => 'bg-neutral text-neutral-content',
+    'primary' => 'bg-primary text-primary-content',
+    'secondary' => 'bg-secondary text-secondary-content',
+    'accent' => 'bg-accent text-accent-content',
+    'info' => 'bg-info text-info-content',
+    'success' => 'bg-success text-success-content',
+    'warning' => 'bg-warning text-warning-content',
+    'error' => 'bg-error text-error-content',
+    default => 'bg-base-200 text-base-content',
+};
 $footerClasses = trim(implode(' ', array_filter([
-    'footer', $bgClass,
+    'footer', $backgroundClass,
     $center ? 'footer-center' : '',
     $direction === 'horizontal' ? 'footer-horizontal' : 'footer-vertical',
     'p-10', $class,

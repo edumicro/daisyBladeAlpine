@@ -1,7 +1,7 @@
 @props([
     'items'          => [],
     'orientation'    => 'vertical',
-    'variant'        => 'default',
+    'color'          => 'primary',   // primary | secondary | accent | neutral | info | success | warning | error
     'showConnector'  => true,
     'compact'        => false,
     'label'          => '',
@@ -10,7 +10,30 @@
 ])
 
 @php
-$colorMap = ['primary'=>'bg-primary','secondary'=>'bg-secondary','accent'=>'bg-accent','success'=>'bg-success','warning'=>'bg-warning','error'=>'bg-error','info'=>'bg-info','default'=>'bg-primary'];
+// The color of a dot (and of the badge of a tag) is a token; the class names are written out in full so Tailwind can find them.
+// A value that is not listed gets the default look.
+$dotClassOf = fn (?string $color) => match($color) {
+    'neutral' => 'bg-neutral',
+    'primary' => 'bg-primary',
+    'secondary' => 'bg-secondary',
+    'accent' => 'bg-accent',
+    'info' => 'bg-info',
+    'success' => 'bg-success',
+    'warning' => 'bg-warning',
+    'error' => 'bg-error',
+    default => null,
+};
+$tagClassOf = fn (?string $color) => match($color) {
+    'neutral' => 'badge-neutral',
+    'primary' => 'badge-primary',
+    'secondary' => 'badge-secondary',
+    'accent' => 'badge-accent',
+    'info' => 'badge-info',
+    'success' => 'badge-success',
+    'warning' => 'badge-warning',
+    'error' => 'badge-error',
+    default => 'badge-ghost',
+};
 @endphp
 
 <div {{ $attributes->merge(['class' => "timeline " . ($orientation === 'horizontal' ? 'timeline-horizontal' : 'timeline-vertical') . " {$containerClass}"]) }}>
@@ -28,7 +51,7 @@ $colorMap = ['primary'=>'bg-primary','secondary'=>'bg-secondary','accent'=>'bg-a
             </div>
 
             <div class="timeline-middle">
-                @php $dotColor = $colorMap[$item['variant'] ?? $variant] ?? $colorMap['default']; @endphp
+                @php $dotColor = $dotClassOf($item['color'] ?? $color) ?? $dotClassOf($color) ?? 'bg-primary'; @endphp
                 <div class="w-4 h-4 rounded-full {{ $dotColor }} ring-4 ring-base-100 flex items-center justify-center {{ $class }}">
                     @if(isset($item['icon']))
                         <x-dynamic-component :component="$item['icon']" class="w-2 h-2 text-white" />
@@ -46,7 +69,7 @@ $colorMap = ['primary'=>'bg-primary','secondary'=>'bg-secondary','accent'=>'bg-a
                 @if(!empty($item['tags']))
                     <div class="flex gap-2 flex-wrap mt-3">
                         @foreach($item['tags'] as $tag)
-                            <span class="badge badge-sm {{ isset($tag['variant']) ? 'badge-'.$tag['variant'] : 'badge-ghost' }}">{{ $tag['label'] ?? $tag }}</span>
+                            <span class="badge badge-sm {{ $tagClassOf(is_array($tag) ? ($tag['color'] ?? null) : null) }}">{{ $tag['label'] ?? $tag }}</span>
                         @endforeach
                     </div>
                 @endif

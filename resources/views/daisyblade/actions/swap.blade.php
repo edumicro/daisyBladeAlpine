@@ -4,13 +4,29 @@
     'offLabel'  => '',
     'onLabel'   => '',
     'animation' => 'rotate',   // rotate | flip | bounce
-    'variant'   => 'btn-ghost',
+    'color'     => 'ghost',   // primary | secondary | accent | neutral | info | success | warning | error | ghost | link
     'size'      => 'md',   // xs | sm | md | lg | xl
     'disabled'  => false,
     'class'     => '',
 ])
 
 @php
+// The color is a token; the class name is written out in full so Tailwind can find it.
+// A value that is not listed gets the default look.
+$colorClass = match($color) {
+    'neutral' => 'btn-neutral',
+    'primary' => 'btn-primary',
+    'secondary' => 'btn-secondary',
+    'accent' => 'btn-accent',
+    'info' => 'btn-info',
+    'success' => 'btn-success',
+    'warning' => 'btn-warning',
+    'error' => 'btn-error',
+    'ghost' => 'btn-ghost',
+    'link' => 'btn-link',
+    default => 'btn-ghost',
+};
+
 // The size is a token; the class name is written out in full so Tailwind can find it.
 $sizeClass = match($size) {
     'xs' => 'btn-xs',
@@ -30,7 +46,7 @@ $animClass = match($animation) {
     <input type="checkbox" @disabled($disabled) {{ $attributes->whereStartsWith('x-model') }} />
 
     <div class="swap-off">
-        <button type="button" @disabled($disabled) class="btn {{ $variant }} {{ $sizeClass }} {{ $class }}">
+        <button type="button" @disabled($disabled) class="btn {{ $colorClass }} {{ $sizeClass }} {{ $class }}">
             @if($offIcon)
                 <x-dynamic-component :component="$offIcon" class="w-5 h-5" />
             @endif
@@ -41,7 +57,7 @@ $animClass = match($animation) {
     </div>
 
     <div class="swap-on">
-        <button type="button" @disabled($disabled) class="btn {{ $variant }} {{ $sizeClass }} {{ $class }}">
+        <button type="button" @disabled($disabled) class="btn {{ $colorClass }} {{ $sizeClass }} {{ $class }}">
             @if($onIcon)
                 <x-dynamic-component :component="$onIcon" class="w-5 h-5" />
             @endif
