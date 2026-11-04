@@ -214,8 +214,14 @@ const isHtmlType = type => /^text\/html\b/i.test(type)
 
 const isObjectOrList = data => data !== null && typeof data === 'object'
 
+/**
+ * What a page can start with before it says what it is: a byte order mark (U+FEFF), blanks and HTML comments (`<!-- cached at 12:00 -->`).
+ * They are skipped before looking at the first tag, or a login page that opens with a comment would pass as a fragment.
+ */
+const BEFORE_THE_FIRST_TAG = /^(?:\uFEFF|\s|<!--[\s\S]*?-->)*/
+
 /** A fragment of HTML is a piece of a page: a whole document (`<!doctype>`, `<html>`) is a page, such as the login one. */
-const isHtmlFragment = data => typeof data === 'string' && !/^\s*(<!doctype|<html)/i.test(data)
+const isHtmlFragment = data => typeof data === 'string' && !/^<(!doctype|html)/i.test(data.replace(BEFORE_THE_FIRST_TAG, ''))
 
 /**
  * Pattern "table of rules": what each kind of `answer` accepts, written once and chosen by name, so that checking an
@@ -224,12 +230,14 @@ const isHtmlFragment = data => typeof data === 'string' && !/^\s*(<!doctype|<htm
  *   isRightType   the `Content-Type` that the component asks for
  *   isRightForm   the form of the body (a JSON object or list; a piece of HTML)
  *   emptyReason   what an empty body (a 204) is: a ContractError of that reason, or null when the component accepts it
+ *   emptyData     what an accepted empty body reads as: an object without fields (JSON), or an empty text (an empty tab)
  *   failure       the reason of the ContractError when the type or the form is wrong
  */
 const answerRules = {
-    json: { isRightType: isJsonType, isRightForm: isObjectOrList, emptyReason: 'empty', failure: 'not-json' },
-    'json-or-empty': { isRightType: isJsonType, isRightForm: isObjectOrList, emptyReason: null, failure: 'not-json' },
-    html: { isRightType: isHtmlType, isRightForm: isHtmlFragment, emptyReason: 'not-html', failure: 'not-html' },
+    json: { isRightType: isJsonType, isRightForm: isObjectOrList, emptyReason: 'empty', emptyData: {}, failure: 'not-json' },
+    'json-or-empty': { isRightType: isJsonType, isRightForm: isObjectOrList, emptyReason: null, emptyData: {}, failure: 'not-json' },
+    // A tab with nothing in it is a valid tab: an empty fragment is still a fragment (what is not one is a page, such as the login).
+    html: { isRightType: isHtmlType, isRightForm: isHtmlFragment, emptyReason: null, emptyData: '', failure: 'not-html' },
 }
 
 /**
@@ -244,8 +252,8 @@ function acceptAnswer(response, settings, contentType) {
 
     if (data === '' || data === undefined || data === null) {
         if (rule.emptyReason) throw contractError(rule.emptyReason, settings)
-        // An accepted empty answer reads as an object without fields, so the callers never test for null.
-        return { ...response, data: {} }
+        // An accepted empty answer reads as an empty object (or an empty text), so the callers never test for null.
+        return { ...response, data: structuredClone(rule.emptyData) }
     }
     const typeIsWrong = contentType !== undefined && !rule.isRightType(contentType)
     if (typeIsWrong || !rule.isRightForm(data)) throw contractError(rule.failure, settings)
