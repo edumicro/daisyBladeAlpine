@@ -9,6 +9,7 @@ Solo arreglos, sin cambiar ningún nombre de propiedad, evento ni clase.
 
 ### Corregido
 - `form.kv-editor`: un `true` volvía como `false` al guardar el formulario sin tocar la fila (la vista escribía `"1"` y el editor lee un booleano comparando con `'true'`). Ahora se escribe `true` o `false`. Prueba: `tests/Feature/KvEditorBoolTest.php`.
+- `form.kv-editor` se rompía con «Object of class stdClass could not be converted to string» si el valor traía un objeto anidado (un `json_decode` sin `true`, o un cast a `object`). Ahora se pinta como JSON, igual que un array. Prueba: `tests/Feature/KvEditorBoolTest.php`.
 - `form.fields` (modo `form`) lanzaba «Undefined variable $errors» si la vista se pintaba sin la bolsa de errores compartida (un correo, un comando, un test). Prueba: `tests/Feature/FieldsWithoutErrorsBagTest.php`.
 
 ## [2.4.0] — 2026-11-04

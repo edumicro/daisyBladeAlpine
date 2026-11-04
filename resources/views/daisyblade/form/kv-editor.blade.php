@@ -11,7 +11,8 @@ $initialRows = collect($value)->map(function ($v, $k) {
     $type = match (true) {
         is_bool($v)                    => 'bool',
         is_int($v) || is_float($v)     => 'number',
-        is_array($v)                   => 'object',
+        // An object (a stdClass from json_decode without assoc, or a cast to `object`) is a nested value, like an array.
+        is_array($v) || is_object($v)  => 'object',
         default                        => 'string',
     };
     return [
@@ -19,7 +20,7 @@ $initialRows = collect($value)->map(function ($v, $k) {
         // A bool is written as the word `true` or `false`: `(string) true` is "1", and the editor reads a bool by comparing with 'true',
         // so every `true` came back as `false` and saving the form corrupted the data.
         'value' => match (true) {
-            is_array($v) => json_encode($v, JSON_UNESCAPED_UNICODE),
+            is_array($v) || is_object($v) => json_encode($v, JSON_UNESCAPED_UNICODE),
             is_bool($v)  => $v ? 'true' : 'false',
             default      => (string) $v,
         },
