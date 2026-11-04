@@ -32,7 +32,16 @@
             if (val === '' || val === null) { delete this.filters[key] } else { this.filters[key] = val }
             this.$dispatch('dbl-filters-applied', { filters: this.filters })
         },
-        clear() { this.filters = {}; this.$dispatch('dbl-filters-cleared', { filters: {} }) },
+        clear() {
+            this.filters = {}
+            // The controls only tell `filters` what changed, they are not bound to it: emptying `filters` would leave the old
+            // text in the boxes. So they are emptied here (the option All of a select has an empty value).
+            this.$root.querySelectorAll('select, input').forEach(control => {
+                if (control.type === 'checkbox') control.checked = false
+                else control.value = ''
+            })
+            this.$dispatch('dbl-filters-cleared', { filters: {} })
+        },
     }"
     {{ $attributes->merge(['class' => "dropdown {$position}"]) }}
 >

@@ -54,13 +54,22 @@ $config = [
 
 <div
     x-data="dblDataTable(@js($config))"
-    {{-- form.filters announces these two events, and the table listens to nothing else. --}}
-    @dbl-filters-applied.window="applyFilters($event.detail.filters)"
-    @dbl-filters-cleared.window="clearFilters()"
     {{ $attributes }}
 >
-    {{-- Header --}}
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+    {{-- Header. form.filters announces two events, and the table listens to nothing else. They are not on the root, which
+         takes the attributes of the caller (a `@dbl-filters-applied.window` of theirs would be a second one).
+         With the `filters` prop the panel is INSIDE this header, so the events reach it by rising: no `.window`, which
+         would also answer to the filters of every other table on the page. Without it, the filters are somewhere else
+         in the page and the table listens on the window. --}}
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4"
+        @if(!empty($filters))
+            @dbl-filters-applied="applyFilters($event.detail.filters)"
+            @dbl-filters-cleared="clearFilters()"
+        @else
+            @dbl-filters-applied.window="applyFilters($event.detail.filters)"
+            @dbl-filters-cleared.window="clearFilters()"
+        @endif
+    >
         <div>
             @if($label) <h3 class="text-lg font-bold">{{ $label }}</h3> @endif
         </div>

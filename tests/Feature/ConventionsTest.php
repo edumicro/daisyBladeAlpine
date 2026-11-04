@@ -800,8 +800,10 @@ it('9. lets the data-table filter with what form.filters announces', function ()
     $this->withoutVite();
     $html = Illuminate\Support\Facades\Blade::render('<x-dbl::display.data-table load-url="/rows" :columns="[]" :filters="[[\'key\' => \'status\', \'type\' => \'select\']]" />');
 
-    // The table carries the panel inside it, and listens to what the panel says.
-    expect($html)->toContain("\$dispatch('dbl-filters-applied'")->toContain('@dbl-filters-applied.window="applyFilters($event.detail.filters)"');
+    // The table carries the panel inside it, and listens to what the panel says: the event rises to the table (no `.window`, which
+    // would also hear the filters of every other table on the page).
+    expect($html)->toContain("\$dispatch('dbl-filters-applied'")->toContain('@dbl-filters-applied="applyFilters($event.detail.filters)"')
+        ->not->toContain('@dbl-filters-applied.window');
 });
 
 // ── 10. The configuration reaches the JavaScript in one way: x-data="dblName(@js($config))" ──
