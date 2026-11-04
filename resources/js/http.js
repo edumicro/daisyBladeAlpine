@@ -451,30 +451,57 @@ function expectShape(url, component, expected, isRight) {
     throw contractError('shape', { url }, `answered something that ${component} cannot read: it expects ${expected}`)
 }
 
-/** A list, bare or inside `{ data: [...] }`. */
-const listOf = data => (Array.isArray(data) ? data : (isObject(data) ? data.data : undefined))
+// The forms that an answer may have are exactly the ones that Laravel produces, and nothing else is guessed:
+//
+//   a list    an array                                  return $rows;
+//             a resource collection {data, meta, links}   return UserResource::collection($users);
+//             a paginator as it is {data, current_page}   return User::paginate();   (also simplePaginate())
+//   a detail  a resource {data: {...}}                    return new UserResource($user);
+//             the object as it is                         return $user;
+//
+// tests/Feature/LaravelAnswerShapesTest.php makes these answers with the real classes of Laravel and reads them with this file.
+
+/** The keys that Laravel's `JsonResource` and `ResourceCollection` put around a body. */
+const RESOURCE_ENVELOPE_KEYS = ['data', 'meta', 'links']
+
+/** `{ data, meta?, links? }` and nothing else: a resource. A model that has a `data` column among others is NOT one. */
+const isResourceEnvelope = value => isObject(value) && 'data' in value && Object.keys(value).every(key => RESOURCE_ENVELOPE_KEYS.includes(key))
+
+/** What `paginate()` and `simplePaginate()` return as they are: `data` beside `current_page`, without a `meta`. */
+const isBarePaginator = value => isObject(value) && Array.isArray(value.data) && typeof value.current_page === 'number'
+
+/** A list: an array, a resource collection or a paginator. Anything else is `undefined`. */
+function listOf(data) {
+    if (Array.isArray(data)) return data
+    return isResourceEnvelope(data) || isBarePaginator(data) ? data.data : undefined
+}
 
 /**
  * What every component that reads JSON expects from the server. Each function receives the body of a good answer (and the URL,
  * only to name it in the warning), throws a ContractError if its form is wrong, and returns the part the component uses.
  */
 export const answerShapes = {
-    /** select with load-url: `[{ value, label }]` or `{ data: [{ value, label }] }` -> the list. */
+    /** select with load-url: `[{ value, label }]` or a resource collection `{ data: [{ value, label }] }` -> the list. */
     selectOptions(data, url) {
         const options = listOf(data)
         expectShape(url, 'the remote select', '[{ "value": …, "label": … }] or { "data": [ … ] }',
             Array.isArray(options) && options.every(option => isObject(option) && 'value' in option && 'label' in option))
         return options
     },
-    /** data-table: `{ data: [row, …], meta?: {…} }` -> { rows, meta }. */
+    /**
+     * data-table: a resource collection `{ data, meta, links }` or a bare paginator `{ data, current_page, … }` -> { rows, meta }.
+     * The `meta` of a paginator is the paginator itself (that is where Laravel writes `last_page`, `total`...).
+     */
     tableRows(data, url) {
-        expectShape(url, 'the data table', '{ "data": [ … ], "meta": { … } }', isObject(data) && Array.isArray(data.data))
-        return { rows: data.data, meta: isObject(data.meta) ? data.meta : {} }
+        const rows = listOf(data)
+        expectShape(url, 'the data table', 'a resource collection { "data": […], "meta": {…} } or a paginator { "data": […], "current_page": 1, … }',
+            Array.isArray(rows) && !Array.isArray(data))
+        return { rows, meta: isBarePaginator(data) ? data : (isObject(data.meta) ? data.meta : {}) }
     },
-    /** resource-details: the resource, bare or inside `{ data: {…} }` -> the resource. */
+    /** resource-details: a resource `{ data: {…} }` -> its `data`; any other object is the resource as it is. */
     resource(data, url) {
         expectShape(url, 'the resource details', '{ …fields } or { "data": { …fields } }', isObject(data))
-        return isObject(data.data) ? data.data : data
+        return isResourceEnvelope(data) && isObject(data.data) ? data.data : data
     },
     /** calendar: `[{ id, title, start, … }]` or `{ data: [ … ] }` -> the list. */
     calendarEvents(data, url) {

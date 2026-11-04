@@ -47,6 +47,25 @@ en el preflight de CORS).
 | `sections.wizard` | `POST submit-url` con los datos de todos los pasos | igual que el formulario automático | **Sí** |
 | `import.spreadsheet` | `POST upload-url` (multipart, campo `file`) | un objeto JSON, p. ej. `{ "imported": 120 }` (`importResult`) | No |
 
+## Las formas son las de Laravel, y ninguna más
+
+Los componentes aceptan exactamente lo que devuelve Laravel, sin adivinar nada más:
+
+| Quiere | Formas válidas | En el controlador |
+|---|---|---|
+| **Una lista** (opciones del select, eventos del calendario) | un array · una colección de recursos `{ data, meta, links }` · un paginador tal cual `{ data, current_page, … }` | `return $rows;` · `return UserResource::collection($users);` · `return User::paginate();` |
+| **Las filas de la tabla** | una colección de recursos (con `meta`) o un paginador tal cual (`paginate()` o `simplePaginate()`) | `return UserResource::collection(User::paginate());` · `return User::paginate();` |
+| **Un detalle** | un recurso `{ data: { … } }` o el objeto tal cual | `return new UserResource($user);` · `return $user;` |
+
+- Un recurso solo se desenvuelve si sus claves son **exactamente** `data` (y `meta`/`links`). Un modelo con una columna llamada
+  `data` junto a otras (`id`, `name`, `data`) se entrega entero.
+- El `meta` de un paginador tal cual es el propio paginador (ahí escribe Laravel `last_page`, `total`…). Un `simplePaginate()` no
+  trae totales: la tabla enseña las filas y no pinta «Mostrando».
+- Un `JsonResource` con `->additional([...])` o `with()` añade claves a la raíz y deja de ser un recurso en este sentido: pon esos
+  datos dentro de `meta`.
+- `tests/Feature/LaravelAnswerShapesTest.php` genera estas respuestas con las clases reales de Laravel (`LengthAwarePaginator`,
+  `Paginator`, `JsonResource`, `ResourceCollection` y un modelo con columna `data`) y las lee con el mismo `answerShapes`.
+
 ### El importador también exige JSON
 
 Antes el importador aceptaba cualquier `200`, incluso un texto o un `back()`. Ya no: un controlador que responde `OK` o
