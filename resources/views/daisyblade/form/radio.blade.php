@@ -55,6 +55,7 @@ $sizeClass = match($size) {
                     @if($name) name="{{ $name }}" @endif
                     @if($value !== null && (string)$value === (string)$optVal) checked @endif
                     @if($disabled) disabled @endif
+                    @if($required) required @endif
                     {{ $attributes->merge(['class' => "radio {$colorClass} {$sizeClass}"]) }}
                 />
                 <span class="text-sm">{{ $optLabel }}</span>
