@@ -84,3 +84,10 @@ it('fab has no wire: attributes', function () {
     $html = Blade::render('<x-dbl::actions.fab />');
     expect($html)->not->toContain('wire:');
 });
+
+it('button: with a slot and no label it prints only the slot, never the default text in front of it', function () {
+    $html = Blade::render('<x-dbl::actions.button>Guardar</x-dbl::actions.button>');
+
+    expect(strip_tags($html))->toContain('Guardar')->not->toContain('Button');
+    expect(strip_tags(Blade::render('<x-dbl::actions.button />')))->toContain('Button');
+});

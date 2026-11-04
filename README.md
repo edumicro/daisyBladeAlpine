@@ -694,7 +694,7 @@ composer test:browser       # Pest + a real Chromium: tests/Browser
 composer test:js            # node --test tests/js/*.test.mjs (HTTP client, errors, dates, map, flowchart)
 ```
 
-Currently 587 Pest tests (2424 assertions), 86 browser tests (140 assertions) and 291 JavaScript tests, all green and none skipped. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
+Currently 1579 Pest tests (5420 assertions), 319 browser tests (687 assertions) and 306 JavaScript tests, all green and none skipped. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
 
 ### Browser tests (`tests/Browser`)
 
@@ -723,7 +723,7 @@ it('checkbox: checked follows the x-model and clicking it updates the model', fu
 
 **Pending tests.** A test for a known, not yet fixed defect is written in full and marked `->skip('Pending: <report>, <finding>. Activate when fixed.')`. Whoever fixes the defect deletes the `->skip(...)` line and the test must go green. Today there are none.
 
-**Architecture tests.** They scan every view and every factory so that a cause cannot come back: `AlpineAttributeOwnershipTest` (nothing written by hand on the element that receives `$attributes`, no `x-data` around it), `FactoryConfigTest` (the keys a factory declares are the ones its view passes), `OutputEscapingTest` (no `{!! !!}` off the list, no `url(` without quotes), `TranslatableTextsTest` (no visible text without `__()`) and `CatalanTest`. `tests/js/model-binding.test.mjs` and `UserScopeBrowserTest` prove the model rule and the scope of the caller.
+**Architecture tests: they read the painted HTML, not the source.** `tests/Catalog/Catalog.php` is the catalog of components: at least one example of every view, with the props it typically gets (a view without an example fails `CatalogCoversEveryViewTest`; write its example there). The tests of `tests/Feature/Catalog` paint the whole catalog and look at the result: `RenderedAttributesTest` (no tag repeats an attribute, alone and with a bag of user attributes, and the user's value wins), `RenderedTextsTest` (a translator that wraps every translated text in `⟦…⟧` paints the catalog; any visible text or text attribute without the mark, and not written by the caller, was not translated) and `RenderedEscapingTest` (a hostile text in every text prop never becomes markup). `tests/Browser/CatalogBrowserTest.php` opens every example in Chromium with Alpine, normal and hostile, and expects a silent console. Other guards: `AlpineAttributeOwnershipTest`, `FactoryConfigTest`, `OutputEscapingTest` (the list of `{!! !!}`), `LaravelAnswerShapesTest` (the answers of Laravel's own classes), `TranslatableTextsTest` and `CatalanTest`. `tests/js/model-binding.test.mjs` and `UserScopeBrowserTest` prove the model rule and the scope of the caller.
 
 **Caveats.** `attach()` of the plugin needs a local Playwright server, so files are chosen with `chooseFile()` (a real `File` set on the input). A bare selector such as `'input'` is read as *text*; write `input[type=text]`.
 
