@@ -48,6 +48,49 @@ it('installs with --vite flag', function () {
         ->and(file_exists(resource_path('js/http.js')))->toBeTrue();
 });
 
+it('installs the components folder too, with the same layout it has in the package', function () {
+    $this->artisan('daisyblade:install', ['--vite' => true])->assertSuccessful();
+
+    // The components import ../http.js, so the folder has to sit next to daisyblade.js and http.js.
+    foreach (['calendar.js', 'map.js', 'upload.js', 'rich-text.js', 'signature.js', 'flowchart.js', 'map/maplibre.js', 'flowchart/geometry.js'] as $file) {
+        expect(file_exists(resource_path('js/components/'.$file)))->toBeTrue("components/{$file}");
+    }
+
+    File::deleteDirectory(resource_path('js/components'));
+    $this->artisan('daisyblade:install', ['--public' => true])->assertSuccessful();
+
+    expect(file_exists(public_path('vendor/daisyblade/components/calendar.js')))->toBeTrue()
+        ->and(file_exists(public_path('vendor/daisyblade/components/map/google.js')))->toBeTrue();
+});
+
+it('publishes the components with the daisyblade-assets tag', function () {
+    $this->artisan('vendor:publish', ['--tag' => 'daisyblade-assets', '--force' => true])->assertSuccessful();
+
+    expect(file_exists(public_path('vendor/daisyblade/daisyblade.js')))->toBeTrue()
+        ->and(file_exists(public_path('vendor/daisyblade/components/upload.js')))->toBeTrue();
+});
+
+it('publishes the translations with the daisyblade-lang tag, and reads the JSON ones from there first', function () {
+    $destination = lang_path('vendor/daisyblade');
+    File::deleteDirectory($destination);
+
+    $this->artisan('vendor:publish', ['--tag' => 'daisyblade-lang', '--force' => true])->assertSuccessful();
+
+    expect(file_exists($destination.'/es.json'))->toBeTrue()
+        ->and(file_exists($destination.'/ca.json'))->toBeTrue()
+        ->and(file_exists($destination.'/es/upload.php'))->toBeTrue();
+
+    // The published copy wins: the application edits its text there.
+    $texts = json_decode(file_get_contents($destination.'/es.json'), true);
+    $texts['Search...'] = 'Buscad...';
+    file_put_contents($destination.'/es.json', json_encode($texts));
+    app('translator')->setLocale('es');
+
+    expect(__('Search...'))->toBe('Buscad...');
+
+    File::deleteDirectory($destination);
+});
+
 it('installs with --public flag', function () {
     $this->artisan('daisyblade:install', ['--public' => true])
          ->assertSuccessful();

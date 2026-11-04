@@ -16,6 +16,9 @@ class DaisyBladeServiceProvider extends ServiceProvider
         // traducciones JSON. Con loadTranslationsFrom() a secas, es.json no se aplicaba nunca.
         $this->loadJsonTranslationsFrom(__DIR__.'/../resources/lang');
         $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'daisyblade');
+        // The copy published with `--tag=daisyblade-lang` (lang/vendor/daisyblade) is read after the package's own,
+        // so the texts the application edits there win. (The namespaced PHP files already work this way in Laravel.)
+        $this->loadJsonTranslationsFrom($this->app->langPath('vendor/daisyblade'));
 
         $this->callAfterResolving(BladeCompiler::class, function (BladeCompiler $blade) {
             // Prefer published views, fallback to package views
@@ -35,11 +38,18 @@ class DaisyBladeServiceProvider extends ServiceProvider
                 __DIR__.'/../config/daisyblade.php' => config_path('daisyblade.php'),
             ], 'daisyblade-config');
 
-            // daisyblade.js imports ./http.js: they travel together.
+            // daisyblade.js imports ./http.js, and the components import ../http.js: they travel together,
+            // with the same folders they have in the package.
             $this->publishes([
                 __DIR__.'/../resources/js/daisyblade.js' => public_path('vendor/daisyblade/daisyblade.js'),
                 __DIR__.'/../resources/js/http.js'       => public_path('vendor/daisyblade/http.js'),
+                __DIR__.'/../resources/js/components'    => public_path('vendor/daisyblade/components'),
             ], 'daisyblade-assets');
+
+            // The texts: lang/vendor/daisyblade/{es,ca,en}.json and {es,ca,en}/*.php
+            $this->publishes([
+                __DIR__.'/../resources/lang' => $this->app->langPath('vendor/daisyblade'),
+            ], 'daisyblade-lang');
 
             $this->commands([
                 Console\Commands\InstallCommand::class,

@@ -810,3 +810,21 @@ it('12. hands the values of every step to the wizard factory, as an object even 
     expect(xDataConfig($render('<x-dbl::sections.wizard :steps="[]" submit-url="/s" />'), 'dblWizard')['values'])->toBe([])
         ->and($render('<x-dbl::sections.wizard :steps="[]" submit-url="/s" />'))->toContain('\\u0022values\\u0022:{}');
 });
+
+// ── 11. Cleaning ───────────────────────────────────────────────────────────
+
+it('11. keeps in the configuration only what the package reads: map and geo', function () {
+    expect(array_keys(require __DIR__.'/../../config/daisyblade.php'))->toBe(['map', 'geo']);
+
+    // And nothing reads the keys that were dead: component_map, defaults, toast, sidebar.
+    $sources = [...conventionViews(), ...conventionScripts()];
+    foreach (glob(__DIR__.'/../../src/{,*/,*/*/}*.php', GLOB_BRACE) as $file) {
+        $sources[$file] = file_get_contents($file);
+    }
+
+    expect(conventionOffenders($sources, '/daisyblade\.(?:component_map|defaults|toast|sidebar)/'))->toBe([]);
+});
+
+it('11. has no dbTabs, the factory nobody used, in any spelling', function () {
+    expect(conventionOffenders([...conventionViews(), ...conventionScripts()], '/\bdbTabs\b/'))->toBe([]);
+});
