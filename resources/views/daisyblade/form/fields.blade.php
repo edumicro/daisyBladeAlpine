@@ -103,11 +103,9 @@
                             x-model="{{ $aD }}[@js($key)]"
                             :class="{ 'textarea-error': ({{ $aE }}[@js($key)]||[]).length }"
                         @endif
-                        placeholder="{{ $placeholder }}"
-                        rows="{{ $field['rows'] ?? 4 }}"
                         @if($disabled) disabled @endif
                         @if($required) required @endif
-                        {{ \Edumicro\DaisyBlade\Support\Attrs::render($attrs, 'textarea w-full '.($mode==='form' && $errors->has($key) ? 'textarea-error' : '')) }}
+                        {{ \Edumicro\DaisyBlade\Support\Attrs::render($attrs, 'textarea w-full '.($mode==='form' && $errors->has($key) ? 'textarea-error' : ''), ['placeholder' => $placeholder, 'rows' => $field['rows'] ?? 4]) }}
                     >@if($mode==='form'){{ $value }}@endif</textarea>
                     @if($mode==='form')
                         @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror
@@ -251,8 +249,6 @@
                         <label class="mb-1 block text-sm font-medium" @if($mode==='form') for="{{ $key }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
                     @endif
                     <input
-                        type="{{ $inputType }}"
-                        placeholder="{{ $placeholder }}"
                         @if($mode==='form')
                             id="{{ $key }}" name="{{ $key }}"
                             @if(!in_array($inputType, ['password','file'])) value="{{ $value }}" @endif
@@ -262,7 +258,7 @@
                         @endif
                         @if($disabled) disabled @endif
                         @if($required) required @endif
-                        {{ \Edumicro\DaisyBlade\Support\Attrs::render($attrs, 'input w-full '.($mode==='form' && $errors->has($key) ? 'input-error' : '')) }}
+                        {{ \Edumicro\DaisyBlade\Support\Attrs::render($attrs, 'input w-full '.($mode==='form' && $errors->has($key) ? 'input-error' : ''), ['type' => $inputType, 'placeholder' => $placeholder]) }}
                     />
                     @if($mode==='form')
                         @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror

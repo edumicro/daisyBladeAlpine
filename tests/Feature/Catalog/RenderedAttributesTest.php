@@ -78,3 +78,17 @@ it('the attributes of a user reach the element once, and the user wins', functio
         }
     }
 })->with(fn () => array_map(fn ($name) => [$name], array_combine(array_keys(Catalog::examples()), array_keys(Catalog::examples()))));
+
+it('the attrs of a schema reach the control of a field once, and win over what the view wrote', function (string $name, array $expected) {
+    $html = Catalog::examples()[$name]->render();
+    $controls = array_values(array_filter(RenderedHtml::tags($html), fn ($tag) => in_array($tag['name'], ['input', 'textarea', 'select'], true)));
+
+    foreach ($expected as $attribute => $value) {
+        $carriers = array_filter($controls, fn ($tag) => RenderedHtml::countOf($tag, $attribute) > 0 && RenderedHtml::valueOf($tag, $attribute) === (string) $value);
+        expect($carriers)->not->toBe([], "no control has {$attribute}=\"{$value}\": the attrs of the schema were lost");
+    }
+})->with([
+    'form.fields' => ['form.fields (attrs in the schema)', ['rows' => 10, 'type' => 'search', 'step' => '0.5', 'min' => 5, 'max' => 9, 'placeholder' => 'mine§']],
+    'form.fields (alpine mode)' => ['form.fields (attrs in the schema, alpine mode)', ['rows' => 10, 'type' => 'search', 'step' => '0.5', 'min' => 5, 'max' => 9, 'placeholder' => 'mine§']],
+    'form.repeater' => ['form.repeater (attrs in the schema)', ['rows' => 9, 'step' => '0.5', 'min' => 5, 'max' => 9, 'placeholder' => 'mine§']],
+]);

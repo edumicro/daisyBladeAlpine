@@ -32,13 +32,18 @@ final class Attrs
     private const NAME = '/^[A-Za-z][A-Za-z0-9-]*$/';
 
     /**
-     * @param  array<array-key, mixed>  $attrs
+     * @param  array<array-key, mixed>  $attrs  What the caller's schema wants on the element. It WINS over `$defaults`.
      * @param  string  $componentClass  The classes the component itself puts on the element. They are written together with
      *                                  the `class` of the schema in ONE `class` attribute: with two, the browser keeps the first
      *                                  and silently drops the other (`['class' => 'font-mono']` used to erase `input w-full`).
+     * @param  array<array-key, mixed>  $defaults  Attributes of the view that the schema may replace; a `null` value writes nothing.
      */
-    public static function render(array $attrs, string $componentClass = ''): HtmlString
+    public static function render(array $attrs, string $componentClass = '', array $defaults = []): HtmlString
     {
+        // The attributes that the view itself wants (`placeholder`, `rows`, `type`...) are merged HERE, with the schema's on top.
+        // Written next to `Attrs::render()` in the view they were a second copy of the same attribute: the browser keeps the
+        // first and drops the other without a word, so the schema lost.
+        $attrs = array_merge($defaults, $attrs);
         $rendered = [];
 
         // The `class` of the schema is joined to the component's, and written first, before the other attributes.

@@ -1,3 +1,5 @@
+{{-- The labels show while the sidebar around the tree is open (outside a sidebar there is no `open`: they always show).
+     `Alpine.$data(element)` is the public way to read the data of the scope of an element; `el.__x.$data` was Alpine 2 and does not exist in 3. --}}
 @props([
     'items' => [],
     'depth' => 0,
@@ -25,7 +27,7 @@
                         @if(!empty($item['icon']))
                             <x-dynamic-component :component="$item['icon']" class="w-5 h-5 shrink-0" />
                         @endif
-                        <span x-show="$root.closest('aside')?.__x?.$data?.open ?? true" class="flex-1 text-left truncate">
+                        <span x-show="Alpine.$data($el.closest('aside') ?? $el)?.open ?? true" class="flex-1 text-left truncate">
                             {{ __($item['label'] ?? '') }}
                         </span>
                         {{-- In a <span> and not on the icon: `@js()` inside the tag of a Blade component would not see the variables of this view. --}}
@@ -56,7 +58,7 @@
                         @if(!empty($item['icon']))
                             <x-dynamic-component :component="$item['icon']" class="w-5 h-5 shrink-0" />
                         @endif
-                        <span x-show="$root.closest('aside')?.__x?.$data?.open ?? true" class="truncate">
+                        <span x-show="Alpine.$data($el.closest('aside') ?? $el)?.open ?? true" class="truncate">
                             {{ __($item['label'] ?? '') }}
                         </span>
                     </a>

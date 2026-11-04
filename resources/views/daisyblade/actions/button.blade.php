@@ -1,5 +1,5 @@
 @props([
-    'label'        => 'Button',
+    'label'        => null,       // null: the slot is the text; with neither, the translated default
     'type'         => 'button',
     'color'        => 'primary',   // primary | secondary | accent | neutral | info | success | warning | error | ghost | link
     'size'         => 'md',   // xs | sm | md | lg | xl
@@ -12,6 +12,8 @@
 ])
 
 @php
+// The default text is for a button that has neither a `label` nor a slot. With a slot, the slot is the text ("Button Guardar" was not).
+$text = $label ?? ($slot->isEmpty() ? __('Button') : null);
 // The color is a token; the class name is written out in full so Tailwind can find it.
 // A value that is not listed gets the default look.
 $colorClass = match($color) {
@@ -45,7 +47,7 @@ $sizeClass = match($size) {
         @elseif($icon && $iconOnly)
             <x-dynamic-component :component="$icon" class="w-5 h-5" />
         @endif
-        @if(!$iconOnly) <span>{{ $label }}</span>{{ $slot }} @endif
+        @if(!$iconOnly) @if($text !== null)<span>{{ $text }}</span>@endif{{ $slot }} @endif
         @if($icon && $iconPosition === 'right' && !$iconOnly)
             <x-dynamic-component :component="$icon" class="w-5 h-5" />
         @endif
@@ -65,7 +67,7 @@ $sizeClass = match($size) {
         @endif
 
         @if(!$iconOnly)
-            <span>{{ $label }}</span>
+            @if($text !== null)<span>{{ $text }}</span>@endif
             {{ $slot }}
         @endif
 

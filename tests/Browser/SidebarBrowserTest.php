@@ -54,3 +54,23 @@ it('sidebar collapsible=false: stays open on a phone-width screen too', function
 
     expect($page->script(alpineData('[x-data^="dblSidebar("]', 'open')))->toBeTrue();
 });
+
+it('sidebar-tree: the labels follow the sidebar around it (Alpine.$data, not the __x of Alpine 2)', function () {
+    $page = visit(browserPage('sidebar-tree-follows', <<<'BLADE'
+        <x-dbl::navigation.sidebar>
+            <x-dbl::navigation.sidebar-tree :items="[['label' => 'Blog', 'url' => '/blog']]" />
+        </x-dbl::navigation.sidebar>
+        BLADE));
+
+    $sidebar = "Alpine.\$data(document.querySelector('[x-data^=dblSidebar]'))";
+    $page->script("$sidebar.open = true");
+    pause($page);
+    $label = "document.querySelector('aside ul.menu span.truncate')";
+    $shownOpen = $page->script("getComputedStyle($label).display !== 'none'");
+    $page->script("$sidebar.open = false");
+    pause($page);
+    $shownClosed = $page->script("getComputedStyle($label).display !== 'none'");
+
+    expect($shownOpen)->toBeTrue()
+        ->and($shownClosed)->toBeFalse();
+});

@@ -1,6 +1,6 @@
 @props([
     'image'       => '',
-    'imageAlt'    => 'Card',
+    'imageAlt'    => null,   // null: the translated default
     'title'       => '',
     'description' => '',
     'tags'        => [],
@@ -17,7 +17,7 @@
         onmouseleave="this.style.transform='rotateX(0) rotateY(0) scale(1)'"
     >
         @if($image)
-            <img src="{{ $image }}" alt="{{ $imageAlt }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+            <img src="{{ $image }}" alt="{{ $imageAlt ?? __('Card') }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
         @else
             <div class="w-full h-full bg-base-200 flex items-center justify-center">
                 @if($icon)

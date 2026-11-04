@@ -3,7 +3,7 @@
     'subtitle'    => '',
     'body'        => '',
     'image'       => '',
-    'imageAlt'    => 'Card Image',
+    'imageAlt'    => null,   // null: the translated default
     'actions'     => [],
     'shadow'      => true,
     'compact'     => false,
@@ -63,7 +63,7 @@ $actionClassOf = fn (?string $color) => match($color) {
 
     @if($image)
         <figure class="relative overflow-hidden">
-            <img src="{{ $image }}" alt="{{ $imageAlt }}" class="w-full h-64 object-cover" />
+            <img src="{{ $image }}" alt="{{ $imageAlt ?? __('Card Image') }}" class="w-full h-64 object-cover" />
         </figure>
     @endif
 

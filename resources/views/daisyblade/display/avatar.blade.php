@@ -1,6 +1,6 @@
 @props([
     'src'      => '',
-    'alt'      => 'Avatar',
+    'alt'      => null,     // null: the translated default
     'size'     => 'md',   // xs | sm | md | lg | xl | 2xl
     'online'   => false,
     'offline'  => false,
@@ -59,7 +59,7 @@ $sizeClass = match($size) {
     <div @class(['avatar', 'avatar-online' => $online, 'avatar-offline' => $offline, $avatarClass => $avatarClass])>
         <div class="{{ $sizeClass }} rounded-full">
             @if($src)
-                <img src="{{ $src }}" alt="{{ $alt }}" class="rounded-full object-cover w-full h-full" />
+                <img src="{{ $src }}" alt="{{ $alt ?? __('Avatar') }}" class="rounded-full object-cover w-full h-full" />
             @elseif($initials)
                 <div class="{{ $colorClass }} w-full h-full rounded-full flex items-center justify-center">
                     <span class="text-white font-bold text-sm">{{ $initials }}</span>

@@ -60,6 +60,12 @@ final class Catalog
             'role' => ['type' => 'select', 'label' => "Role{$user}", 'options' => ['a' => "Admin{$user}", 'u' => "User{$user}"]],
             'active' => ['type' => 'checkbox', 'label' => "Active{$user}"],
         ];
+        // The `attrs` of a schema are the bag of attributes of a field: they must reach the control once, and win over the view's own.
+        $fieldsWithAttrs = [
+            'text' => ['type' => 'textarea', 'label' => "Text{$user}", 'attrs' => ['rows' => 10, 'placeholder' => "mine{$user}", 'class' => 'user-class']],
+            'search' => ['type' => 'text', 'label' => "Search{$user}", 'attrs' => ['type' => 'search', 'placeholder' => "mine{$user}"]],
+            'amount' => ['type' => 'number', 'label' => "Amount{$user}", 'attrs' => ['step' => '0.5', 'min' => 5, 'max' => 9, 'placeholder' => "mine{$user}"]],
+        ];
         $calendarProps = ['loadUrl' => '/cal', 'initialDate' => '2026-05-10'];
         $mapProps = ['center' => [39.47, -0.37], 'zoom' => 11];
 
@@ -67,6 +73,7 @@ final class Catalog
             // ── actions ──
             Example::of('actions.button')->props(['label' => "Save{$user}"])->texts('label'),
             Example::of('actions.button', 'icon and loading')->props(['icon' => 'heroicon-o-plus', 'loading' => true, 'label' => "Add{$user}"])->texts('label'),
+            Example::of('actions.button', 'only the slot')->slot("Guardar{$user}"),
             Example::of('actions.button', 'as a link')->props(['href' => '/go', 'label' => "Go{$user}"])->texts('label'),
             Example::of('actions.fab')->props(['icon' => 'heroicon-o-plus', 'tooltip' => "New{$user}"])->texts('tooltip')->slot("<button>Opt{$user}</button>"),
             Example::of('actions.modal')->props(['id' => 'demo-modal', 'title' => "Title{$user}"])->texts('title')->slot("<p>Body{$user}</p>"),
@@ -78,6 +85,7 @@ final class Catalog
 
             // ── display ──
             Example::of('display.accordion')->props(['items' => [['title' => "One{$user}", 'content' => "<p>First{$user}</p>", 'open' => true], ['title' => "Two{$user}", 'content' => "<p>Second{$user}</p>"]]])->texts('items.*.title'),
+            Example::of('display.avatar')->props(['src' => '/pixel.png']),
             Example::of('display.avatar', 'initials')->props(['initials' => "AB{$user}", 'online' => true])->texts('initials'),
             Example::of('display.avatar', 'with alt')->props(['src' => '/pixel.png', 'alt' => "Ana{$user}"])->texts('alt'),
             Example::of('display.badge')->props(['label' => "New{$user}"])->texts('label'),
@@ -85,6 +93,7 @@ final class Catalog
             Example::of('display.calendar')->props($calendarProps)->modules('calendar'),
             // `body` is HTML of the developer (it is on the list of {!! !!} of OutputEscapingTest), so it is not given the hostile text.
             Example::of('display.card')->props(['title' => "Card{$user}", 'subtitle' => "Sub{$user}", 'body' => "Body{$user}", 'image' => '/pixel.png', 'imageAlt' => "Pic{$user}", 'actions' => [['label' => "Open{$user}", 'url' => '/open']]])->texts('title', 'subtitle', 'imageAlt', 'actions.*.label'),
+            Example::of('display.card', 'with an image and a slot')->props(['image' => '/pixel.png'])->slot("<p>In{$user}</p>"),
             Example::of('display.carousel')->props(['items' => [['image' => '/pixel.png', 'title' => "One{$user}", 'description' => "First{$user}", 'alt' => "Alt1{$user}"], ['image' => '/pixel.png', 'title' => "Two{$user}"]]])->texts('items.*.title', 'items.*.description', 'items.*.alt'),
             Example::of('display.chat-bubble')->props(['message' => "Hello{$user}", 'sender' => "Ana{$user}", 'timestamp' => '10:00', 'actions' => [['label' => "Reply{$user}", 'url' => '#']]])->texts('message', 'sender', 'actions.*.label'),
             Example::of('display.chat-bubble', 'loading')->props(['loading' => true, 'variant' => 'received']),
@@ -94,6 +103,7 @@ final class Catalog
             Example::of('display.diff')->props(['changes' => [['type' => 'added', 'content' => "new line{$user}", 'line_number' => 1], ['type' => 'removed', 'content' => "old line{$user}", 'line_number' => 2]]])->texts('changes.*.content'),
             Example::of('display.flowchart')->props(['nodes' => [['id' => 'a', 'label' => "Start{$user}"], ['id' => 'b', 'label' => "End{$user}"]], 'edges' => [['from' => 'a', 'to' => 'b']]])->texts('nodes.*.label')->modules('flowchart'),
             Example::of('display.hover-3d-card')->props(['image' => '/pixel.png', 'imageAlt' => "Pic{$user}", 'title' => "Hover{$user}", 'description' => "Desc{$user}", 'tags' => ["tag{$user}"]])->texts('imageAlt', 'title', 'description', 'tags.*'),
+            Example::of('display.hover-3d-card', 'default alt')->props(['image' => '/pixel.png', 'title' => "Hover{$user}"]),
             Example::of('display.hover-gallery')->props(['images' => [['src' => '/pixel.png', 'title' => "One{$user}", 'caption' => "Cap{$user}", 'alt' => "Alt{$user}", 'description' => "D{$user}"]]])->texts('images.*.title', 'images.*.caption', 'images.*.alt', 'images.*.description'),
             Example::of('display.kbd')->props(['keys' => ["Ctrl{$user}", "K{$user}"]])->texts('keys.*'),
             Example::of('display.list')->props(['items' => [['title' => "One{$user}", 'description' => "First{$user}"], "Two{$user}"]])->texts('items.0.title', 'items.0.description', 'items.1'),
@@ -123,6 +133,8 @@ final class Catalog
             Example::of('form.checkbox')->props(['name' => 'terms', 'label' => "Accept{$user}", 'hint' => "Read it{$user}"])->texts('label', 'hint'),
             Example::of('form.fields')->props(['fields' => $fields])->texts('*.label', '*.placeholder'),
             Example::of('form.fields', 'alpine mode')->props(['fields' => $fields, 'mode' => 'alpine'])->texts('*.label', '*.placeholder')->inScope('{ data: {}, errors: {} }'),
+            Example::of('form.fields', 'attrs in the schema')->props(['fields' => $fieldsWithAttrs]),
+            Example::of('form.fields', 'attrs in the schema, alpine mode')->props(['fields' => $fieldsWithAttrs, 'mode' => 'alpine'])->inScope('{ data: {}, errors: {} }'),
             Example::of('form.filters')->props(['filters' => [['key' => 'q', 'label' => "Search{$user}", 'type' => 'text'], ['key' => 's', 'label' => "State{$user}", 'type' => 'select', 'options' => ['a' => "A{$user}"]]]])->texts('filters.*.label'),
             Example::of('form.input')->props(['name' => 'email', 'label' => "Email{$user}", 'placeholder' => "you@{$user}", 'hint' => "We write{$user}", 'icon' => 'heroicon-o-envelope'])->texts('label', 'placeholder', 'hint'),
             Example::of('form.input', 'with an error')->props(['name' => 'email', 'error' => "Bad{$user}"])->texts('error'),
@@ -133,6 +145,10 @@ final class Catalog
                 // The same id on every radio would be invalid HTML: the id of the caller goes to the first one only (see the view).
                 ->exceptInBag('id'),
             Example::of('form.repeater')->props(['name' => 'lines', 'label' => "Lines{$user}", 'fields' => [['key' => 'item', 'label' => "Item{$user}", 'type' => 'text'], ['key' => 'qty', 'label' => "Qty{$user}", 'type' => 'number', 'step' => '1'], ['key' => 'note', 'label' => "Note{$user}", 'type' => 'textarea']]])->texts('label', 'fields.*.label'),
+            Example::of('form.repeater', 'attrs in the schema')->props(['name' => 'lines', 'fields' => [
+                ['key' => 'amount', 'label' => "Amount{$user}", 'type' => 'number', 'step' => '1', 'field_min' => 0, 'field_max' => 99, 'attrs' => ['step' => '0.5', 'min' => 5, 'max' => 9, 'placeholder' => "mine{$user}"]],
+                ['key' => 'note', 'label' => "Note{$user}", 'type' => 'textarea', 'attrs' => ['rows' => 9, 'placeholder' => "mine{$user}"]],
+            ]]),
             Example::of('form.rich-text')->props(['name' => 'body', 'label' => "Body{$user}", 'placeholder' => "Write{$user}"])->texts('label', 'placeholder')->notInBrowser('loads the editor from a CDN'),
             Example::of('form.select')->props(['name' => 'city', 'label' => "City{$user}", 'options' => ['v' => "Valencia{$user}"], 'placeholder' => "Pick{$user}"])->texts('label', 'placeholder', 'options.*'),
             Example::of('form.select', 'searchable')->props(['name' => 'city', 'searchable' => true, 'options' => ['v' => "Valencia{$user}"]])->texts('options.*'),

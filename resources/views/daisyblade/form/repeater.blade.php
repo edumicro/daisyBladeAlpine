@@ -165,21 +165,14 @@
                                 <textarea
                                     @if($mode === 'form') :name="@js($name) + '[' + index + '][' + @js($fKey) + ']'" @endif
                                     x-model="row[@js($fKey)]"
-                                    rows="{{ $field['rows'] ?? 2 }}"
-                                    placeholder="{{ $fPh }}"
-                                    {{ Attrs::render($fAttrs, 'textarea textarea-sm w-full') }}
+                                    {{ Attrs::render($fAttrs, 'textarea textarea-sm w-full', ['rows' => $field['rows'] ?? 2, 'placeholder' => $fPh]) }}
                                 ></textarea>
 
                             @else
                                 <input
-                                    type="{{ $inputType }}"
                                     @if($mode === 'form') :name="@js($name) + '[' + index + '][' + @js($fKey) + ']'" @endif
                                     x-model="row[@js($fKey)]"
-                                    placeholder="{{ $fPh }}"
-                                    @isset($field['step']) step="{{ $field['step'] }}" @endisset
-                                    @isset($field['field_min']) min="{{ $field['field_min'] }}" @endisset
-                                    @isset($field['field_max']) max="{{ $field['field_max'] }}" @endisset
-                                    {{ Attrs::render($fAttrs, 'input input-sm w-full') }}
+                                    {{ Attrs::render($fAttrs, 'input input-sm w-full', ['type' => $inputType, 'placeholder' => $fPh, 'step' => $field['step'] ?? null, 'min' => $field['field_min'] ?? null, 'max' => $field['field_max'] ?? null]) }}
                                 />
                             @endif
                         </div>
