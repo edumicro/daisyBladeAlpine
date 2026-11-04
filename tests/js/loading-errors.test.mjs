@@ -200,7 +200,7 @@ test('data-table: filters from form.filters replace the previous ones and send t
     table.page = 4
 
     await table.applyFilters({ status: 'open', city: 'Valencia' })
-    assert.deepEqual(calls.at(-1).params, { page: 1, search: '', sort: null, direction: 'asc', per_page: 15, status: 'open', city: 'Valencia' })
+    assert.deepEqual(calls.at(-1).params, { page: 1, cursor: null, search: '', sort: null, direction: 'asc', per_page: 15, status: 'open', city: 'Valencia' })
 
     // The user picked "All" in the status filter: the bar now only says `city`, and `status` must stop being sent.
     await table.applyFilters({ city: 'Valencia' })

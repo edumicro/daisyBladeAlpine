@@ -453,27 +453,72 @@ function expectShape(url, component, expected, isRight) {
 
 // The forms that an answer may have are exactly the ones that Laravel produces, and nothing else is guessed:
 //
-//   a list    an array                                  return $rows;
+//   a list    an array                                    return $rows;
 //             a resource collection {data, meta, links}   return UserResource::collection($users);
-//             a paginator as it is {data, current_page}   return User::paginate();   (also simplePaginate())
+//             a paginator as it is {data, current_page}   return User::paginate();   (also simplePaginate() and cursorPaginate())
+//             any of them with extra keys at the root     return UserResource::collection($users)->additional(['ok' => true]);
 //   a detail  a resource {data: {...}}                    return new UserResource($user);
 //             the object as it is                         return $user;
 //
+// THE ONE RULE OF THE DETAIL: an object that has `data` and it is an object is a `JsonResource`, and it is unwrapped, always
+// (with `additional()` or `with()` too). A model that has a column called `data` must go through a `JsonResource`, so the
+// body is `{ data: { …, data: … } }` and only the outer one is removed. docs/contrato.md explains it with an example.
+//
 // tests/Feature/LaravelAnswerShapesTest.php makes these answers with the real classes of Laravel and reads them with this file.
 
-/** The keys that Laravel's `JsonResource` and `ResourceCollection` put around a body. */
-const RESOURCE_ENVELOPE_KEYS = ['data', 'meta', 'links']
+/** What `paginate()`, `simplePaginate()` and `cursorPaginate()` return as they are: the position of the page in the root, without a `meta`. */
+const isBarePaginator = value => isObject(value) && ('current_page' in value || 'next_cursor' in value || 'prev_cursor' in value)
 
-/** `{ data, meta?, links? }` and nothing else: a resource. A model that has a `data` column among others is NOT one. */
-const isResourceEnvelope = value => isObject(value) && 'data' in value && Object.keys(value).every(key => RESOURCE_ENVELOPE_KEYS.includes(key))
-
-/** What `paginate()` and `simplePaginate()` return as they are: `data` beside `current_page`, without a `meta`. */
-const isBarePaginator = value => isObject(value) && Array.isArray(value.data) && typeof value.current_page === 'number'
-
-/** A list: an array, a resource collection or a paginator. Anything else is `undefined`. */
+/** A list: an array, or an object whose `data` is one (a resource collection, a paginator, with or without `additional()`). */
 function listOf(data) {
     if (Array.isArray(data)) return data
-    return isResourceEnvelope(data) || isBarePaginator(data) ? data.data : undefined
+    return Array.isArray(data?.data) ? data.data : undefined
+}
+
+/**
+ * Where Laravel writes the position of a page, in ONE flat object, whichever way the answer came:
+ *   - a resource collection: `meta` (`current_page`, `last_page`, `next_cursor`…) and `links` (`prev`, `next`);
+ *   - a paginator as it is: all of it in the root of the body (`current_page`, `next_page_url`, `next_cursor`…).
+ */
+function pagePositionOf(data) {
+    if (!isObject(data.meta)) return data
+    const links = isObject(data.links) ? data.links : {}
+    return { ...data.meta, prev_page_url: links.prev, next_page_url: links.next }
+}
+
+/**
+ * Pattern "table of rules", for the three paginators of Laravel. Each reader says when it applies (`reads`) and where the
+ * previous and the next page are (`previous`, `next`): a target `{ page }` or `{ cursor }` for the next request, or null when
+ * there is no such page. They are tried in order and the last one always applies, so `pagerOf` has no branch of its own.
+ */
+const pagerReaders = [
+    { // cursorPaginate(): the position is a cursor, never a number
+        reads: position => 'next_cursor' in position || 'prev_cursor' in position,
+        previous: position => position.prev_cursor ? { cursor: position.prev_cursor } : null,
+        next: position => position.next_cursor ? { cursor: position.next_cursor } : null,
+    },
+    { // paginate(): the totals are known, so the last page is known
+        reads: position => typeof position.last_page === 'number',
+        previous: position => position.current_page > 1 ? { page: position.current_page - 1 } : null,
+        next: position => position.current_page < position.last_page ? { page: position.current_page + 1 } : null,
+    },
+    { // simplePaginate(): no totals; Laravel only says whether a previous and a next page exist
+        reads: position => typeof position.current_page === 'number',
+        previous: position => position.prev_page_url ? { page: position.current_page - 1 } : null,
+        next: position => position.next_page_url ? { page: position.current_page + 1 } : null,
+    },
+    { // not paginated: there is nowhere to go
+        reads: () => true,
+        previous: () => null,
+        next: () => null,
+    },
+]
+
+/** `{ previous, next }` of an answer: where the arrows of a table lead to (each one a target or null). */
+function pagerOf(data) {
+    const position = pagePositionOf(data)
+    const reader = pagerReaders.find(candidate => candidate.reads(position))
+    return { previous: reader.previous(position), next: reader.next(position) }
 }
 
 /**
@@ -489,19 +534,21 @@ export const answerShapes = {
         return options
     },
     /**
-     * data-table: a resource collection `{ data, meta, links }` or a bare paginator `{ data, current_page, … }` -> { rows, meta }.
-     * The `meta` of a paginator is the paginator itself (that is where Laravel writes `last_page`, `total`...).
+     * data-table: a resource collection `{ data, meta, links }` or a paginator as it is (`paginate()`, `simplePaginate()`,
+     * `cursorPaginate()`), with or without `additional()` -> { rows, meta, pager }.
+     * The `meta` of a paginator as it is is the paginator itself (that is where Laravel writes `last_page`, `total`…).
+     * `pager` is where the arrows lead to: `{ previous, next }`, each one `{ page }`, `{ cursor }` or null.
      */
     tableRows(data, url) {
         const rows = listOf(data)
         expectShape(url, 'the data table', 'a resource collection { "data": […], "meta": {…} } or a paginator { "data": […], "current_page": 1, … }',
             Array.isArray(rows) && !Array.isArray(data))
-        return { rows, meta: isBarePaginator(data) ? data : (isObject(data.meta) ? data.meta : {}) }
+        return { rows, meta: isObject(data.meta) ? data.meta : (isBarePaginator(data) ? data : {}), pager: pagerOf(data) }
     },
-    /** resource-details: a resource `{ data: {…} }` -> its `data`; any other object is the resource as it is. */
+    /** resource-details: a resource `{ data: {…} }` (also with `additional()`) -> its `data`; any other object is the resource as it is. */
     resource(data, url) {
         expectShape(url, 'the resource details', '{ …fields } or { "data": { …fields } }', isObject(data))
-        return isResourceEnvelope(data) && isObject(data.data) ? data.data : data
+        return isObject(data.data) ? data.data : data
     },
     /** calendar: `[{ id, title, start, … }]` or `{ data: [ … ] }` -> the list. */
     calendarEvents(data, url) {

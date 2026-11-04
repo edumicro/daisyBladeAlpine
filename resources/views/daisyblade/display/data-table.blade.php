@@ -3,6 +3,7 @@
 
     @prop loadUrl   — GET endpoint (required). Must return:
                        { data: [...rows], meta: { current_page, last_page, total, per_page } }
+                       or any paginator of Laravel as it is (paginate, simplePaginate, cursorPaginate)
     @prop columns   — [ ['key'=>'name', 'label'=>'Name', 'sortable'=>true] ]
     @prop filters   — filters config forwarded to <x-dbl::form.filters> (optional)
     @prop externalFilters — true when a <x-dbl::form.filters> placed ELSEWHERE in the page filters this table: the table
@@ -84,7 +85,7 @@ $config = [
                         <input
                             type="text"
                             x-model="search"
-                            @input.debounce.400="page = 1; load()"
+                            @input.debounce.400="backToFirstPage(); load()"
                             placeholder="{{ __('Search...') }}"
                             class="input input-sm pl-9 w-48 focus:w-64 transition-all"
                         />
@@ -211,12 +212,13 @@ $config = [
             <span x-show="meta.total > 0" x-text="`{{ __('Showing') }} ${((meta.current_page-1)*meta.per_page)+1}–${Math.min(meta.current_page*meta.per_page, meta.total)} {{ __('of') }} ${meta.total}`"></span>
             <span x-show="meta.total === 0">{{ __('No results') }}</span>
 
-            <div x-show="meta.last_page > 1" class="join" x-cloak>
-                <button type="button" @click="goTo(meta.current_page - 1)" :disabled="meta.current_page <= 1" class="join-item btn btn-sm">‹</button>
+            {{-- The arrows work with the three paginators of Laravel (`pager`); the numbers only exist when the totals are known. --}}
+            <div x-show="pager.previous || pager.next" class="join" x-cloak>
+                <button type="button" @click="turnTo(pager.previous)" :disabled="!pager.previous" class="join-item btn btn-sm">‹</button>
 
-                <template x-for="p in meta.last_page" :key="p">
+                <template x-for="p in (meta.last_page ?? 0)" :key="p">
                     <button type="button"
-                        @click="goTo(p)"
+                        @click="turnTo({ page: p })"
                         :class="p === meta.current_page ? 'btn-active' : ''"
                         class="join-item btn btn-sm"
                         x-text="p"
@@ -224,7 +226,7 @@ $config = [
                     ></button>
                 </template>
 
-                <button type="button" @click="goTo(meta.current_page + 1)" :disabled="meta.current_page >= meta.last_page" class="join-item btn btn-sm">›</button>
+                <button type="button" @click="turnTo(pager.next)" :disabled="!pager.next" class="join-item btn btn-sm">›</button>
             </div>
         </div>
     </div>

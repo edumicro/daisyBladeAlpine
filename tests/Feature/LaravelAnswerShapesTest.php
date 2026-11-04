@@ -4,7 +4,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\Paginator;
 
 /*
@@ -85,6 +87,63 @@ it('table: a simplePaginate() returned as it is is a table without totals', func
         ->and($read['result']['meta']['current_page'])->toBe(1);
 });
 
+afterEach(fn () => JsonResource::wrap('data'));
+
+/** Three pages of two rows, as the paginators of Laravel build them: page 1 is `$page = 1`. */
+function pagerOfPaginator(string $kind, int $page, bool $asResource = false): array
+{
+    $paginator = match ($kind) {
+        'paginate' => new LengthAwarePaginator(someModels(2), 6, 2, $page, ['path' => '/rows']),
+        // simplePaginate() reads one row more than the page size to know whether a next page exists.
+        'simplePaginate' => (new Paginator(someModels($page < 3 ? 3 : 2), 2, $page, ['path' => '/rows']))->hasMorePagesWhen($page < 3),
+        // cursorPaginate(): the cursor of the neighbours, not their number.
+        'cursorPaginate' => new CursorPaginator(someModels($page < 3 ? 3 : 2), 2, $page === 1 ? null : new Cursor(['id' => 2], true), ['path' => '/rows']),
+    };
+
+    return componentReads('tableRows', laravelBodyOf($asResource ? AnswerShapeResource::collection($paginator) : $paginator))['result']['pager'];
+}
+
+it('table: the arrows lead to the previous and the next page of every paginator of Laravel, as it is or inside a resource', function (string $kind, bool $asResource) {
+    $first = pagerOfPaginator($kind, 1, $asResource);
+    $middle = pagerOfPaginator($kind, 2, $asResource);
+    $last = pagerOfPaginator($kind, 3, $asResource);
+
+    expect($first['previous'])->toBeNull()->and($first['next'])->not->toBeNull()
+        ->and($middle['previous'])->not->toBeNull()->and($middle['next'])->not->toBeNull()
+        ->and($last['next'])->toBeNull();
+})->with(['paginate', 'simplePaginate', 'cursorPaginate'])->with([false, true]);
+
+it('table: a numbered paginator points at page numbers and a cursor one at cursors', function () {
+    expect(pagerOfPaginator('paginate', 2)['next'])->toBe(['page' => 3])
+        ->and(pagerOfPaginator('simplePaginate', 2, true)['previous'])->toBe(['page' => 1])
+        ->and(pagerOfPaginator('cursorPaginate', 1)['next'])->toHaveKey('cursor');
+});
+
+it('table: ->additional([...]) on a resource collection is still a list', function () {
+    $paginator = new LengthAwarePaginator(someModels(2), 5, 2, 1, ['path' => '/rows']);
+
+    $read = componentReads('tableRows', laravelBodyOf(AnswerShapeResource::collection($paginator)->additional(['success' => true])));
+
+    expect($read['result']['rows'])->toHaveCount(2)->and($read['result']['meta']['total'])->toBe(5);
+});
+
+it('table: a resource collection under JsonResource::withoutWrapping() is a bare array, which is not a table answer', function () {
+    JsonResource::withoutWrapping();
+    $paginator = new LengthAwarePaginator(someModels(2), 5, 2, 1, ['path' => '/rows']);
+
+    // With a paginator Laravel keeps `data` even when it does not wrap (it has `links` and `meta` to carry).
+    $read = componentReads('tableRows', laravelBodyOf(AnswerShapeResource::collection($paginator)));
+
+    expect($read['result']['rows'])->toHaveCount(2);
+});
+
+it('lists (select options, calendar): additional([...]) does not make a list invalid', function () {
+    $options = collect([['value' => 1, 'label' => 'One']]);
+    $body = json_encode(['data' => $options, 'success' => true]);
+
+    expect(componentReads('selectOptions', $body)['result'])->toHaveCount(1);
+});
+
 it('table: a ResourceCollection without pagination is a table with an empty meta', function () {
     $read = componentReads('tableRows', laravelBodyOf(AnswerShapeResource::collection(someModels(2))));
 
@@ -111,11 +170,23 @@ it('detail: a JsonResource is unwrapped from its data', function () {
     expect($read['result'])->toBe(['id' => 1, 'name' => 'Name 1']);
 });
 
-it('detail: a model with a `data` column returned as it is stays whole', function () {
-    $read = componentReads('resource', laravelBodyOf(someModels(1)->first()));
+it('detail: ->additional([...]) on a resource is unwrapped too, and its extra keys are not the record', function () {
+    $read = componentReads('resource', laravelBodyOf((new AnswerShapeResource(someModels(1)->first()))->additional(['success' => true])));
 
-    expect($read['result']['name'])->toBe('Name 1')
-        ->and($read['result']['data'])->toBe(['color' => 'red']);
+    expect($read['result'])->toBe(['id' => 1, 'name' => 'Name 1']);
+});
+
+it('detail: the rule is single, a `data` that is an object is a resource, so a model with a `data` column must be wrapped by the controller', function () {
+    $model = someModels(1)->first();
+
+    $asItIs = componentReads('resource', laravelBodyOf($model))['result'];
+    $wrapped = componentReads('resource', laravelBodyOf(['data' => $model]))['result'];
+
+    // As it is, the envelope rule removes the model's own `data` (docs/contrato.md says so); wrapped by hand nothing is lost.
+    // (A JsonResource does not help here: Laravel does not wrap an array that already has a `data` key.)
+    expect($asItIs)->toBe(['color' => 'red'])
+        ->and($wrapped['name'])->toBe('Name 1')
+        ->and($wrapped['data'])->toBe(['color' => 'red']);
 });
 
 it('detail: a list of models is not a detail', function () {

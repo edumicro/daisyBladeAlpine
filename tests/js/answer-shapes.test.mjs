@@ -21,8 +21,8 @@ test('selectOptions: a list, bare or in `data`, of { value, label }', () => {
 })
 
 test('tableRows: { data: [...], meta? }', () => {
-    assert.deepEqual(answerShapes.tableRows({ data: [{ id: 1 }], meta: { total: 1 } }, '/r'), { rows: [{ id: 1 }], meta: { total: 1 } })
-    assert.deepEqual(answerShapes.tableRows({ data: [] }, '/r'), { rows: [], meta: {} })
+    assert.deepEqual(answerShapes.tableRows({ data: [{ id: 1 }], meta: { total: 1 } }, '/r'), { rows: [{ id: 1 }], meta: { total: 1 }, pager: { previous: null, next: null } })
+    assert.deepEqual(answerShapes.tableRows({ data: [] }, '/r'), { rows: [], meta: {}, pager: { previous: null, next: null } })
     assert.throws(() => answerShapes.tableRows([{ id: 1 }], '/r'), isShapeError)
     assert.throws(() => answerShapes.tableRows({ rows: [] }, '/r'), isShapeError)
 })

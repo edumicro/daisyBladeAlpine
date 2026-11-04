@@ -700,9 +700,10 @@ const dblSpreadsheetImport = withConfig({ uploadUrl: '', accept: '', chunkSize: 
 
 const dblDataTable = withConfig({ loadUrl: '', params: {}, messages: {} }, (config) => ({
     rows: [], meta: {}, loading: true,
+    pager: { previous: null, next: null },   // where the arrows lead to: `{ page }`, `{ cursor }` or null (see pagerOf in http.js)
     error: '',          // message when the rows could not be loaded ('' = all fine)
     latest: latestOnly(),   // only the newest load() counts (see latestOnly in http.js)
-    page: 1, search: '', sort: null, direction: 'asc',
+    page: 1, cursor: null, search: '', sort: null, direction: 'asc',   // `cursor` only has a value in a table that answers cursorPaginate()
     // Reactive state, not just the closed-over config: the filter listeners in the Blade template
     // (applyFilters / clearFilters below) change `params`, which must exist in the Alpine data scope.
     // Reading config.params directly meant those handlers threw a ReferenceError and the filter
@@ -724,17 +725,19 @@ const dblDataTable = withConfig({ loadUrl: '', params: {}, messages: {} }, (conf
             // Empty the table (rows of another search or page would mislead) and offer a retry; the detail goes to the console.
             this.rows = []
             this.meta = {}
+            this.pager = { previous: null, next: null }
             this.error = messageOf(config, 'loadFailed', 'Could not load the data')
             console.error('dblDataTable: could not load the rows', outcome.error)
         } else {
             this.rows = outcome.value.rows
             this.meta = outcome.value.meta
+            this.pager = outcome.value.pager
         }
     },
     // Everything the table is currently showing: page, search, sort and any filters. The one
     // place that decides what "current state" means, shared by load() and stateUrl().
     queryState() {
-        return { page: this.page, search: this.search, sort: this.sort, direction: this.direction, ...this.params }
+        return { page: this.page, cursor: this.cursor, search: this.search, sort: this.sort, direction: this.direction, ...this.params }
     },
     // Same state as a query string on top of `base`, for toolbar links. Deliberately format
     // agnostic: this component knows nothing about spreadsheets, CSV or PDF — it hands the
@@ -751,13 +754,13 @@ const dblDataTable = withConfig({ loadUrl: '', params: {}, messages: {} }, (conf
         const active = Object.entries(filters ?? {}).filter(([, value]) => value !== '' && value !== null && value !== undefined && value !== false)
         Object.assign(this.params, Object.fromEntries(active))
         this.filterKeys = active.map(([key]) => key)
-        this.page = 1
+        this.backToFirstPage()
         return this.load()
     },
     // The filter panel was cleared.
     clearFilters() {
         this.dropFilters()
-        this.page = 1
+        this.backToFirstPage()
         return this.load()
     },
     // Remove the params the filters added. If one had the name of a fixed param (the `params` prop),
@@ -773,9 +776,12 @@ const dblDataTable = withConfig({ loadUrl: '', params: {}, messages: {} }, (conf
     sortBy(col) {
         if (this.sort === col) this.direction = this.direction === 'asc' ? 'desc' : 'asc'
         else { this.sort = col; this.direction = 'asc' }
-        this.page = 1; this.load()
+        this.backToFirstPage(); this.load()
     },
-    goTo(p) { this.page = p; this.load() },
+    // A new search, sort or filter starts again from the first page (and, with cursors, from no cursor).
+    backToFirstPage() { this.page = 1; this.cursor = null },
+    // The arrows and the numbers: `target` is `{ page }` or `{ cursor }`, as `pagerOf` gives it.
+    turnTo(target) { this.page = target.page ?? 1; this.cursor = target.cursor ?? null; this.load() },
 }))
 
 const dblAutoForm = withConfig({ submitUrl: '', method: 'POST', values: {}, onSuccess: null, messages: {} }, (config) => ({
