@@ -87,7 +87,7 @@ it('calendar: after changing month, one day is reachable with Tab (roving tabind
     pause($page, 0.4);
 
     expect($page->script("document.querySelectorAll('button[data-day][tabindex=\"0\"]').length"))->toBe(1);
-})->skip('Pending: ronda3-3x/INFORME.md MEDIA 2 (CAL): prev()/next() clear `focused`, no day has tabindex 0. Activate when fixed.');
+});
 
 it('calendar: a late failure of April does not spoil May, which was already loaded', function () {
     $page = calendarPage('calendar-race');

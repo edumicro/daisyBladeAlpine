@@ -14,16 +14,19 @@ $total      = (int)($meta['total'] ?? 0);
 $from       = (int)($meta['from'] ?? (($current - 1) * ($meta['per_page'] ?? 15) + 1));
 $to         = (int)($meta['to'] ?? min($current * ($meta['per_page'] ?? 15), $total));
 
-$pages = [];
-if ($showFirstLast && $current > ($window + 2)) {
-    $pages[] = 1;
-    if ($current > ($window + 3)) $pages[] = '...';
-}
+// The window of pages around the current one, and the first and last page when the window does not reach them. "..." stands for
+// the pages that are left out: only when there are two or more (for a single page, the window shows it).
 $start = max(1, $current - $window);
 $end   = min($last, $current + $window);
+
+$pages = [];
+if ($showFirstLast && $start > 1) {
+    $pages[] = 1;
+    if ($start > 2) $pages[] = '...';
+}
 for ($i = $start; $i <= $end; $i++) $pages[] = $i;
-if ($showFirstLast && $current < ($last - $window - 1)) {
-    if ($current < ($last - $window - 2)) $pages[] = '...';
+if ($showFirstLast && $end < $last) {
+    if ($end < $last - 1) $pages[] = '...';
     $pages[] = $last;
 }
 

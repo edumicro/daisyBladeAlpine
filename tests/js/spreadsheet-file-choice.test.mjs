@@ -43,3 +43,25 @@ test('accept also understands MIME types and families', () => {
 test('without accept anything goes', () => {
     assert.equal(dblSpreadsheetImport({ uploadUrl: '/import' }).accepts(namedFile('a.png')), true)
 })
+
+// ── The file dialog filters by `accept` too ────────────────────────────────
+
+test('a file chosen in the dialog that is not of an accepted type is refused, like a dropped one', () => {
+    const importer = dblSpreadsheetImport({ accept: '.csv,.xlsx', messages: { wrongType: 'Tipo no admitido' } })
+    const input = { files: [{ name: 'photo.png', type: 'image/png' }], value: 'C:\\photo.png' }
+
+    importer.handleFile({ target: input })
+
+    assert.equal(importer.step, 'upload')
+    assert.equal(importer.refusal, 'Tipo no admitido')
+    assert.equal(importer.file, null)
+    assert.equal(input.value, '')   // emptied anyway, so the same path can be chosen again
+})
+
+test('a file chosen in the dialog that is accepted goes to the confirmation', () => {
+    const importer = dblSpreadsheetImport({ accept: '.csv,.xlsx' })
+
+    importer.handleFile({ target: { files: [{ name: 'DATA.CSV', type: 'text/csv' }], value: 'x' } })
+
+    assert.equal(importer.step, 'confirm')
+})

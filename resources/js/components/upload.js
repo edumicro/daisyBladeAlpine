@@ -48,27 +48,42 @@ export const dblUpload = withConfig({ uploadUrl: '', existing: [], multiple: fal
     onDrop(event) { this.dragging = false; this.add(event.dataTransfer.files) },
 
     add(fileList) {
-        let files = Array.from(fileList)
-        if (!config.multiple) {
-            // Un solo fichero: el nuevo sustituye al anterior.
-            [...this.items].forEach(i => this.discard(i))
-            files = files.slice(0, 1)
-        }
-        for (const file of files) {
-            const error = this.validate(file)
-            if (error) { this.announce(error); this.items.push(this.makeItem({ name: file.name, size: file.size, status: 'error', error })); continue }
-            const item = this.makeItem({
-                name: file.name, size: file.size, file, status: 'uploading',
-                preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
-            })
-            this.items.push(item)
-            this.send(this.items[this.items.length - 1])
-        }
+        const files = Array.from(fileList)
+        // One decision, taken here: a field of many files adds each one to the list; a field of one takes the first.
+        if (config.multiple) files.forEach(file => this.addChecked(file, this.validate(file, this.acceptedCount)))
+        else this.replaceWith(files[0])
     },
 
-    // Devuelve un mensaje de error, o '' si el fichero vale.
-    validate(file) {
-        if (config.maxFiles && this.items.filter(i => i.status !== 'error').length >= config.maxFiles)
+    // Cuántos ficheros hay ya que cuenten para el máximo (los fallidos no).
+    get acceptedCount() { return this.items.filter(i => i.status !== 'error').length },
+
+    // Un solo fichero: el nuevo sustituye al anterior, pero SOLO si llega y vale. Si lo que se suelta no es un fichero (un texto, un
+    // enlace) o se rechaza (tipo, tamaño), el guardado se queda: el formulario sigue enviando su id.
+    replaceWith(file) {
+        if (!file) return
+        const error = this.validate(file, 0)   // el que hay se va a sustituir: no cuenta para el máximo
+        const toDiscard = error ? this.items.filter(i => i.status === 'error') : [...this.items]
+        toDiscard.forEach(i => this.discard(i))
+        this.addChecked(file, error)
+    },
+
+    // Añade el fichero a la lista: con su error si no vale, o empezando a subirse.
+    addChecked(file, error) {
+        if (error) {
+            this.announce(error)
+            this.items.push(this.makeItem({ name: file.name, size: file.size, status: 'error', error }))
+            return
+        }
+        this.items.push(this.makeItem({
+            name: file.name, size: file.size, file, status: 'uploading',
+            preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+        }))
+        this.send(this.items[this.items.length - 1])
+    },
+
+    // Devuelve un mensaje de error, o '' si el fichero vale. `accepted` es cuántos ficheros cuentan ya para `maxFiles`.
+    validate(file, accepted) {
+        if (config.maxFiles && accepted >= config.maxFiles)
             return this.t('too_many', { max: config.maxFiles })
         if (config.maxSize && file.size > config.maxSize * 1048576)
             return this.t('too_big', { name: file.name, max: config.maxSize })

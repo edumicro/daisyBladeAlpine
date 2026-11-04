@@ -19,7 +19,8 @@ $renderTree = function (array $items, int $depth = 0) use (&$renderTree, $expand
 
     foreach ($items as $key => $value) {
         $isBranch    = is_array($value) && !empty($value);
-        $nodeLabel   = is_int($key) ? (string) $value : (string) $key;
+        // A list item (integer key) is its own title, unless it is a list itself: then it is a branch without a title.
+        $nodeLabel   = ! is_int($key) ? (string) $key : (is_array($value) ? '' : (string) $value);
         $description = (!is_int($key) && is_string($value) && $value !== '') ? $value : null;
 
         if ($isBranch) {

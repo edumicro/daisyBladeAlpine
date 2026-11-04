@@ -599,11 +599,14 @@ const dblSpreadsheetImport = withConfig({ uploadUrl: '', accept: '', chunkSize: 
         // The <input type=file> keeps its value: choosing the SAME path again (the file fixed on disk after an error, or after
         // "Cancel") would fire no `change`. So it is emptied once the file is taken (the File object stays valid).
         event.target.value = ''
-        this.choose(file)
+        this.receive(file)
     },
-    // A file DROPPED on the zone does not go through the filter of the file dialog (`accept` of the <input>), so it is checked here.
+    // A file DROPPED on the zone does not go through the filter of the file dialog (`accept` of the <input>).
     handleDrop(event) {
-        const file = event.dataTransfer.files[0]
+        this.receive(event.dataTransfer.files[0])
+    },
+    // Both ways in end here: the dialog may offer "All files" and let a .png through, so `accept` is checked in both.
+    receive(file) {
         if (file && !this.accepts(file)) {
             this.refusal = messageOf(config, 'wrongType', 'This file type is not accepted')
             return

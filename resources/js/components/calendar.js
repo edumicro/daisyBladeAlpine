@@ -36,10 +36,22 @@ export function buildMonthGrid(year, month, weekStartsOn = 1) {
     })
 }
 
+/**
+ * ¿El texto de fecha dice su zona ("...Z", "...+02:00")? Entonces es un instante (así serializa Laravel un Carbon) y el día en que
+ * cae depende de dónde esté quien mira: las 23:30 UTC del 31 de mayo son las 01:30 del 1 de junio en Madrid.
+ */
+export const hasZone = text => text.length > 10 && /(?:Z|[+-]\d{2}(?::?\d{2})?)$/.test(text)
+
+/** El día ('YYYY-MM-DD') de un texto de fecha, a la hora de quien mira: con zona se convierte; sin ella se toma tal como está escrito. */
+export const dayOf = text => (hasZone(text) ? toISO(new Date(text)) : text.slice(0, 10))
+
+/** La fecha y hora ('YYYY-MM-DDTHH:MM') de un texto, a la hora de quien mira. Sirve para ordenar eventos de zonas distintas. */
+const localStamp = text => (hasZone(text) ? `${toISO(new Date(text))}T${pad(new Date(text).getHours())}:${pad(new Date(text).getMinutes())}` : text)
+
 /** Días (inclusive) que cubre un evento. Si el fin es anterior al inicio, solo el inicio. */
 export function eventDays(ev) {
-    const start = ev.start.slice(0, 10)
-    const end = (ev.end ?? ev.start).slice(0, 10)
+    const start = dayOf(ev.start)
+    const end = dayOf(ev.end ?? ev.start)
     const days = []
     for (let d = start; d <= end || !days.length; d = addDays(d, 1)) days.push(d)
     return days
@@ -56,7 +68,7 @@ export function groupByDay(events) {
     }
     for (const list of Object.values(byDay)) {
         // Sin hora primero; luego por inicio.
-        list.sort((a, b) => (hasTime(a) - hasTime(b)) || a.start.localeCompare(b.start))
+        list.sort((a, b) => (hasTime(a) - hasTime(b)) || localStamp(a.start).localeCompare(localStamp(b.start)))
     }
     return byDay
 }
@@ -168,8 +180,13 @@ export const dblCalendar = withConfig({ loadUrl: '', locale: '', initialDate: ''
         this.cursor = new Date(date.getFullYear(), date.getMonth(), 1)
         this.load()
     },
-    prev() { this.focused = null; this.goTo(new Date(this.cursor.getFullYear(), this.cursor.getMonth() - 1, 1)) },
-    next() { this.focused = null; this.goTo(new Date(this.cursor.getFullYear(), this.cursor.getMonth() + 1, 1)) },
+    prev() { this.showMonth(new Date(this.cursor.getFullYear(), this.cursor.getMonth() - 1, 1)) },
+    next() { this.showMonth(new Date(this.cursor.getFullYear(), this.cursor.getMonth() + 1, 1)) },
+    // Otro mes, con el foco del teclado en su primer día: la cuadrícula siempre tiene un día al que se llega con Tab.
+    showMonth(firstDay) {
+        this.focused = toISO(firstDay)
+        this.goTo(firstDay)
+    },
     goToday() { this.focused = this.today; this.goTo(new Date()) },
     setView(view) { this.view = view; this.selectedDay = null },
 

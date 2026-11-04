@@ -21,7 +21,7 @@ it('pagination: on page 4 of 10 the first page is offered', function () {
     $labels = $page->script("[...document.querySelectorAll('.join button')].map(b => b.textContent.trim())");
 
     expect($labels)->toContain('1');
-})->skip('Pending: ronda3-3x/INFORME.md MEDIA 7 (PG): off-by-one, page 4 of 10 does not offer page 1. Activate when fixed.');
+});
 
 it('tabs: a tab without a label is called "Tab 1", not "Tab 0"', function () {
     $page = visit(browserPage('tabs-default-label', <<<'BLADE'
