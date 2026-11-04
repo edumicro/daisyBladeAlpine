@@ -10,7 +10,7 @@
 import { createMapLibreAdapter } from './map/maplibre.js'
 import { createGoogleAdapter } from './map/google.js'
 import { findFeature, boundsOf } from './map/features.js'
-import { request, expectJson } from '../http.js'
+import { request, expectJson, latestOnly } from '../http.js'
 
 let deps = {}
 
@@ -21,6 +21,7 @@ export const dblMap = (config = {}) => {
     // (envolver objetos de MapLibre/Google en un Proxy los rompe).
     let adapter = null
     let raw = {}   // id -> FeatureCollection completa
+    const latestSearch = latestOnly()   // geocoder: only the newest search paints its results
     let resolveReady
     const ready = new Promise((r) => { resolveReady = r })   // capas cargadas (o fallo de init)
 
@@ -149,14 +150,15 @@ export const dblMap = (config = {}) => {
             const q = this.query.trim()
             if (q.length < 2) return
             this.error = ''
-            try {
+            const outcome = await latestSearch.run(async () => {
                 const { data } = await request({ url: config.geocodeUrl, params: { q } }, deps)
                 expectJson(data)    // an HTML answer (the login page) is `search_failed`, not "no results"
-                this.results = data.data ?? []
-            } catch {
-                this.results = []
-                this.error = config.labels.search_failed
-            }
+                return data.data ?? []
+            })
+            if (outcome.stale) return    // the user searched again: only the newest search paints
+
+            this.results = outcome.error ? [] : outcome.value
+            if (outcome.error) this.error = config.labels.search_failed
             this.searched = true
         },
 

@@ -1,6 +1,6 @@
 'use strict'
 
-import { request, joinUrl, expectJson, rejectHtmlPage } from './http.js'
+import { request, joinUrl, expectJson, rejectHtmlPage, latestOnly } from './http.js'
 
 // Every server call of this file goes through request() (see http.js): the client injected with
 // registerDaisyBlade(), else window.axios, else fetch.
@@ -301,7 +301,7 @@ const dblSelectRemote = (config = {}) => ({
     disabled: config.disabled ?? false, // the `disabled` prop
     waiting: false,                     // true while the control we depend on is empty
     error: '',                          // message when the options could not be loaded ('' = all fine)
-    lastRequest: 0,                     // number of the newest request: older answers are ignored
+    latest: latestOnly(),               // only the newest request counts (see latestOnly in http.js)
     disabledByUs: false,                // true while the <select> is disabled because of `waiting` or `disabled`
     starting: null,                     // the first load of init() while it runs (null the rest of the time)
 
@@ -389,30 +389,28 @@ const dblSelectRemote = (config = {}) => ({
     // Ask the server for the options. Returns false if there is no usable answer: it failed, or a newer request made it old.
     // (Named loadOptions and not fetch: `fetch` is the global function that http.js falls back to.)
     async loadOptions() {
-        // The number of THIS request (a count, not the request() function of http.js): if a newer one starts, ours is old.
-        const requestNumber = ++this.lastRequest
         this.loading = true
         this.error = ''
-        try {
-            const params = { ...(config.params ?? {}), ...dependencyParams(config.dependsOn, this.dependencyValue()) }
+        const params = { ...(config.params ?? {}), ...dependencyParams(config.dependsOn, this.dependencyValue()) }
+        const outcome = await this.latest.run(async () => {
             const { data } = this.waiting ? { data: [] } : await http({ url: config.loadUrl, params })
             expectJson(data)
-            if (requestNumber !== this.lastRequest) return false
-            this.options = Array.isArray(data) ? data : (data.data ?? [])
-        } catch (error) {
+            return Array.isArray(data) ? data : (data.data ?? [])
+        })
+        // A newer request took over: it owns `loading`, `options` and `error`. This one leaves no trace.
+        if (outcome.stale) return false
+
+        this.loading = false
+        if (outcome.error) {
             // No answer: show no options (better than the ones of the previous value) and leave what was chosen as it is.
             // The user sees a translated message with a retry button; the technical detail goes to the console.
-            if (requestNumber === this.lastRequest) {
-                this.options = []
-                this.showOptions()
-                this.error = messageOf(config, 'loadFailed', 'Could not load the options')
-            }
-            console.error('dblSelectRemote: could not load the options', error)
+            this.options = []
+            this.showOptions()
+            this.error = messageOf(config, 'loadFailed', 'Could not load the options')
+            console.error('dblSelectRemote: could not load the options', outcome.error)
             return false
-        } finally {
-            // Only the newest request decides when the loading is over: an old one finishing late must not end it early.
-            if (requestNumber === this.lastRequest) this.loading = false
         }
+        this.options = outcome.value
         // The options rendered by the server (the saved value) were only for before the JS: now they come from `options`.
         this.field.querySelectorAll('option[data-initial]').forEach(option => option.remove())
         this.takeModel()
@@ -462,6 +460,7 @@ const dblSelectRemote = (config = {}) => ({
 
 const dblResourceDetails = (config = {}) => ({
     resource: null, loading: true, error: null,
+    latest: latestOnly(),   // refresh() while a load is running: only the newest answer counts
     get displayData() {
         if (!this.resource) return {}
         if (config.fields?.length) return Object.fromEntries(config.fields.map(k => [k, this.resource[k]]))
@@ -470,49 +469,63 @@ const dblResourceDetails = (config = {}) => ({
     async init() { await this.load() },
     async load() {
         this.loading = true; this.error = null
-        try {
+        const outcome = await this.latest.run(async () => {
             const { data } = await http({ url: config.loadUrl })
             expectJson(data)
-            this.resource = data.data ?? data
-        } catch (e) {
-            this.error = e.response?.data?.message ?? messageOf(config, 'loadFailed', 'Error loading resource')
-            console.error('dblResourceDetails: could not load the resource', e)
-        } finally { this.loading = false }
+            return data.data ?? data
+        })
+        if (outcome.stale) return    // a newer load() took over
+
+        this.loading = false
+        if (outcome.error) {
+            this.error = outcome.error.response?.data?.message ?? messageOf(config, 'loadFailed', 'Error loading resource')
+            console.error('dblResourceDetails: could not load the resource', outcome.error)
+        } else {
+            this.resource = outcome.value
+        }
     },
     refresh() { return this.load() },
 })
 
-const dblTabsLazy = (config = {}) => ({
-    active: config.active ?? 0,
-    tabs: config.tabs ?? [],
-    contents: {},
-    loading: {},
-    errors: {},        // tab index -> message, for the tabs whose content could not be loaded
-    async init() { if (this.tabs[this.active]?.loadUrl) await this._load(this.active) },
-    async select(index) {
-        this.active = index
-        // Not yet loaded and not being loaded now (a click on a tab whose request is still running asks nothing new).
-        if (!(index in this.contents) && !this.loading[index] && this.tabs[index]?.loadUrl) await this._load(index)
-    },
-    async _load(index) {
-        this.loading = { ...this.loading, [index]: true }
-        this.errors = { ...this.errors, [index]: '' }
-        try {
-            const { data } = await http({ url: this.tabs[index].loadUrl })
-            this.contents = { ...this.contents, [index]: typeof data === 'string' ? data : JSON.stringify(data) }
-        } catch (error) {
-            // A translated message and a retry button in the tab; the technical detail goes to the console.
-            this.errors = { ...this.errors, [index]: messageOf(config, 'loadFailed', 'Could not load the content') }
-            console.error('dblTabsLazy: could not load the tab', error)
-        } finally {
+const dblTabsLazy = (config = {}) => {
+    // One "latest only" per tab: a retry of a tab discards its own old answer, and tabs never discard each other's.
+    const latestByTab = {}
+    const latestOf = index => (latestByTab[index] ??= latestOnly())
+
+    return {
+        active: config.active ?? 0,
+        tabs: config.tabs ?? [],
+        contents: {},
+        loading: {},
+        errors: {},        // tab index -> message, for the tabs whose content could not be loaded
+        async init() { if (this.tabs[this.active]?.loadUrl) await this._load(this.active) },
+        async select(index) {
+            this.active = index
+            // Not yet loaded and not being loaded now (a click on a tab whose request is still running asks nothing new).
+            if (!(index in this.contents) && !this.loading[index] && this.tabs[index]?.loadUrl) await this._load(index)
+        },
+        async _load(index) {
+            this.loading = { ...this.loading, [index]: true }
+            this.errors = { ...this.errors, [index]: '' }
+            const outcome = await latestOf(index).run(async () => (await http({ url: this.tabs[index].loadUrl })).data)
+            if (outcome.stale) return    // a newer load of this tab took over
+
             this.loading = { ...this.loading, [index]: false }
-        }
-    },
-    retry(index) { return this._load(index) },
-    isActive(i) { return this.active === i },
-    isLoading(i) { return !!this.loading[i] },
-    hasError(i) { return !!this.errors[i] },
-})
+            if (outcome.error) {
+                // A translated message and a retry button in the tab; the technical detail goes to the console.
+                this.errors = { ...this.errors, [index]: messageOf(config, 'loadFailed', 'Could not load the content') }
+                console.error('dblTabsLazy: could not load the tab', outcome.error)
+            } else {
+                const data = outcome.value
+                this.contents = { ...this.contents, [index]: typeof data === 'string' ? data : JSON.stringify(data) }
+            }
+        },
+        retry(index) { return this._load(index) },
+        isActive(i) { return this.active === i },
+        isLoading(i) { return !!this.loading[i] },
+        hasError(i) { return !!this.errors[i] },
+    }
+}
 
 const dblSpreadsheetImport = (config = {}) => ({
     // step: 'upload' (choose the file) → 'confirm' (name and size) → 'importing' → 'done' | 'error'
@@ -586,7 +599,7 @@ const dblSpreadsheetImport = (config = {}) => ({
 const dblDataTable = (config = {}) => ({
     rows: [], meta: {}, loading: true,
     error: '',          // message when the rows could not be loaded ('' = all fine)
-    lastRequest: 0,     // number of the newest load(): an older answer arriving late is ignored
+    latest: latestOnly(),   // only the newest load() counts (see latestOnly in http.js)
     page: 1, search: '', sort: null, direction: 'asc',
     // Reactive state, not just the closed-over config: the filter listeners in the Blade template
     // (applyFilters / clearFilters below) change `params`, which must exist in the Alpine data scope.
@@ -596,26 +609,25 @@ const dblDataTable = (config = {}) => ({
     filterKeys: [],     // the params that came from a filter bar, so that changing or clearing the filters removes them
     async init() { await this.load() },
     async load() {
-        // The number of THIS load (a count, not the request() function of http.js): if a newer one starts, ours is old.
-        const requestNumber = ++this.lastRequest
         this.loading = true
         this.error = ''
-        try {
+        const outcome = await this.latest.run(async () => {
             const { data } = await http({ url: config.loadUrl, params: this.queryState() })
             expectJson(data)
-            if (requestNumber !== this.lastRequest) return    // a newer load() took over: this answer is old
-            this.rows = data.data ?? []
-            this.meta = data.meta ?? {}
-        } catch (error) {
-            if (requestNumber !== this.lastRequest) return
+            return data
+        })
+        if (outcome.stale) return    // a newer load() took over: it owns the rows and the spinner
+
+        this.loading = false         // the newest load() always ends the loading: the spinner never stays on forever
+        if (outcome.error) {
             // Empty the table (rows of another search or page would mislead) and offer a retry; the detail goes to the console.
             this.rows = []
             this.meta = {}
             this.error = messageOf(config, 'loadFailed', 'Could not load the data')
-            console.error('dblDataTable: could not load the rows', error)
-        } finally {
-            // Whatever happened, the newest load() ends the loading: the spinner never stays on forever.
-            if (requestNumber === this.lastRequest) this.loading = false
+            console.error('dblDataTable: could not load the rows', outcome.error)
+        } else {
+            this.rows = outcome.value.data ?? []
+            this.meta = outcome.value.meta ?? {}
         }
     },
     // Everything the table is currently showing: page, search, sort and any filters. The one

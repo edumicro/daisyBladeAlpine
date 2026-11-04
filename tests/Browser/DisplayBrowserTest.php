@@ -102,7 +102,7 @@ it('calendar: a late failure of April does not spoil May, which was already load
 
     $state = $page->script('({ error: window.__d.error, loading: window.__d.loading, n: window.__d.events.length })');
     expect($state['error'])->toBeFalse()->and($state['n'])->toBeGreaterThanOrEqual(2);
-})->skip('Pending: ronda3-3x/INFORME.md BAJA 8 (CALRACE): the late error of an old month wins (cause 6, no latestOnly). Activate when fixed.');
+});
 
 // ── Map (real MapLibre) ────────────────────────────────────────────────────
 

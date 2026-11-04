@@ -1,6 +1,6 @@
 'use strict'
 
-import { request as sendRequest, expectJson } from '../http.js'
+import { request as sendRequest, expectJson, latestOnly } from '../http.js'
 
 // ── Fechas: funciones puras (se prueban con `node --test`) ─────────────────
 // Los días se manejan como cadenas 'YYYY-MM-DD'. Así no hay zonas horarias de por medio.
@@ -76,6 +76,7 @@ export const dblCalendar = (config = {}, deps = {}) => ({
     loading: false,
     error: false,
     cache: {},          // 'start|end' -> eventos
+    latest: latestOnly(),   // solo la última petición cuenta: ni su respuesta ni su error llegan si el usuario ya cambió de mes
 
     init() {
         const today = toISO(new Date())
@@ -126,21 +127,27 @@ export const dblCalendar = (config = {}, deps = {}) => ({
         this.error = false
 
         if (this.cache[key]) {
+            // Este mes ya está: lo que siga en vuelo (otro mes) deja de contar y su aviso de carga se apaga.
+            this.latest.cancel()
+            this.loading = false
             this.setEvents(this.cache[key])
             return
         }
         this.loading = true
-        try {
+        const outcome = await this.latest.run(async () => {
             const data = await this.request(config.loadUrl, { start, end })
             expectJson(data)    // an HTML answer (the login page of an expired session) is an error, not an empty month that gets cached
-            this.cache[key] = Array.isArray(data) ? data : (data.data ?? [])
-            // Si el usuario ya se movió a otro mes mientras llegaba, no pisamos la pantalla.
-            if (key === this.currentKey()) this.setEvents(this.cache[key])
-        } catch (e) {
+            return Array.isArray(data) ? data : (data.data ?? [])
+        })
+        if (outcome.stale) return    // el usuario ya está en otro mes: esta respuesta no pinta nada
+
+        this.loading = false
+        if (outcome.error) {
             this.error = true
             this.setEvents([])
-        } finally {
-            this.loading = false
+        } else {
+            this.cache[key] = outcome.value
+            this.setEvents(outcome.value)
         }
     },
     setEvents(list) {

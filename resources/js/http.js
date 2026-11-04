@@ -324,3 +324,37 @@ export const expectJson = data => {
     if (typeof data === 'string' && data !== '') throw new Error('Expected JSON but the server sent text (an expired session redirected to the login page?)')
     return data
 }
+
+// ── Latest only (cause 6: an old answer must never overwrite a newer one) ───
+
+/**
+ * Pattern "latest only". A component that loads the same thing again and again (the next page of a table, the next month of
+ * a calendar, the options for a new value of another control) makes one of these and sends every request through `run()`.
+ * Only the NEWEST request counts: the answer AND the error of an older one are thrown away, so a slow request that finishes
+ * late can neither paint old data over new data nor show an error for something the user already left.
+ *
+ *     const latest = latestOnly()
+ *     ...
+ *     const outcome = await latest.run(() => request({ url }))
+ *     if (outcome.stale) return          // a newer load took over: it owns `loading`, the rows and the error
+ *     if (outcome.error) { ...show the error... } else { ...use outcome.value... }
+ *
+ * `run()` never throws: the three possible results are `{ stale: true }`, `{ stale: false, value }` and `{ stale: false, error }`.
+ * `cancel()` makes whatever is in flight old without starting another request (the calendar uses it when the new month is cached).
+ */
+export function latestOnly() {
+    let newestTicket = 0    // number of the newest request; a request is old when its own number is smaller
+
+    return {
+        async run(task) {
+            const myTicket = ++newestTicket
+            try {
+                const value = await task()
+                return myTicket === newestTicket ? { stale: false, value } : { stale: true }
+            } catch (error) {
+                return myTicket === newestTicket ? { stale: false, error } : { stale: true }
+            }
+        },
+        cancel() { newestTicket++ },
+    }
+}
