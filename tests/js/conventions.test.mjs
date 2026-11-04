@@ -412,3 +412,23 @@ test('loadOptions() sends the params of the component and the value of the contr
 
     assert.deepEqual(calls, [{ url: '/o', params: { only: 'active' } }])
 })
+
+// ── 8. The parent decides: -requested ───────────────────────────────────────
+
+test('8. the flowchart events that carry accept and reject are requests: dbl-flowchart-node-move-requested and dbl-flowchart-edge-requested', () => {
+    const events = []
+    const root = { dispatchEvent(event) { events.push(event); return true } }
+    const flowchart = Object.assign(dblFlowchart({ editable: true, nodes: [{ id: 'a', label: 'A', x: 40, y: 40 }, { id: 'b', label: 'B', x: 400, y: 40 }], edges: [] }), { $root: root, $nextTick: fn => fn(), $refs: {} })
+    flowchart.init()
+
+    flowchart.emitMove(flowchart.vNodes[0], { x: 0, y: 0 })
+
+    const [moved] = events
+    assert.equal(moved.type, 'dbl-flowchart-node-move-requested')
+    assert.equal(typeof moved.detail.accept, 'function')
+    assert.equal(typeof moved.detail.reject, 'function')
+
+    flowchart.nodeClick(flowchart.vNodes[0])
+    assert.equal(events.at(-1).type, 'dbl-flowchart-node-clicked', 'a click already happened: past tense')
+    assert.equal('accept' in events.at(-1).detail, false)
+})

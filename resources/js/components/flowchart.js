@@ -274,8 +274,8 @@ export const dblFlowchart = (config = {}) => ({
         if (d?.moved) { this.pos[n.key] = { x: d.ox, y: d.oy }; this.recompute() }
     },
     /**
-     * `dbl-flowchart-node-moved`: la caja ya está en su sitio nuevo. El padre puede llamar a `reject(mensaje?)` para
-     * devolverla a `from`; `accept()` existe por simetría con `dbl-flowchart-edge-created` y no hace nada.
+     * `dbl-flowchart-node-move-requested`: la caja ya está en su sitio nuevo. El padre puede llamar a `reject(mensaje?)` para
+     * devolverla a `from`; `accept()` existe por simetría con `dbl-flowchart-edge-requested` y no hace nada.
      */
     emitMove(n, from) {
         const p = { x: Math.round(this.pos[n.key].x), y: Math.round(this.pos[n.key].y) }
@@ -290,7 +290,7 @@ export const dblFlowchart = (config = {}) => ({
                 this.notify(message)
             },
         })
-        this.emit('dbl-flowchart-node-moved', { id: n.id, ...p, flat: n.flat, accept: r.accept, reject: r.reject })
+        this.emit('dbl-flowchart-node-move-requested', { id: n.id, ...p, flat: n.flat, accept: r.accept, reject: r.reject })
     },
 
     // ── Teclado ──
@@ -354,7 +354,7 @@ export const dblFlowchart = (config = {}) => ({
             onAccept: extra => this.settleEdge(prov, extra),
             onReject: message => { this.dropEdge(prov.key); this.notify(message) },
         })
-        const proceed = this.emit('dbl-flowchart-edge-created', {
+        const proceed = this.emit('dbl-flowchart-edge-requested', {
             fromId: from.id, toId: to.id, fromFlat: from.flat, toFlat: to.flat, accept: r.accept, reject: r.reject,
         })
         // Nadie ha pedido quedarse la decisión (`preventDefault()`) ni ha respondido: se fija tal cual.

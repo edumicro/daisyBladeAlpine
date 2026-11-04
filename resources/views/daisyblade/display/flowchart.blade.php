@@ -27,8 +27,8 @@
       flat         — dato opaco del padre; vuelve en cada evento
 
     Eventos (siempre):  dbl-flowchart-node-clicked {id, flat}, dbl-flowchart-edge-clicked {id, flat}
-    Eventos (editable): dbl-flowchart-node-moved {id, x, y, flat, accept, reject}
-                        dbl-flowchart-edge-created {fromId, toId, fromFlat, toFlat, accept, reject}
+    Eventos (editable): dbl-flowchart-node-move-requested {id, x, y, flat, accept, reject}
+                        dbl-flowchart-edge-requested {fromId, toId, fromFlat, toFlat, accept, reject}
     El componente no sabe qué hacer con ellos: los emite y el padre decide. Un oyente que quiere
     responder más tarde (un diálogo, una petición) llama a `$event.preventDefault()` y luego a
     `accept(datos?)` o `reject(mensaje?)`. Sin respuesta ni `preventDefault()`, se acepta tal cual.

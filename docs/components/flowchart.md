@@ -8,7 +8,7 @@ A diferencia de `display.node-graph` (un árbol, cada nodo con un padre), es un 
 ```blade
 <x-dbl::display.flowchart :nodes="$nodes" :edges="$edges" editable name="flujo" :grid="20"
     x-on:dbl-flowchart-node-clicked="abrir($event.detail.id)" x-on:dbl-flowchart-edge-clicked="abrir($event.detail.id)"
-    x-on:dbl-flowchart-edge-created="..." x-on:dbl-flowchart-node-moved="..." />
+    x-on:dbl-flowchart-edge-requested="..." x-on:dbl-flowchart-node-move-requested="..." />
 ```
 
 ```php
@@ -71,17 +71,19 @@ Se despachan en el componente (burbujean: se escuchan con `x-on:` en la propia e
 |---|---|---|
 | `dbl-flowchart-node-clicked` | `{id, flat}` | Clic o toque en una caja, o Enter. Siempre. |
 | `dbl-flowchart-edge-clicked` | `{id, flat}` | Clic en una flecha o su etiqueta, o Enter. Siempre. |
-| `dbl-flowchart-node-moved` | `{id, x, y, flat, accept, reject}` | Con `editable`, al soltar una caja (ajustada a `grid`) o al soltar la tecla de flecha. |
-| `dbl-flowchart-edge-created` | `{fromId, toId, fromFlat, toFlat, accept, reject}` | Con `editable`, al arrastrar desde el asa de una caja y soltar sobre otra (o sobre sí misma). |
+| `dbl-flowchart-node-move-requested` | `{id, x, y, flat, accept, reject}` | Con `editable`, al soltar una caja (ajustada a `grid`) o al soltar la tecla de flecha. |
+| `dbl-flowchart-edge-requested` | `{fromId, toId, fromFlat, toFlat, accept, reject}` | Con `editable`, al arrastrar desde el asa de una caja y soltar sobre otra (o sobre sí misma). |
+
+Los dos últimos acaban en `-requested` porque es el padre quien decide si ocurren; los de clic avisan de algo que ya pasó y van en participio.
 
 ### Responder a los eventos de edición
 
-`dbl-flowchart-node-moved` y `dbl-flowchart-edge-created` se pueden **responder**: el padre aplica su lógica (abrir su diálogo, preguntar a su servidor) y el componente no sabe nada de ella.
+`dbl-flowchart-node-move-requested` y `dbl-flowchart-edge-requested` se pueden **responder**: el padre aplica su lógica (abrir su diálogo, preguntar a su servidor) y el componente no sabe nada de ella.
 
-- **`dbl-flowchart-edge-created`**: al soltar, la flecha ya aparece, **provisional** (discontinua, sin etiqueta).
+- **`dbl-flowchart-edge-requested`**: al soltar, la flecha ya aparece, **provisional** (discontinua, sin etiqueta).
   - `accept(datos?)` la fija. `datos` completa la flecha: `{id, label, variant, muted, flat}`. `from` y `to` no se pueden cambiar. Sin `id` se genera uno.
   - `reject(mensaje?)` la quita. Con mensaje, se avisa con el sistema del paquete: se emite la orden `dbl-toast-show` (`detail: {message, type: 'error'}`) que recoge `<x-dbl::feedback.toast />`, presente en `layout.app`.
-- **`dbl-flowchart-node-moved`**: al soltar, la caja se queda en su sitio nuevo. `reject(mensaje?)` la devuelve sola a su posición anterior (si ya la moviste otra vez, no se toca). `accept()` existe por simetría y no hace nada.
+- **`dbl-flowchart-node-move-requested`**: al soltar, la caja se queda en su sitio nuevo. `reject(mensaje?)` la devuelve sola a su posición anterior (si ya la moviste otra vez, no se toca). `accept()` existe por simetría y no hace nada.
 
 **Cómo decide el componente si alguien responde.** Los eventos son cancelables y el criterio es el de cualquier evento del DOM:
 
@@ -94,14 +96,14 @@ Ejemplo: al unir dos pasos, preguntar con un diálogo propio la condición y ace
 
 ```blade
 <x-dbl::display.flowchart :nodes="$nodes" :edges="$edges" editable name="flujo"
-    x-on:dbl-flowchart-edge-created="
+    x-on:dbl-flowchart-edge-requested="
         $event.preventDefault()                         // me quedo la decisión
         const ev = $event.detail
         $store.dialogo.preguntar('¿Qué condición se cumple?').then(
             condicion => ev.accept({ label: condicion, flat: { condicion } }),
             () => ev.reject('No se ha creado la flecha'))
     "
-    x-on:dbl-flowchart-node-moved="
+    x-on:dbl-flowchart-node-move-requested="
         $event.preventDefault()
         const ev = $event.detail
         axios.patch('/pasos/' + ev.id, { x: ev.x, y: ev.y })
@@ -133,7 +135,7 @@ window.dispatchEvent(new CustomEvent('dbl-flowchart-focus', { detail: { name: 'f
 - **Zoom**: botones +, − y encuadrar (con textos traducidos). El puntero y el teclado trabajan siempre en píxeles del dibujo, así que arrastrar funciona igual con cualquier escala.
 - **Flechas nuevas**: el asa, pequeña, está en la esquina inferior derecha de cada caja y solo se ve con el puntero encima o con la caja enfocada (en pantallas táctiles, `hover: none`, siempre). Mientras se arrastra hay una línea provisional que sigue al puntero y la caja de destino se resalta. Soltar el asa sin moverla, o en el vacío, no emite nada.
 - **Flechas**: con punta, salen y llegan al borde de la caja. Varias entre el mismo par, y la ida y vuelta, se reparten en curvas separadas, con etiquetas que no se pisan. Una flecha de un nodo a sí mismo es un bucle bajo la caja.
-- **Teclado**: Tab recorre cajas y flechas; Enter (o Espacio) dispara el clic. Con `editable`, las flechas del teclado mueven la caja seleccionada 10 px (con Shift, un paso de `grid`, o 20 px si no hay rejilla) y **al soltar la tecla** se emite `dbl-flowchart-node-moved`. Cajas y flechas llevan `aria-label`.
+- **Teclado**: Tab recorre cajas y flechas; Enter (o Espacio) dispara el clic. Con `editable`, las flechas del teclado mueven la caja seleccionada 10 px (con Shift, un paso de `grid`, o 20 px si no hay rejilla) y **al soltar la tecla** se emite `dbl-flowchart-node-move-requested`. Cajas y flechas llevan `aria-label`.
 - **Tema**: usa las variables de color de DaisyUI (`--color-base-100`, `--color-primary`, ...), así que sigue el tema claro u oscuro. Funciona a 390 px de ancho: el lienzo hace scroll dentro, no la página.
 - El lienzo no tiene coordenadas negativas: las cajas no se pueden arrastrar más allá del borde superior o izquierdo, y una `x` o `y` negativa que mande el padre se lleva a 0.
 

@@ -347,14 +347,14 @@ test('clic sin mover emite dbl-flowchart-node-clicked con id y flat', () => {
     assert.deepEqual(events[1], { name: 'dbl-flowchart-edge-clicked', detail: { id: 'e', flat: null } })
 })
 
-test('arrastrar una caja emite dbl-flowchart-node-moved ajustado a la rejilla', () => {
+test('arrastrar una caja emite dbl-flowchart-node-move-requested ajustado a la rejilla', () => {
     const { c, events } = make(base())
     const n = c.vNodes[0]
     c.nodeDown(pe(100, 100), n)
     c.nodeMove(pe(133, 122), n)
     assert.deepEqual(c.pos.a, { x: 73, y: 62 })
     c.nodeUp(pe(133, 122), n)
-    assert.equal(events[0].name, 'dbl-flowchart-node-moved')
+    assert.equal(events[0].name, 'dbl-flowchart-node-move-requested')
     assert.deepEqual(plain(events[0].detail), { id: 'a', x: 80, y: 60, flat: { k: 1 } })
     assert.deepEqual(c.pos.a, { x: 80, y: 60 }, 'la caja se queda en su sitio nuevo')
 })
@@ -364,10 +364,10 @@ test('sin editable las cajas no se mueven', () => {
     const n = c.vNodes[0]
     c.nodeDown(pe(100, 100), n); c.nodeMove(pe(200, 200), n); c.nodeUp(pe(200, 200), n)
     assert.deepEqual(c.pos.a, { x: 40, y: 40 })
-    assert.ok(!events.some(e => e.name === 'dbl-flowchart-node-moved'))
+    assert.ok(!events.some(e => e.name === 'dbl-flowchart-node-move-requested'))
 })
 
-test('arrastrar desde el asa y soltar sobre otra caja emite dbl-flowchart-edge-created; sobre sí misma, también', () => {
+test('arrastrar desde el asa y soltar sobre otra caja emite dbl-flowchart-edge-requested; sobre sí misma, también', () => {
     const { c, events } = make(base())
     const a = c.vNodes[0]
     c.linkDown(pe(200, 68), a)
@@ -375,7 +375,7 @@ test('arrastrar desde el asa y soltar sobre otra caja emite dbl-flowchart-edge-c
     assert.equal(c.linking.over, 'b')
     c.linkUp(pe(450, 60))
     const first = events.pop()
-    assert.equal(first.name, 'dbl-flowchart-edge-created')
+    assert.equal(first.name, 'dbl-flowchart-edge-requested')
     assert.deepEqual(plain(first.detail), { fromId: 'a', toId: 'b', fromFlat: { k: 1 }, toFlat: 'fb' })
     assert.equal(typeof first.detail.accept, 'function')
     assert.equal(typeof first.detail.reject, 'function')
@@ -392,7 +392,7 @@ test('soltar el asa en el vacío, o sin haberla movido, no emite nada', () => {
     assert.equal(c.linking, null)
 })
 
-test('teclado: flechas mueven la caja y al soltar la tecla se emite dbl-flowchart-node-moved; Shift = rejilla', () => {
+test('teclado: flechas mueven la caja y al soltar la tecla se emite dbl-flowchart-node-move-requested; Shift = rejilla', () => {
     const { c, events } = make(base())
     const n = c.vNodes[0]
     const key = (k, shiftKey = false) => ({ key: k, shiftKey, preventDefault() {} })
@@ -476,7 +476,7 @@ test('samePos compara redondeando', () => {
     assert.equal(samePos(null, { x: 1, y: 2 }), false)
 })
 
-test('dbl-flowchart-edge-created sin oyentes que respondan: la flecha se fija tal cual', () => {
+test('dbl-flowchart-edge-requested sin oyentes que respondan: la flecha se fija tal cual', () => {
     const { c } = make(base())
     drag(c)
     assert.equal(c.edges.length, 2)
@@ -486,9 +486,9 @@ test('dbl-flowchart-edge-created sin oyentes que respondan: la flecha se fija ta
     assert.equal(c.vEdges.length, 2)
 })
 
-test('dbl-flowchart-edge-created con preventDefault: queda provisional hasta que el padre acepte, con sus datos', () => {
+test('dbl-flowchart-edge-requested con preventDefault: queda provisional hasta que el padre acepte, con sus datos', () => {
     let answer
-    const { c } = make(base(), ev => { if (ev.type === 'dbl-flowchart-edge-created') { ev.preventDefault(); answer = ev.detail } })
+    const { c } = make(base(), ev => { if (ev.type === 'dbl-flowchart-edge-requested') { ev.preventDefault(); answer = ev.detail } })
     drag(c)
     assert.equal(c.edges[1].provisional, true, 'se pinta provisional')
     assert.equal(c.vEdges.length, 2, 'y es visible, con geometría')
@@ -500,9 +500,9 @@ test('dbl-flowchart-edge-created con preventDefault: queda provisional hasta que
     assert.equal(c.geo['__provisional_1'], undefined)
 })
 
-test('dbl-flowchart-edge-created: reject quita la provisional y avisa con `dbl-toast-show`', () => {
+test('dbl-flowchart-edge-requested: reject quita la provisional y avisa con `dbl-toast-show`', () => {
     let answer
-    const { c } = make(base(), ev => { if (ev.type === 'dbl-flowchart-edge-created') { ev.preventDefault(); answer = ev.detail } })
+    const { c } = make(base(), ev => { if (ev.type === 'dbl-flowchart-edge-requested') { ev.preventDefault(); answer = ev.detail } })
     notices.length = 0
     drag(c)
     answer.reject('No se pueden unir esos dos pasos')
@@ -512,42 +512,42 @@ test('dbl-flowchart-edge-created: reject quita la provisional y avisa con `dbl-t
     assert.equal(c.edges.length, 1, 'una respuesta tardía no resucita nada')
 })
 
-test('dbl-flowchart-edge-created: reject sin mensaje no avisa; accept o reject síncronos valen sin preventDefault', () => {
+test('dbl-flowchart-edge-requested: reject sin mensaje no avisa; accept o reject síncronos valen sin preventDefault', () => {
     notices.length = 0
-    const rej = make(base(), ev => { if (ev.type === 'dbl-flowchart-edge-created') ev.detail.reject() }).c
+    const rej = make(base(), ev => { if (ev.type === 'dbl-flowchart-edge-requested') ev.detail.reject() }).c
     drag(rej)
     assert.equal(rej.edges.length, 1)
     assert.equal(notices.length, 0)
-    const acc = make(base(), ev => { if (ev.type === 'dbl-flowchart-edge-created') ev.detail.accept({ label: 'sí' }) }).c
+    const acc = make(base(), ev => { if (ev.type === 'dbl-flowchart-edge-requested') ev.detail.accept({ label: 'sí' }) }).c
     drag(acc)
     assert.equal(acc.edges.length, 2)
     assert.equal(acc.edges[1].label, 'sí')
 })
 
-test('dbl-flowchart-edge-created: si el estado se reemplaza con set() antes de responder, accept no hace nada', () => {
+test('dbl-flowchart-edge-requested: si el estado se reemplaza con set() antes de responder, accept no hace nada', () => {
     let answer
-    const { c } = make(base(), ev => { if (ev.type === 'dbl-flowchart-edge-created') { ev.preventDefault(); answer = ev.detail } })
+    const { c } = make(base(), ev => { if (ev.type === 'dbl-flowchart-edge-requested') { ev.preventDefault(); answer = ev.detail } })
     drag(c)
     c.set(base().nodes, base().edges)
     answer.accept({ id: 'x' })
     assert.equal(c.edges.length, 1)
 })
 
-test('dbl-flowchart-node-moved: reject devuelve la caja y avisa; accept la deja', () => {
+test('dbl-flowchart-node-move-requested: reject devuelve la caja y avisa; accept la deja', () => {
     notices.length = 0
-    const rej = make(base(), ev => { if (ev.type === 'dbl-flowchart-node-moved') ev.detail.reject('No se puede mover') }).c
+    const rej = make(base(), ev => { if (ev.type === 'dbl-flowchart-node-move-requested') ev.detail.reject('No se puede mover') }).c
     const n = rej.vNodes[0]
     rej.nodeDown(pe(100, 100), n); rej.nodeMove(pe(160, 140), n); rej.nodeUp(pe(160, 140), n)
     assert.deepEqual(rej.pos.a, { x: 40, y: 40 })
     assert.deepEqual(notices, [{ message: 'No se puede mover', type: 'error' }])
-    const acc = make(base(), ev => { if (ev.type === 'dbl-flowchart-node-moved') ev.detail.accept() }).c
+    const acc = make(base(), ev => { if (ev.type === 'dbl-flowchart-node-move-requested') ev.detail.accept() }).c
     acc.nodeDown(pe(100, 100), acc.vNodes[0]); acc.nodeMove(pe(160, 140), acc.vNodes[0]); acc.nodeUp(pe(160, 140), acc.vNodes[0])
     assert.deepEqual(acc.pos.a, { x: 100, y: 80 })
 })
 
-test('dbl-flowchart-node-moved: un reject tardío no pisa un movimiento posterior', () => {
+test('dbl-flowchart-node-move-requested: un reject tardío no pisa un movimiento posterior', () => {
     let answer
-    const { c } = make(base(), ev => { if (ev.type === 'dbl-flowchart-node-moved') { ev.preventDefault(); answer = ev.detail } })
+    const { c } = make(base(), ev => { if (ev.type === 'dbl-flowchart-node-move-requested') { ev.preventDefault(); answer = ev.detail } })
     const n = c.vNodes[0]
     c.nodeDown(pe(100, 100), n); c.nodeMove(pe(160, 140), n); c.nodeUp(pe(160, 140), n)
     const first = answer
@@ -579,7 +579,7 @@ test('el evento de ventana admite removeEdge y removeNode, y moveBack ya no exis
 
 test('una flecha provisional no emite dbl-flowchart-edge-clicked', () => {
     let answer
-    const { c, events } = make(base(), ev => { if (ev.type === 'dbl-flowchart-edge-created') { ev.preventDefault(); answer = ev.detail } })
+    const { c, events } = make(base(), ev => { if (ev.type === 'dbl-flowchart-edge-requested') { ev.preventDefault(); answer = ev.detail } })
     drag(c)
     events.length = 0
     c.edgeClick(c.edges[1])

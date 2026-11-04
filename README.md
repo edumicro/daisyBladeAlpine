@@ -588,7 +588,8 @@ If the user refreshes mid-wizard, their progress is automatically restored from 
 
 ## Events
 
-Announced by the components (they bubble up from the component, so `x-on:` on any ancestor hears them; `detail` is an object):
+Announced by the components (they bubble up from the component, so `x-on:` on any ancestor hears them; `detail` is an object). What already happened ends in the past (`-changed`, `-clicked`, `-removed`); when the parent decides whether something happens, the name says so: `-requested`.
+
 
 | Component | Event | `detail` |
 |---|---|---|
@@ -602,8 +603,8 @@ Announced by the components (they bubble up from the component, so `x-on:` on an
 | `navigation.steps` | `dbl-steps-step-changed` | `{ step }` |
 | `display.calendar` | `dbl-calendar-event-clicked` | the event |
 | `display.map` | `dbl-map-picked` | `{ lat, lng }` |
-| `display.flowchart` | `dbl-flowchart-node-clicked`, `-edge-clicked`, `-node-moved`, `-edge-created` | see `docs/components/flowchart.md` |
-| `display.node-graph` | `dbl-node-graph-node-clicked`, `-badge-clicked`, `-node-created`, `-node-deleted`, `-badge-created`, `-badge-deleted`, `-edge-created` | the node and badge ids |
+| `display.flowchart` | `dbl-flowchart-node-clicked`, `-edge-clicked`, and the two that ask the parent: `-node-move-requested`, `-edge-requested` | see `docs/components/flowchart.md` |
+| `display.node-graph` | `dbl-node-graph-node-clicked`, `-badge-clicked`, and the ones that ask the parent: `-node-create-requested`, `-node-delete-requested`, `-badge-create-requested`, `-badge-delete-requested`, `-edge-requested` | the node and badge ids |
 
 Orders the components listen to on the window (`window.dispatchEvent(new CustomEvent('dbl-modal-open', { detail: { id: 'help' } }))`, or `$dispatch` from any element):
 
@@ -659,7 +660,7 @@ vendor/bin/pest
 node --test tests/js/*.test.mjs
 ```
 
-`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 460 Pest tests (2029 assertions) and 183 JavaScript tests, all green. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
+`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 466 Pest tests (2051 assertions) and 184 JavaScript tests, all green. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
 
 ---
 

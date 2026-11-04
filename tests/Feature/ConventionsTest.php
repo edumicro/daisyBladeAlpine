@@ -684,7 +684,26 @@ it('8. ends the name of an announced event in a participle, never in a bare verb
 
     // changed, clicked, moved, created, deleted, uploaded, removed, signed, cleared, picked: all end in -ed.
     expect(array_values(array_filter($names, fn (string $name) => ! str_ends_with($name, 'ed'))))->toBe([])
-        ->and($names)->toContain('dbl-select-changed', 'dbl-pagination-page-changed', 'dbl-steps-step-changed', 'dbl-upload-removed', 'dbl-signature-signed', 'dbl-node-graph-node-clicked');
+        ->and($names)->toContain('dbl-select-changed', 'dbl-pagination-page-changed', 'dbl-steps-step-changed', 'dbl-upload-removed', 'dbl-signature-signed', 'dbl-node-graph-node-clicked', 'dbl-node-graph-edge-requested');
+});
+
+it('8. says -requested when the parent decides whether something happens, and keeps the past for what already happened', function () {
+    // flowchart: accept / reject. node-graph: the component draws nothing new until the parent answers by changing its nodes.
+    $requests = [
+        'display/node-graph.blade.php' => ['dbl-node-graph-node-create-requested', 'dbl-node-graph-node-delete-requested',
+            'dbl-node-graph-badge-create-requested', 'dbl-node-graph-badge-delete-requested', 'dbl-node-graph-edge-requested'],
+    ];
+    $happened = ['dbl-node-graph-node-clicked', 'dbl-node-graph-badge-clicked'];
+
+    $names = conventionDispatchedNames(conventionViews()['display/node-graph.blade.php']);
+    expect($names)->toContain(...$requests['display/node-graph.blade.php'], ...$happened)
+        ->and(array_values(array_filter($names, fn (string $name) => str_ends_with($name, '-created') || str_ends_with($name, '-deleted'))))->toBe([]);
+
+    // The flowchart emits through emit(): the two that carry accept / reject are requests, the clicks are not.
+    $script = conventionScripts()['components/flowchart.js'];
+    preg_match_all('/\bemit\(\s*\'(dbl-flowchart-[a-z-]+)\'/', $script, $emitted);
+    expect(array_unique($emitted[1]))->toContain('dbl-flowchart-node-move-requested', 'dbl-flowchart-edge-requested', 'dbl-flowchart-node-clicked', 'dbl-flowchart-edge-clicked')
+        ->and($script)->not->toContain('dbl-flowchart-node-moved')->not->toContain('dbl-flowchart-edge-created');
 });
 
 it('8. passes an object (or nothing, which Alpine turns into one) as the detail of every event the views dispatch', function () {
