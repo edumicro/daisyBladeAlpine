@@ -33,10 +33,20 @@ final class Attrs
 
     /**
      * @param  array<array-key, mixed>  $attrs
+     * @param  string  $componentClass  The classes the component itself puts on the element. They are written together with
+     *                                  the `class` of the schema in ONE `class` attribute: with two, the browser keeps the first
+     *                                  and silently drops the other (`['class' => 'font-mono']` used to erase `input w-full`).
      */
-    public static function render(array $attrs): HtmlString
+    public static function render(array $attrs, string $componentClass = ''): HtmlString
     {
         $rendered = [];
+
+        // The `class` of the schema is joined to the component's, and written first, before the other attributes.
+        if ($componentClass !== '') {
+            $classes = trim($componentClass.' '.(string) ($attrs['class'] ?? ''));
+            unset($attrs['class']);
+            $rendered[] = 'class="'.e($classes).'"';
+        }
 
         foreach ($attrs as $name => $value) {
             $name = self::name($name);

@@ -144,8 +144,7 @@
                                     <input
                                         type="checkbox"
                                         x-model="row['{{ $fKey }}']"
-                                        {{ Attrs::render($fAttrs) }}
-                                        class="{{ $fType === 'toggle' ? 'toggle toggle-primary toggle-sm' : 'checkbox checkbox-primary checkbox-sm' }}"
+                                        {{ Attrs::render($fAttrs, $fType === 'toggle' ? 'toggle toggle-primary toggle-sm' : 'checkbox checkbox-primary checkbox-sm') }}
                                     />
                                 </label>
 
@@ -153,8 +152,7 @@
                                 <select
                                     @if($mode === 'form') :name="`{{ $name }}[${index}][{{ $fKey }}]`" @endif
                                     x-model="row['{{ $fKey }}']"
-                                    {{ Attrs::render($fAttrs) }}
-                                    class="select select-sm w-full"
+                                    {{ Attrs::render($fAttrs, 'select select-sm w-full') }}
                                 >
                                     <option value="">{{ $fPh ?: '—' }}</option>
                                     @foreach($fOpts as $optVal => $optLabel)
@@ -168,8 +166,7 @@
                                     x-model="row['{{ $fKey }}']"
                                     rows="{{ $field['rows'] ?? 2 }}"
                                     placeholder="{{ $fPh }}"
-                                    {{ Attrs::render($fAttrs) }}
-                                    class="textarea textarea-sm w-full"
+                                    {{ Attrs::render($fAttrs, 'textarea textarea-sm w-full') }}
                                 ></textarea>
 
                             @else
@@ -181,8 +178,7 @@
                                     @isset($field['step']) step="{{ $field['step'] }}" @endisset
                                     @isset($field['field_min']) min="{{ $field['field_min'] }}" @endisset
                                     @isset($field['field_max']) max="{{ $field['field_max'] }}" @endisset
-                                    {{ Attrs::render($fAttrs) }}
-                                    class="input input-sm w-full"
+                                    {{ Attrs::render($fAttrs, 'input input-sm w-full') }}
                                 />
                             @endif
                         </div>

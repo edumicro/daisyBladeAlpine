@@ -61,9 +61,11 @@
         if ($ft === 'decimal') {
             $attrs = array_merge(['inputmode' => 'decimal'], $attrs);
         }
-        $attrs = Edumicro\DaisyBlade\Support\Attrs::render($attrs);
+        // Not rendered yet: each control joins its own classes to the `class` of the schema (see Attrs::render).
         $aD = $alpineData;
         $aE = $alphaErrors;
+        // `$errors` is shared by Laravel's web middleware; a view rendered without it (a console command, a mail, a test) gets an empty bag.
+        $errors = $errors ?? new \Illuminate\Support\ViewErrorBag;
     @endphp
 
     {{-- `hidden` sale ANTES del <div> de la celda: un campo oculto no ocupa columna, no lleva
@@ -98,11 +100,10 @@
                             :class="{ 'textarea-error': ({{ $aE }}['{{ $key }}']||[]).length }"
                         @endif
                         placeholder="{{ $placeholder }}"
-                        {{ $attrs }}
                         rows="{{ $field['rows'] ?? 4 }}"
                         @if($disabled) disabled @endif
                         @if($required) required @endif
-                        class="textarea w-full @if($mode==='form' && $errors->has($key)) textarea-error @endif"
+                        {{ \Edumicro\DaisyBlade\Support\Attrs::render($attrs, 'textarea w-full '.($mode==='form' && $errors->has($key) ? 'textarea-error' : '')) }}
                     >@if($mode==='form'){{ $value }}@endif</textarea>
                     @if($mode==='form')
                         @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror
@@ -200,8 +201,7 @@
                         @if($multiple) multiple @endif
                         @if($disabled) disabled @endif
                         @if($required) required @endif
-                        {{ $attrs }}
-                        class="select w-full @if($mode==='form' && $errors->has($key)) select-error @endif"
+                        {{ \Edumicro\DaisyBlade\Support\Attrs::render($attrs, 'select w-full '.($mode==='form' && $errors->has($key) ? 'select-error' : '')) }}
                     >
                         @if(!$multiple)
                             <option value="">{{ $placeholder ?: __('Select...') }}</option>
@@ -258,8 +258,7 @@
                         @endif
                         @if($disabled) disabled @endif
                         @if($required) required @endif
-                        {{ $attrs }}
-                        class="input w-full @if($mode==='form' && $errors->has($key)) input-error @endif"
+                        {{ \Edumicro\DaisyBlade\Support\Attrs::render($attrs, 'input w-full '.($mode==='form' && $errors->has($key) ? 'input-error' : '')) }}
                     />
                     @if($mode==='form')
                         @error($key) <p class="mt-1 text-xs text-error">{{ $message }}</p> @enderror
