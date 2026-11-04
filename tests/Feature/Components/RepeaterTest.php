@@ -23,7 +23,7 @@ it('announces row changes so a parent can react without reaching in', function (
 
     expect($html)
         ->toContain('x-on:input="notify()"')
-        ->toContain("dbl-repeater-change");
+        ->toContain("dbl-repeater-changed");
 });
 
 // ── events prop ───────────────────────────────────────────────────────────────

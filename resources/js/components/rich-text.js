@@ -57,7 +57,7 @@ export const dblRichText = (config = {}, deps = {}) => {
                     },
                 },
                 onTransaction: () => { this.tick++ },
-                onUpdate: () => this.sync(),
+                onUpdate: () => { this.sync(); this.announce() },
             })
             this.buttons = this.buildButtons()
             this.sync()
@@ -67,6 +67,11 @@ export const dblRichText = (config = {}, deps = {}) => {
         sync() {
             this.$refs.input.value = editor.isEmpty ? '' : editor.getHTML()
             this.length = editor.getText().length
+        },
+
+        // Tells whoever listens above that the content changed, with the name of the field and its HTML.
+        announce() {
+            this.$dispatch('dbl-rich-text-changed', { name: config.name ?? '', value: this.$refs.input.value })
         },
 
         get overLimit() {

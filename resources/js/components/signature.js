@@ -73,7 +73,7 @@ const dblSignature = (config = {}, deps = {}) => ({
         this.empty = this.pad.isEmpty()
         this.$refs.input.value = this.empty ? '' : this.pad.toDataURL('image/png')
         if (!this.empty) this.error = false
-        if (notify) this.$dispatch(this.empty ? 'cleared' : 'signed', { value: this.$refs.input.value })
+        if (notify) this.$dispatch(this.empty ? 'dbl-signature-cleared' : 'dbl-signature-signed', { name: config.name ?? '', value: this.$refs.input.value })
     },
 
     undo() {

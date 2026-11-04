@@ -215,18 +215,21 @@ export const dblFlowchart = (config = {}) => ({
     },
 
     // ── Emisión de eventos (el padre decide) ──
-    /** Despacha en el componente (burbujea); `false` si un oyente llamó a `preventDefault()`. */
+    /**
+     * Despacha desde la raíz del componente (burbuja hasta la ventana), con las mismas opciones que `$dispatch`
+     * de Alpine; devuelve `false` si un oyente llamó a `preventDefault()`.
+     * Es lo único del paquete que no usa `$dispatch` a secas: `$dispatch` no devuelve ese resultado, y
+     * el protocolo accept/reject lo necesita para saber si el padre se queda con la decisión.
+     */
     emit(name, detail) {
         return this.$root.dispatchEvent(new CustomEvent(name, { detail, bubbles: true, composed: true, cancelable: true }))
     },
-    /** Aviso con el sistema del paquete: el evento `notify` lo recoge `feedback.toast`. */
+    /** Aviso con el sistema del paquete: la orden `dbl-toast-show` la recoge `feedback.toast` en la ventana. */
     notify(message) {
-        if (message && typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('notify', { detail: { message: String(message), type: 'error' } }))
-        }
+        if (message) this.emit('dbl-toast-show', { message: String(message), type: 'error' })
     },
-    nodeClick(n) { this.emit('node-click', { id: n.id, flat: n.flat }) },
-    edgeClick(e) { if (!e.provisional) this.emit('edge-click', { id: e.id, flat: e.flat }) },
+    nodeClick(n) { this.emit('dbl-flowchart-node-clicked', { id: n.id, flat: n.flat }) },
+    edgeClick(e) { if (!e.provisional) this.emit('dbl-flowchart-edge-clicked', { id: e.id, flat: e.flat }) },
 
     // ── Ratón, táctil y lápiz: mover cajas ──
     // Con zoom, el lienzo se ve a escala `scale`: toda posición del puntero se pasa a píxeles del dibujo.
@@ -265,8 +268,8 @@ export const dblFlowchart = (config = {}) => ({
         if (d?.moved) { this.pos[n.key] = { x: d.ox, y: d.oy }; this.recompute() }
     },
     /**
-     * `node-move`: la caja ya está en su sitio nuevo. El padre puede llamar a `reject(mensaje?)` para
-     * devolverla a `from`; `accept()` existe por simetría con `edge-create` y no hace nada.
+     * `dbl-flowchart-node-moved`: la caja ya está en su sitio nuevo. El padre puede llamar a `reject(mensaje?)` para
+     * devolverla a `from`; `accept()` existe por simetría con `dbl-flowchart-edge-created` y no hace nada.
      */
     emitMove(n, from) {
         const p = { x: Math.round(this.pos[n.key].x), y: Math.round(this.pos[n.key].y) }
@@ -281,7 +284,7 @@ export const dblFlowchart = (config = {}) => ({
                 this.notify(message)
             },
         })
-        this.emit('node-move', { id: n.id, ...p, flat: n.flat, accept: r.accept, reject: r.reject })
+        this.emit('dbl-flowchart-node-moved', { id: n.id, ...p, flat: n.flat, accept: r.accept, reject: r.reject })
     },
 
     // ── Teclado ──
@@ -345,7 +348,7 @@ export const dblFlowchart = (config = {}) => ({
             onAccept: extra => this.settleEdge(prov, extra),
             onReject: message => { this.dropEdge(prov.key); this.notify(message) },
         })
-        const proceed = this.emit('edge-create', {
+        const proceed = this.emit('dbl-flowchart-edge-created', {
             fromId: from.id, toId: to.id, fromFlat: from.flat, toFlat: to.flat, accept: r.accept, reject: r.reject,
         })
         // Nadie ha pedido quedarse la decisión (`preventDefault()`) ni ha respondido: se fija tal cual.
@@ -397,7 +400,7 @@ export const dblFlowchart = (config = {}) => ({
     },
 
     // ── Desde fuera ──
-    /** Quita una flecha (el padre ya decidió, p. ej. tras un `edge-click`). No emite nada. */
+    /** Quita una flecha (el padre ya decidió, p. ej. tras un `dbl-flowchart-edge-clicked`). No emite nada. */
     removeEdge(id) { this.dropEdge(String(id)) },
     /** Quita un nodo y las flechas que llegan o salen de él. No emite nada. */
     removeNode(id) {
@@ -429,14 +432,17 @@ export const dblFlowchart = (config = {}) => ({
         clearTimeout(this._focusTimer)
         this._focusTimer = setTimeout(() => { this.focusKey = null }, 2500)
     },
-    /** Manejador del evento de ventana `dbl-flowchart`: { name, action, ... }. */
-    onWindowEvent(d) {
-        if (!d || !this.name || d.name !== this.name) return
-        if (d.action === 'set') this.set(d.nodes, d.edges)
-        else if (d.action === 'removeEdge') this.removeEdge(d.id)
-        else if (d.action === 'removeNode') this.removeNode(d.id)
-        else if (d.action === 'focus') this.focus(d.id)
-    },
+    // ── Órdenes de la ventana ──
+    // Cada una lleva en el detail el `name` del diagrama al que va: un diagrama sin `name` no atiende ninguna.
+    forMe(detail) { return !!detail && !!this.name && detail.name === this.name },
+    /** `dbl-flowchart-set` { name, nodes, edges } */
+    onSet(detail) { if (this.forMe(detail)) this.set(detail.nodes, detail.edges) },
+    /** `dbl-flowchart-focus` { name, id } */
+    onFocus(detail) { if (this.forMe(detail)) this.focus(detail.id) },
+    /** `dbl-flowchart-remove-edge` { name, id } */
+    onRemoveEdge(detail) { if (this.forMe(detail)) this.removeEdge(detail.id) },
+    /** `dbl-flowchart-remove-node` { name, id } */
+    onRemoveNode(detail) { if (this.forMe(detail)) this.removeNode(detail.id) },
 })
 
 export function registerFlowchart(Alpine) {

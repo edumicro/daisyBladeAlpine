@@ -105,7 +105,7 @@ export const dblUpload = (config = {}, deps = {}) => ({
                                   thumb: data.thumb ?? null, size: data.size ?? item.size,
                                   status: 'done', progress: 100, file: null, cancel: null })
             this.announce(this.t('uploaded', { name: item.name }))
-            this.$dispatch('uploaded', { id: item.id, name: item.name, url: item.url, file: data })
+            this.$dispatch('dbl-upload-uploaded', { id: item.id, name: item.name, url: item.url, file: data })
         } catch (e) {
             if (isCanceled(e, deps.axios ?? globalThis.window?.axios)) {
                 item.error = this.t('cancelled')
@@ -140,7 +140,7 @@ export const dblUpload = (config = {}, deps = {}) => ({
         }
         this.discard(item)
         this.announce(this.t('removed', { name: item.name }))
-        this.$dispatch('removed', { id: item.id, name: item.name })
+        this.$dispatch('dbl-upload-removed', { id: item.id, name: item.name })
     },
 
     async move(item, delta) {

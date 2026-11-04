@@ -16,6 +16,7 @@
              'blockquote', 'link', 'image', 'table', 'undo', 'redo', 'linkPrompt', 'linkInvalid',
              'uploadFailed'];
     $config = [
+        'name'        => $name,
         'label'       => $label,
         'placeholder' => $placeholder,
         'uploadUrl'   => $uploadUrl,

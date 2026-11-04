@@ -522,3 +522,159 @@ it('7. gives the attributes of a page layout to its <html>', function () {
 
     expect($html)->toMatch('/<html[^>]*class="dark-ish"/')->toMatch('/<html[^>]*data-x="1"/');
 });
+
+// ── 8. Events: dbl-<component>-<what happened>, and dbl-<component>-<verb> for orders ──
+
+/** The two filter bars and their only listener keep their 2.x event names until they become form.filters (convention 9). */
+const CONVENTION_UNTIL_FILTERS = ['display/filters.blade.php', 'form/filter.blade.php', 'display/data-table.blade.php'];
+
+/**
+ * The literal names a source file passes to `$dispatch(...)`, including both sides of a ternary
+ * (`$dispatch(empty ? 'a' : 'b', ...)`). A name made at run time (`$dispatch('{{ $item['action'] }}')`) is not literal.
+ */
+function conventionDispatchedNames(string $source): array
+{
+    $names = [];
+
+    preg_match_all('/\$dispatch\(([^,)]*)/', $source, $calls);
+
+    foreach ($calls[1] as $argument) {
+        if (str_contains($argument, '{{')) {
+            continue;
+        }
+
+        preg_match_all('/[\'"]([^\'"]+)[\'"]/', $argument, $quoted);
+        $names = [...$names, ...$quoted[1]];
+    }
+
+    return array_values(array_unique($names));
+}
+
+it('8. gives every event a dbl- prefix, in the views and in the scripts', function () {
+    $offenders = [];
+
+    foreach ([...conventionViews(), ...conventionScripts()] as $path => $source) {
+        if (in_array($path, CONVENTION_UNTIL_FILTERS, true)) {
+            continue;
+        }
+
+        // $dispatch(...) (also the two sides of a ternary), new CustomEvent('...') and this.emit('...') with a literal name.
+        preg_match_all('/(?:new CustomEvent|\bemit)\(\s*[\'"]([^\'"{]+)[\'"]/', $source, $found);
+        foreach ([...conventionDispatchedNames($source), ...$found[1]] as $name) {
+            if (! str_starts_with($name, 'dbl-')) {
+                $offenders[$path][] = $name;
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('8. names an announced event after its own component: dbl-<component>-<what happened>', function () {
+    $offenders = [];
+
+    foreach (conventionViews() as $path => $source) {
+        if (in_array($path, CONVENTION_UNTIL_FILTERS, true)) {
+            continue;
+        }
+
+        $component = preg_replace('/\.blade\.php$/', '', basename($path));
+
+        foreach (conventionDispatchedNames($source) as $name) {
+            if (! str_starts_with($name, "dbl-{$component}-")) {
+                $offenders[$path][] = $name;
+            }
+        }
+    }
+
+    // The scripts: calendar.js is the calendar, rich-text.js the rich text... The one order that goes to another component
+    // is flowchart's `dbl-toast-show` (to feedback.toast).
+    $scripts = ['components/calendar.js' => 'calendar', 'components/map.js' => 'map', 'components/upload.js' => 'upload',
+        'components/signature.js' => 'signature', 'components/rich-text.js' => 'rich-text', 'daisyblade.js' => 'select'];
+
+    foreach ($scripts as $path => $component) {
+        foreach (conventionDispatchedNames(conventionScripts()[$path]) as $name) {
+            if (! str_starts_with($name, "dbl-{$component}-")) {
+                $offenders[$path][] = $name;
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('8. ends the name of an announced event in a participle, never in a bare verb', function () {
+    $names = [];
+
+    foreach ([...array_diff_key(conventionViews(), array_flip(CONVENTION_UNTIL_FILTERS)), ...conventionScripts()] as $source) {
+        $names = [...$names, ...conventionDispatchedNames($source)];
+        preg_match_all('/\bemit\(\s*[\'"](dbl-[^\'"]+)[\'"]/', $source, $found);
+        $names = [...$names, ...$found[1]];
+    }
+
+    // The orders (dbl-toast-show, dbl-sidebar-toggle) are verbs: they are not announcements.
+    $names = array_values(array_unique(array_diff($names, ['dbl-toast-show', 'dbl-sidebar-toggle'])));
+
+    // changed, clicked, moved, created, deleted, uploaded, removed, signed, cleared, picked: all end in -ed.
+    expect(array_values(array_filter($names, fn (string $name) => ! str_ends_with($name, 'ed'))))->toBe([])
+        ->and($names)->toContain('dbl-select-changed', 'dbl-pagination-page-changed', 'dbl-steps-step-changed', 'dbl-upload-removed', 'dbl-signature-signed', 'dbl-node-graph-node-clicked');
+});
+
+it('8. passes an object (or nothing, which Alpine turns into one) as the detail of every event the views dispatch', function () {
+    $offenders = [];
+
+    foreach (conventionViews() as $path => $source) {
+        // $dispatch('name', X): X has to open an object literal.
+        if (preg_match_all('/\$dispatch\(\s*[\'"][^\'"]+[\'"]\s*,\s*([^{\s])/', $source, $found)) {
+            $offenders[$path] = $found[1];
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('8. listens to the orders of the window with the dbl-<component>-<verb> names', function () {
+    $this->withoutVite();
+    $render = fn (string $blade) => Illuminate\Support\Facades\Blade::render($blade);
+
+    expect($render('<x-dbl::actions.modal id="m">x</x-dbl::actions.modal>'))
+        ->toContain('@dbl-modal-open.window=')->toContain('@dbl-modal-close.window=')
+        ->and($render('<x-dbl::feedback.toast />'))->toContain('@dbl-toast-show.window=')
+        ->and($render('<x-dbl::navigation.sidebar>x</x-dbl::navigation.sidebar>'))->toContain('@dbl-sidebar-toggle.window=')
+        ->and($render('<x-dbl::display.map />'))->toContain('x-on:dbl-map-focus.window=')
+        ->and($render('<x-dbl::display.flowchart />'))
+        ->toContain('x-on:dbl-flowchart-set.window=')->toContain('x-on:dbl-flowchart-focus.window=')
+        ->toContain('x-on:dbl-flowchart-remove-edge.window=')->toContain('x-on:dbl-flowchart-remove-node.window=');
+});
+
+it('8. does not listen to a window event without the prefix, unless it is a native one', function () {
+    // Names of the browser (keydown, change, resize...) are not ours and keep their name.
+    $native = ['keydown', 'keyup', 'change', 'input', 'click', 'resize', 'scroll', 'focus', 'blur'];
+    $offenders = [];
+
+    foreach (array_diff_key(conventionViews(), array_flip(CONVENTION_UNTIL_FILTERS)) as $path => $source) {
+        preg_match_all('/(?:@|x-on:)([a-z][a-z-]*)(?:\.[a-z]+)*\.window=/', $source, $found);
+        foreach ($found[1] as $name) {
+            if (! str_starts_with($name, 'dbl-') && ! in_array($name, $native, true)) {
+                $offenders[$path][] = $name;
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('8. makes the native select announce dbl-select-changed with { name, value }, like the searchable and the remote ones', function () {
+    $render = fn (string $blade) => Illuminate\Support\Facades\Blade::render($blade);
+
+    expect($render('<x-dbl::form.select name="a" :options="[1 => \'x\']" />'))->toContain("x-on:change=\"\$dispatch('dbl-select-changed', { name: 'a'")
+        ->and($render('<x-dbl::form.select name="a" :options="[1 => \'x\']" searchable />'))->toContain("\$dispatch('dbl-select-changed', { name: 'a', value: item.key })")
+        ->and($render('<x-dbl::form.select name="a" load-url="/o" />'))->toContain('dblSelectRemote(')->toContain('\u0022name\u0022:\u0022a\u0022');
+});
+
+it('8. lets the dock and the menu dispatch the event the application names, which is not ours to prefix', function () {
+    $render = fn (string $blade) => Illuminate\Support\Facades\Blade::render($blade);
+
+    expect($render('<x-dbl::navigation.menu :items="[[\'label\' => \'A\', \'action\' => \'mi-evento\']]" />'))->toContain("\$dispatch('mi-evento')")
+        ->and($render('<x-dbl::navigation.dock :items="[[\'label\' => \'A\', \'action\' => \'dbl-sidebar-toggle\']]" />'))->toContain("\$dispatch('dbl-sidebar-toggle')");
+});

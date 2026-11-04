@@ -133,8 +133,13 @@ const dblSelectRemote = (config = {}) => ({
         if (event.target.name === config.dependsOn && event.target.form === this.field.form) this.reload()
     },
 
-    // Remember what the user chose, to know later whether the new options still offer it.
-    remember() { this.selected = toTexts([...this.field.selectedOptions].map(option => option.value)) },
+    // Remember what the user chose, to know later whether the new options still offer it,
+    // and announce it like the other selects do: `dbl-select-changed` with { name, value }.
+    remember() {
+        const values = [...this.field.selectedOptions].map(option => option.value)
+        this.selected = toTexts(values)
+        this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: config.multiple ? values : (values[0] ?? '') })
+    },
 
     // The "Retry" button of the error message.
     retry() { return this.reload() },

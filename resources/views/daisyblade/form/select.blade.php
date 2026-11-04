@@ -41,7 +41,13 @@ foreach ($options as $optVal => $optLabel) {
 {{-- Everything the caller writes (class, id, data-*, aria-*...) goes to the root, as in any Laravel component.
      The one exception is the binding of the value (x-model, wire:model): it only means something on the control. --}}
 <div {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => 'w-full']) }}
-     @if($loadUrl) x-data="dblSelectRemote(@js(['loadUrl' => $loadUrl, 'value' => $value, 'dependsOn' => $dependsOn, 'disabled' => $disabled, 'messages' => ['loadFailed' => __('Could not load the options')]]))" @endif>
+     @if($loadUrl)
+         x-data="dblSelectRemote(@js(['loadUrl' => $loadUrl, 'name' => $name, 'multiple' => (bool) $multiple, 'value' => $value, 'dependsOn' => $dependsOn, 'disabled' => $disabled, 'messages' => ['loadFailed' => __('Could not load the options')]]))"
+     @elseif(! $searchable)
+         {{-- The native select announces its change as `dbl-select-changed`, like the other two (this container is the root it is dispatched from). --}}
+         x-data
+         x-on:change="$dispatch('dbl-select-changed', { name: @js($name), value: $event.target.multiple ? [...$event.target.selectedOptions].map(option => option.value) : $event.target.value })"
+     @endif>
     @if($label)
         <label class="mb-1 block text-sm font-medium" @if($name) for="{{ $name }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
@@ -145,7 +151,7 @@ foreach ($options as $optVal => $optLabel) {
                         <button
                             x-show="item.type === 'option'"
                             type="button"
-                            @click="search = item.label; open = false; $el.closest('[x-data]').querySelector('input[type=hidden]').value = item.key; $dispatch('select-change', { name: '{{ $name }}', value: item.key })"
+                            @click="search = item.label; open = false; $el.closest('[x-data]').querySelector('input[type=hidden]').value = item.key; $dispatch('dbl-select-changed', { name: @js($name), value: item.key })"
                             class="w-full text-left px-3 py-2 hover:bg-primary/10 text-sm"
                             :class="{ 'pl-5': isGrouped }"
                             x-text="item.label"

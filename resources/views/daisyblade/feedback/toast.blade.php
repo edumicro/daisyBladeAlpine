@@ -59,7 +59,7 @@ $typeClass = match($type) {
     {{-- Event-driven toast container --}}
     <div
         x-data="dblToast()"
-        @notify.window="add($event.detail.message, $event.detail.type ?? 'info', $event.detail.duration ?? {{ $duration }})"
+        @dbl-toast-show.window="add($event.detail.message, $event.detail.type ?? 'info', $event.detail.duration ?? {{ $duration }})"
         {{ $attributes->merge(['class' => "toast {$verticalClass} {$positionClass} z-50 pointer-events-none"]) }}
     >
         <template x-for="toast in toasts" :key="toast.id">

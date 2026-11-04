@@ -45,7 +45,10 @@ it('exposes editable, name, grid and show-muted to the component', function () u
         ->and($c['showMuted'])->toBeTrue()
         ->and($html)->toContain('linkDown($event, n)')
         ->and($html)->toContain('height: 40vh')
-        ->and($html)->toContain('x-on:dbl-flowchart.window="onWindowEvent($event.detail)"');
+        ->and($html)->toContain('x-on:dbl-flowchart-set.window="onSet($event.detail)"')
+        ->and($html)->toContain('x-on:dbl-flowchart-focus.window="onFocus($event.detail)"')
+        ->and($html)->toContain('x-on:dbl-flowchart-remove-edge.window="onRemoveEdge($event.detail)"')
+        ->and($html)->toContain('x-on:dbl-flowchart-remove-node.window="onRemoveNode($event.detail)"');
 });
 
 it('ignores a height that is not a plain CSS length', function () {
@@ -56,11 +59,11 @@ it('ignores a height that is not a plain CSS length', function () {
 
 it('forwards the listeners of the parent to the root element', function () use ($nodes, $edges) {
     $html = Blade::render(
-        '<x-dbl::display.flowchart :nodes="$nodes" :edges="$edges" x-on:node-click="picked = $event.detail.id" class="mt-4" />',
+        '<x-dbl::display.flowchart :nodes="$nodes" :edges="$edges" x-on:dbl-flowchart-node-clicked="picked = $event.detail.id" class="mt-4" />',
         compact('nodes', 'edges'),
     );
 
-    expect($html)->toContain('x-on:node-click="picked = $event.detail.id"')->toContain('mt-4');
+    expect($html)->toContain('x-on:dbl-flowchart-node-clicked="picked = $event.detail.id"')->toContain('mt-4');
 });
 
 it('never prints labels as markup', function () {

@@ -141,7 +141,7 @@ export const dblMap = (config = {}) => {
         setPicked(lat, lng) {
             this.lat = +lat.toFixed(6)
             this.lng = +lng.toFixed(6)
-            this.$dispatch('map-picked', { lat: this.lat, lng: this.lng })
+            this.$dispatch('dbl-map-picked', { lat: this.lat, lng: this.lng })
         },
 
         async search() {

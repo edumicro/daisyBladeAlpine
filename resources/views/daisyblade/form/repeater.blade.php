@@ -20,8 +20,8 @@
                   Dotted keys work too: ['root' => ['keydown.enter.prevent' => 'add()']].
                   In scope: rows, add(), remove(index), notify() — plus index inside a row.
 
-    Dispatches `dbl-repeater-change` ({ name, rows }) whenever the rows change, so a parent can
-    react without reaching into this scope:  <div @dbl-repeater-change.debounce.500ms="save()">
+    Dispatches `dbl-repeater-changed` ({ name, rows }) whenever the rows change, so a parent can
+    react without reaching into this scope:  <div @dbl-repeater-changed.debounce.500ms="save()">
 --}}
 @props([
     'name'       => 'items',
@@ -60,7 +60,7 @@
         rows: {{ Js::from($rows) }},
         add()      { this.rows.push({{ Js::from($emptyRow) }}); this.notify() },
         remove(i)  { if ({{ (int)$min }} === 0 || this.rows.length > {{ (int)$min }}) { this.rows.splice(i, 1); this.notify() } },
-        notify()   { this.$dispatch('dbl-repeater-change', { name: {{ Js::from($name) }}, rows: this.rows }) },
+        notify()   { this.$dispatch('dbl-repeater-changed', { name: {{ Js::from($name) }}, rows: this.rows }) },
     }"
     @if($mode === 'alpine') x-effect="{{ $alpineData }}.{{ $name }} = rows" @endif
     {{ $bind('root', ['input' => 'notify()']) }}

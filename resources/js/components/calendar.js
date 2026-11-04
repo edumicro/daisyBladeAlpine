@@ -183,8 +183,9 @@ export const dblCalendar = (config = {}, deps = {}) => ({
 
     // ── Eventos ──
     selectDay(day) { this.focused = day; this.selectedDay = this.selectedDay === day ? null : day },
+    // Announces the click to whoever listens above (`dbl-<component>-<what happened>`); the detail is the event itself.
     emit(ev) {
-        this.$root.dispatchEvent(new CustomEvent('event-click', { detail: ev, bubbles: true }))
+        this.$dispatch('dbl-calendar-event-clicked', ev)
     },
     open(ev) {
         this.emit(ev)

@@ -10,6 +10,7 @@
 @php
     $id = 'sig-'.($name ?: \Illuminate\Support\Str::random(6));
     $config = [
+        'name'     => $name,
         'required' => (bool) $required,
     ];
 @endphp

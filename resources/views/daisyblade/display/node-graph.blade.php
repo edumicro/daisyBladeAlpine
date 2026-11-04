@@ -6,18 +6,19 @@
 ])
 
 {{--
-  Eventos emitidos (siempre):
-    @node-click   { id, flat }                         — clic en un nodo
-    @badge-click  { nodeId, badgeFlat }                — clic en un badge
+  Eventos emitidos (siempre), `dbl-node-graph-<qué pasó>`:
+    @dbl-node-graph-node-clicked   { id, flat }                        — clic en un nodo
+    @dbl-node-graph-badge-clicked  { nodeId, badgeFlat }               — clic en un badge
 
   Eventos emitidos solo cuando editable=true:
-    @node-create  { parentId }                         — botón + en un nodo; parentId = id del nodo clicado
-    @node-delete  { id, flat }                         — eliminar nodo (solo nodos no-raíz)
-    @badge-create { nodeId }                           — crear badge en un nodo
-    @badge-delete { nodeId, badgeFlat }                — eliminar badge
-    @edge-create  { fromId, toId, fromFlat, toFlat }   — arrastrar dot de fromId y soltar sobre toId
+    @dbl-node-graph-node-created   { parentId }                        — botón + en un nodo; parentId = id del nodo clicado
+    @dbl-node-graph-node-deleted   { id, flat }                        — eliminar nodo (solo nodos no-raíz)
+    @dbl-node-graph-badge-created  { nodeId }                          — crear badge en un nodo
+    @dbl-node-graph-badge-deleted  { nodeId, badgeFlat }               — eliminar badge
+    @dbl-node-graph-edge-created   { fromId, toId, fromFlat, toFlat }  — arrastrar dot de fromId y soltar sobre toId
 
-  El componente no sabe qué hacer con estos eventos — los emite y el padre decide.
+  «created» y «deleted» dicen lo que ha hecho el usuario, no lo que ha pasado en los datos:
+  el componente no sabe qué hacer con estos eventos — los emite y el padre decide.
 --}}
 
 @php
@@ -65,7 +66,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
         ? " data-node-id=\"{$nodeId}\" data-flat=\"{$nodeFlat}\""
           . " @dragover.prevent=\"\$el.style.boxShadow='0 0 0 2px oklch(var(--p,65% 0.3 250)/.6)'\""
           . " @dragleave=\"if(!\$el.contains(\$event.relatedTarget))\$el.style.boxShadow=''\""
-          . " @drop.prevent=\"const f=\$event.dataTransfer.getData('ng-node');const t=\$el.dataset.nodeId;\$el.style.boxShadow='';if(f&&f!==t){\$dispatch('edge-create',{fromId:JSON.parse(f),toId:JSON.parse(t),fromFlat:JSON.parse(\$event.dataTransfer.getData('ng-flat')||'null'),toFlat:JSON.parse(\$el.dataset.flat)})}\""
+          . " @drop.prevent=\"const f=\$event.dataTransfer.getData('ng-node');const t=\$el.dataset.nodeId;\$el.style.boxShadow='';if(f&&f!==t){\$dispatch('dbl-node-graph-edge-created',{fromId:JSON.parse(f),toId:JSON.parse(t),fromFlat:JSON.parse(\$event.dataTransfer.getData('ng-flat')||'null'),toFlat:JSON.parse(\$el.dataset.flat)})}\""
         : '';
 
     // ── Editable: drag-source on dot button ───────────────────────────────────
@@ -85,7 +86,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
            . " data-node-id=\"{$nodeId}\""
            . " data-flat=\"{$nodeFlat}\""
            . $dotDragAttrs
-           . " @click=\"\$dispatch('node-click', { id: JSON.parse(\$el.dataset.nodeId), flat: JSON.parse(\$el.dataset.flat) })\""
+           . " @click=\"\$dispatch('dbl-node-graph-node-clicked', { id: JSON.parse(\$el.dataset.nodeId), flat: JSON.parse(\$el.dataset.flat) })\""
            . " class=\"w-5 h-5 rounded-full {$dotCls} ring-4 ring-base-100 hover:scale-110 transition-transform {$dotCursor} shrink-0\""
            . " title=\"{$label}" . ($editable ? ' — ' . e(__('drag to link')) : '') . "\"></button>";
     if ($hasKids) {
@@ -108,7 +109,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
         $html .= "<button"
                . " type=\"button\""
                . " data-node-id=\"{$nodeId}\""
-               . " @click.stop=\"\$dispatch('node-create', { parentId: JSON.parse(\$el.dataset.nodeId) })\""
+               . " @click.stop=\"\$dispatch('dbl-node-graph-node-created', { parentId: JSON.parse(\$el.dataset.nodeId) })\""
                . " class=\"btn btn-xs btn-ghost px-1 opacity-50 hover:opacity-100\""
                . " title=\"" . e(__('Add child')) . "\">+</button>";
         // Delete node (not root)
@@ -117,7 +118,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
                    . " type=\"button\""
                    . " data-node-id=\"{$nodeId}\""
                    . " data-flat=\"{$nodeFlat}\""
-                   . " @click.stop=\"\$dispatch('node-delete', { id: JSON.parse(\$el.dataset.nodeId), flat: JSON.parse(\$el.dataset.flat) })\""
+                   . " @click.stop=\"\$dispatch('dbl-node-graph-node-deleted', { id: JSON.parse(\$el.dataset.nodeId), flat: JSON.parse(\$el.dataset.flat) })\""
                    . " class=\"btn btn-xs btn-ghost px-1 opacity-50 hover:opacity-100 text-error\""
                    . " title=\"" . e(__('Remove node')) . "\">×</button>";
         }
@@ -137,7 +138,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
                    . " type=\"button\""
                    . " data-node-id=\"{$nodeId}\""
                    . " data-flat=\"{$badgeFlat}\""
-                   . " @click=\"\$dispatch('badge-click', { nodeId: JSON.parse(\$el.dataset.nodeId), badgeFlat: JSON.parse(\$el.dataset.flat) })\""
+                   . " @click=\"\$dispatch('dbl-node-graph-badge-clicked', { nodeId: JSON.parse(\$el.dataset.nodeId), badgeFlat: JSON.parse(\$el.dataset.flat) })\""
                    . " class=\"flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity\">"
                    . "<span class=\"w-1.5 h-1.5 rounded-full {$bc['dot']} shrink-0\"></span>"
                    . $badgeLbl
@@ -147,7 +148,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
                        . " type=\"button\""
                        . " data-node-id=\"{$nodeId}\""
                        . " data-flat=\"{$badgeFlat}\""
-                       . " @click.stop=\"\$dispatch('badge-delete', { nodeId: JSON.parse(\$el.dataset.nodeId), badgeFlat: JSON.parse(\$el.dataset.flat) })\""
+                       . " @click.stop=\"\$dispatch('dbl-node-graph-badge-deleted', { nodeId: JSON.parse(\$el.dataset.nodeId), badgeFlat: JSON.parse(\$el.dataset.flat) })\""
                        . " class=\"opacity-50 hover:opacity-100 leading-none\""
                        . " title=\"" . e(__('Remove badge')) . "\">×</button>";
             }
@@ -157,7 +158,7 @@ $renderNode = function(array $node, int $depth = 0) use (&$renderNode, $byParent
             $html .= "<button"
                    . " type=\"button\""
                    . " data-node-id=\"{$nodeId}\""
-                   . " @click.stop=\"\$dispatch('badge-create', { nodeId: JSON.parse(\$el.dataset.nodeId) })\""
+                   . " @click.stop=\"\$dispatch('dbl-node-graph-badge-created', { nodeId: JSON.parse(\$el.dataset.nodeId) })\""
                    . " class=\"badge badge-sm badge-ghost gap-1 cursor-pointer opacity-50 hover:opacity-100\""
                    . " title=\"" . e(__('Add badge')) . "\">+ badge</button>";
         }

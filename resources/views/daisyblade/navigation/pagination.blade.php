@@ -44,7 +44,7 @@ $pageUrl = fn(int $p) => $baseUrl ? ($baseUrl . (str_contains($baseUrl, '?') ? '
             @if($baseUrl)
                 <a href="{{ $pageUrl(max(1, $current - 1)) }}" class="join-item btn btn-sm {{ $current <= 1 ? 'btn-disabled' : '' }}">‹ {{ __('Previous') }}</a>
             @else
-                <button type="button" @click="$dispatch('page-changed', { page: {{ max(1, $current - 1) }} })" @disabled($current <= 1) class="join-item btn btn-sm">‹ {{ __('Previous') }}</button>
+                <button type="button" @click="$dispatch('dbl-pagination-page-changed', { page: {{ max(1, $current - 1) }} })" @disabled($current <= 1) class="join-item btn btn-sm">‹ {{ __('Previous') }}</button>
             @endif
         @endif
 
@@ -55,7 +55,7 @@ $pageUrl = fn(int $p) => $baseUrl ? ($baseUrl . (str_contains($baseUrl, '?') ? '
                 @if($baseUrl)
                     <a href="{{ $pageUrl($page) }}" class="join-item btn btn-sm {{ $page === $current ? 'btn-active' : '' }}">{{ $page }}</a>
                 @else
-                    <button type="button" @click="$dispatch('page-changed', { page: {{ $page }} })" class="join-item btn btn-sm {{ $page === $current ? 'btn-active' : '' }}">{{ $page }}</button>
+                    <button type="button" @click="$dispatch('dbl-pagination-page-changed', { page: {{ $page }} })" class="join-item btn btn-sm {{ $page === $current ? 'btn-active' : '' }}">{{ $page }}</button>
                 @endif
             @endif
         @endforeach
@@ -64,7 +64,7 @@ $pageUrl = fn(int $p) => $baseUrl ? ($baseUrl . (str_contains($baseUrl, '?') ? '
             @if($baseUrl)
                 <a href="{{ $pageUrl(min($last, $current + 1)) }}" class="join-item btn btn-sm {{ $current >= $last ? 'btn-disabled' : '' }}">{{ __('Next') }} ›</a>
             @else
-                <button type="button" @click="$dispatch('page-changed', { page: {{ min($last, $current + 1) }} })" @disabled($current >= $last) class="join-item btn btn-sm">{{ __('Next') }} ›</button>
+                <button type="button" @click="$dispatch('dbl-pagination-page-changed', { page: {{ min($last, $current + 1) }} })" @disabled($current >= $last) class="join-item btn btn-sm">{{ __('Next') }} ›</button>
             @endif
         @endif
     </div>

@@ -63,12 +63,12 @@ it('pagination single page has no link to page 2', function () {
     expect($html)->not->toContain('page=2');
 });
 
-it('pagination without base-url dispatches page-changed event', function () {
+it('pagination without base-url dispatches dbl-pagination-page-changed', function () {
     $html = Blade::render(
         '<x-dbl::navigation.pagination :meta="$meta" />',
         ['meta' => ['current_page' => 1, 'last_page' => 3, 'from' => 1, 'to' => 15, 'total' => 45]]
     );
-    expect($html)->toContain('page-changed');
+    expect($html)->toContain("\$dispatch('dbl-pagination-page-changed', { page: 2 })");
 });
 
 it('pagination has no wire: attributes', function () {
@@ -153,7 +153,7 @@ it('sidebar can be reopened from anywhere via a window event', function () {
     // que sin el escuchador global la unica forma de recuperarla es su propio boton de esquina.
     $html = Blade::render('<x-dbl::navigation.sidebar>menu</x-dbl::navigation.sidebar>');
 
-    expect($html)->toContain('sidebar-toggle.window');
+    expect($html)->toContain('dbl-sidebar-toggle.window');
 });
 
 it('sidebar can drop the floating toggle for hosts that provide their own', function () {
@@ -163,7 +163,7 @@ it('sidebar can drop the floating toggle for hosts that provide their own', func
 
     expect($html)
         ->not->toContain('bottom-4')
-        ->toContain('sidebar-toggle.window');   // sigue siendo recuperable desde fuera
+        ->toContain('dbl-sidebar-toggle.window');   // sigue siendo recuperable desde fuera
 });
 
 it('app layout puts the content canvas a shade below the cards', function () {

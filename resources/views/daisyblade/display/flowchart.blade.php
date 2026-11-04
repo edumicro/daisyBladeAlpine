@@ -26,13 +26,15 @@
       muted        — oculto salvo con `showMuted`
       flat         — dato opaco del padre; vuelve en cada evento
 
-    Eventos (siempre):  node-click {id, flat}, edge-click {id, flat}
-    Eventos (editable): node-move {id, x, y, flat, accept, reject}
-                        edge-create {fromId, toId, fromFlat, toFlat, accept, reject}
+    Eventos (siempre):  dbl-flowchart-node-clicked {id, flat}, dbl-flowchart-edge-clicked {id, flat}
+    Eventos (editable): dbl-flowchart-node-moved {id, x, y, flat, accept, reject}
+                        dbl-flowchart-edge-created {fromId, toId, fromFlat, toFlat, accept, reject}
     El componente no sabe qué hacer con ellos: los emite y el padre decide. Un oyente que quiere
     responder más tarde (un diálogo, una petición) llama a `$event.preventDefault()` y luego a
     `accept(datos?)` o `reject(mensaje?)`. Sin respuesta ni `preventDefault()`, se acepta tal cual.
-    Escucha: `dbl-flowchart` en window (detail: {name, action: set|focus|removeEdge|removeNode, ...});
+    Escucha en window (cada orden lleva en el detail el `name` del diagrama al que va):
+      `dbl-flowchart-set` {name, nodes, edges}, `dbl-flowchart-focus` {name, id},
+      `dbl-flowchart-remove-edge` {name, id}, `dbl-flowchart-remove-node` {name, id};
     métodos Alpine `set(nodes, edges)`, `focus(id)`, `removeEdge(id)`, `removeNode(id)`, `zoomIn()`, `zoomOut()`, `fit()`.
 --}}
 @props([
@@ -90,7 +92,10 @@
 
 <div {{ $attributes->merge(['class' => 'dbl-flowchart min-w-0 max-w-full']) }}
      x-data="dblFlowchart(JSON.parse($el.dataset.config))"
-     x-on:dbl-flowchart.window="onWindowEvent($event.detail)"
+     x-on:dbl-flowchart-set.window="onSet($event.detail)"
+     x-on:dbl-flowchart-focus.window="onFocus($event.detail)"
+     x-on:dbl-flowchart-remove-edge.window="onRemoveEdge($event.detail)"
+     x-on:dbl-flowchart-remove-node.window="onRemoveNode($event.detail)"
      data-config="{{ json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) }}">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
         @if($label)

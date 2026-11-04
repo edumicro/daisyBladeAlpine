@@ -23,8 +23,8 @@ $sizeClass = match($size) {
     @if($id) id="{{ $id }}" @endif
     x-data="dblModal()"
     @if($id)
-        @open-modal.window="if ($event.detail.id === '{{ $id }}') show()"
-        @close-modal.window="if ($event.detail.id === '{{ $id }}') hide()"
+        @dbl-modal-open.window="if ($event.detail.id === '{{ $id }}') show()"
+        @dbl-modal-close.window="if ($event.detail.id === '{{ $id }}') hide()"
     @endif
     {{ $attributes->merge(['class' => 'modal']) }}
     :class="open && 'modal-open'"

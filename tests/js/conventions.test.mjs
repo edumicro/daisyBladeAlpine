@@ -11,6 +11,10 @@ import {
 } from '../../resources/js/daisyblade.js'
 import { dblCalendar } from '../../resources/js/components/calendar.js'
 import { dblUpload } from '../../resources/js/components/upload.js'
+import { dblMap } from '../../resources/js/components/map.js'
+import { dblSignature } from '../../resources/js/components/signature.js'
+import { dblRichText } from '../../resources/js/components/rich-text.js'
+import { dblFlowchart } from '../../resources/js/components/flowchart.js'
 
 const ROOT = new URL('../../resources/js/', import.meta.url).pathname
 
@@ -150,4 +154,101 @@ test('2. the spreadsheet import and the upload send their files to uploadUrl', a
     } finally { leavePage() }
 
     assert.deepEqual(urls, ['/import', '/files'])
+})
+
+// ── 8. Events: dbl-<component>-<what happened>, always with $dispatch and an object as the detail ──
+
+/** Gives a component the `$dispatch` of Alpine, recording what it announces as [{ name, detail }]. */
+const recording = component => {
+    const announced = []
+    return [Object.assign(component, { $dispatch: (name, detail = {}) => announced.push({ name, detail }) }), announced]
+}
+
+test('8. the calendar announces dbl-calendar-event-clicked with the event as an object', () => {
+    const [calendar, announced] = recording(dblCalendar({ loadUrl: '/e' }))
+    calendar.emit({ id: 3, title: 'Reunión' })
+    assert.deepEqual(announced, [{ name: 'dbl-calendar-event-clicked', detail: { id: 3, title: 'Reunión' } }])
+})
+
+test('8. the map announces dbl-map-picked with { lat, lng }', () => {
+    const [map, announced] = recording(dblMap({}))
+    map.setPicked(39.123456789, -0.5)
+    assert.deepEqual(announced, [{ name: 'dbl-map-picked', detail: { lat: 39.123457, lng: -0.5 } }])
+})
+
+test('8. the upload announces dbl-upload-uploaded and dbl-upload-removed', async () => {
+    const urls = pageThatRecordsUrls({ id: 5, name: 'a.txt', url: '/f/5' })
+    globalThis.window.confirm = () => true
+    try {
+        const [upload, announced] = recording(dblUpload({ uploadUrl: '/files' }))
+        upload.announce = () => {}
+        const item = upload.makeItem({ file: new Blob(['x']), name: 'a.txt', size: 1, status: 'uploading' })
+        upload.items.push(item)
+        await upload.send(item)
+        await upload.remove(item)
+        assert.deepEqual(announced.map(event => event.name), ['dbl-upload-uploaded', 'dbl-upload-removed'])
+        assert.deepEqual(announced[1].detail, { id: 5, name: 'a.txt' })
+        assert.deepEqual(urls, ['/files'])
+    } finally { leavePage() }
+})
+
+test('8. the signature announces dbl-signature-signed or dbl-signature-cleared with { name, value }', () => {
+    const [signature, announced] = recording(dblSignature({ name: 'firma' }))
+    signature.$refs = { input: { value: '' } }
+    signature.pad = { isEmpty: () => false, toDataURL: () => 'data:image/png;base64,AAA' }
+    signature.sync(true)
+    signature.pad = { isEmpty: () => true }
+    signature.sync(true)
+    assert.deepEqual(announced, [
+        { name: 'dbl-signature-signed', detail: { name: 'firma', value: 'data:image/png;base64,AAA' } },
+        { name: 'dbl-signature-cleared', detail: { name: 'firma', value: '' } },
+    ])
+})
+
+test('8. the rich text announces dbl-rich-text-changed with { name, value }', () => {
+    const [richText, announced] = recording(dblRichText({ name: 'cuerpo' }, {}))
+    richText.$refs = { input: { value: '<p>Hola</p>' } }
+    richText.announce()
+    assert.deepEqual(announced, [{ name: 'dbl-rich-text-changed', detail: { name: 'cuerpo', value: '<p>Hola</p>' } }])
+})
+
+/** The parts of Alpine that dblSelectRemote uses around a fake <select> whose chosen options are `chosen`. */
+const remoteSelectWith = (config, chosen) => {
+    const field = { form: null, selectedOptions: chosen.map(value => ({ value })), querySelectorAll: () => [] }
+    return recording(Object.assign(dblSelectRemote(config), { $root: { querySelector: () => field } }))
+}
+
+test('8. the remote select announces dbl-select-changed with { name, value }: a text, or a list when multiple', () => {
+    const [single, singleEvents] = remoteSelectWith({ name: 'city', loadUrl: '/c' }, ['ES-TF'])
+    single.remember()
+    const [multiple, multipleEvents] = remoteSelectWith({ name: 'cities', multiple: true, loadUrl: '/c' }, ['A', 'B'])
+    multiple.remember()
+    const [empty, emptyEvents] = remoteSelectWith({ name: 'city', loadUrl: '/c' }, [])
+    empty.remember()
+
+    assert.deepEqual(singleEvents, [{ name: 'dbl-select-changed', detail: { name: 'city', value: 'ES-TF' } }])
+    assert.deepEqual(multipleEvents, [{ name: 'dbl-select-changed', detail: { name: 'cities', value: ['A', 'B'] } }])
+    assert.deepEqual(emptyEvents, [{ name: 'dbl-select-changed', detail: { name: 'city', value: '' } }])
+})
+
+test('8. the flowchart announces dbl-flowchart-* from its root, takes the orders of the window by name, and asks the toast with dbl-toast-show', () => {
+    const events = []
+    const root = { dispatchEvent(event) { events.push({ name: event.type, detail: event.detail, bubbles: event.bubbles }); return true } }
+    const flowchart = Object.assign(dblFlowchart({ name: 'flujo', nodes: [{ id: 'a', label: 'A' }], edges: [] }), { $root: root, $nextTick: fn => fn(), $refs: {} })
+    flowchart.init()
+
+    flowchart.nodeClick(flowchart.vNodes[0])
+    flowchart.notify('Mal')
+    assert.deepEqual(events.map(event => event.name), ['dbl-flowchart-node-clicked', 'dbl-toast-show'])
+    assert.ok(events.every(event => event.bubbles && typeof event.detail === 'object'), 'bubble up and carry an object')
+
+    flowchart.onSet({ name: 'otro', nodes: [], edges: [] })
+    assert.equal(flowchart.vNodes.length, 1, 'an order for another diagram is ignored')
+    flowchart.onSet({ name: 'flujo', nodes: [], edges: [] })
+    assert.equal(flowchart.vNodes.length, 0)
+
+    let focused
+    flowchart.focus = id => { focused = id }
+    flowchart.onFocus({ name: 'flujo', id: 7 })
+    assert.equal(focused, 7)
 })

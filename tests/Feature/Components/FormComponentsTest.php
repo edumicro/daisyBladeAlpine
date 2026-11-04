@@ -503,7 +503,7 @@ it('sends the remote select with the form under its name, and as a list when mul
     $single = Blade::render('<x-dbl::form.select name="city" load-url="/cities" />');
     $multiple = Blade::render('<x-dbl::form.select name="cities" load-url="/cities" multiple placeholder="Elige" />');
 
-    expect($single)->toContain('name="city"')->toContain('id="city"')->not->toContain('multiple')
+    expect($single)->toContain('name="city"')->toContain('id="city"')->not->toMatch('/<select[^>]*\smultiple\b/s')
         ->and($multiple)->toContain('name="cities[]"')->toContain('multiple')
         ->and($multiple)->not->toContain('Elige'); // a multiple select has no empty option
 });

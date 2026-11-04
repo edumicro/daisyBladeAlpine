@@ -19,7 +19,7 @@
 </head>
 <body class="antialiased">
 
-    {{-- Global toast notifications — dispatch 'notify' from anywhere --}}
+    {{-- Global toast notifications — dispatch 'dbl-toast-show' from anywhere --}}
     <x-dbl::feedback.toast position="end" vertical="top" />
 
     <div class="flex min-h-screen">

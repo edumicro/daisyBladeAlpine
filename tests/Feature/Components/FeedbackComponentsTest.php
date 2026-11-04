@@ -29,9 +29,9 @@ it('toast without message uses event-driven mode with dblToast', function () {
     expect($html)->toContain('dblToast');
 });
 
-it('toast without message listens to notify event', function () {
+it('toast without message listens to the dbl-toast-show order', function () {
     $html = Blade::render('<x-dbl::feedback.toast />');
-    expect($html)->toContain('notify');
+    expect($html)->toContain('@dbl-toast-show.window="add(')->not->toContain('@notify.window');
 });
 
 // ── feedback/skeleton ─────────────────────────────────────────────────────────
