@@ -23,7 +23,7 @@ que **pide sus opciones a una URL** (`load-url`) y, opcionalmente, **las vuelve 
 | `depends-on` | `''` | El `name` de **otro control del mismo formulario** (si el select no está en un `<form>`, del documento). Solo vale junto a `load-url`. |
 | `value` | `null` | Lo que queda elegido cuando llegan las opciones (un array con `multiple`). |
 | `options` | `[]` | Opciones que ya conoce el servidor (por ejemplo la guardada). Salen **antes** de que cargue el JS, o si no carga nunca, y el JS las sustituye por las que lleguen. |
-| `name`, `label`, `hint`, `placeholder`, `multiple`, `required`, `disabled`, `size`, `class`, `wrapper-class` | | Igual que en el desplegable normal. `placeholder` no se pinta con `multiple`. `class` y el resto de atributos (`x-model`, `data-*`...) van al `<select>` (a la caja de texto en el modo `searchable`); `wrapper-class` a la caja que lo rodea. |
+| `name`, `label`, `hint`, `placeholder`, `multiple`, `required`, `disabled`, `size`, `class`, `wrapper-class` | | Igual que en el desplegable normal. `placeholder` no se pinta con `multiple`. `class` y el resto de atributos (`x-model`, `data-*`...) van al `<select>` (a la caja de texto en el modo `searchable`); `wrapper-class` a la caja que lo rodea. En el modo `searchable`, el `x-model` de la caja de texto es **el texto de la caja** (lo que se teclea y, al elegir, la etiqueta elegida); la clave elegida va en el `<input type="hidden">` y en `dbl-select-changed`. Teclear después de elegir vacía el hidden. |
 
 ## Respuesta de la URL
 

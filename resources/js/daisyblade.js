@@ -139,6 +139,8 @@ const dblRepeater = (config = {}) => ({
 const dblSelectSearch = (config = {}) => ({
     search: config.search ?? '',
     open: false,
+    choosing: false,   // true while choose() writes the label in the text box
+
     options: config.options ?? {},
     get isGrouped() {
         const first = Object.values(this.options)[0]
@@ -170,10 +172,36 @@ const dblSelectSearch = (config = {}) => ({
         return list
     },
     get isEmpty() { return this.flatList.filter(item => item.type === 'option').length === 0 },
+    // The text box of this mode. It takes the attributes of the caller (x-model, @input...), so the component finds it by its type.
+    get textBox() { return this.$root?.querySelector('input[type="text"]') ?? null },
+    // Writes `search` in the text box whenever it changes (the view calls it from an x-effect on the box around the text box).
+    showSearch() {
+        const box = this.textBox
+        if (box && box.value !== this.search) box.value = this.search
+    },
+    // The user typed in the text box (called by the `input` that rises to the box around it).
+    typed(text) {
+        this.search = text
+        if (this.choosing) return
+        // What is typed no longer is the option that was chosen: the form must not keep sending its key.
+        if (this.$refs.value && this.$refs.value.value !== '') {
+            this.$refs.value.value = ''
+            this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: '' })
+        }
+    },
     // The user chose an option: show its label, write its value in the hidden input (x-ref="value") and announce it.
     choose(item) {
         this.search = item.label
         this.open = false
+        // The text box now shows the label. Telling it with an `input` makes the `x-model` or the `@input` of the caller see
+        // that text, not the half-word typed before choosing (`choosing` stops typed() from emptying the hidden input).
+        const box = this.textBox
+        if (box) {
+            this.choosing = true
+            box.value = item.label
+            box.dispatchEvent(new Event('input', { bubbles: true }))
+            this.choosing = false
+        }
         if (this.$refs.value) this.$refs.value.value = item.key
         this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: item.key })
     },

@@ -93,12 +93,15 @@ $controlId = $attributes->get('id', $name ?: null);
             {{-- The text box is the control of this mode: it takes the attributes of the caller. So it carries none of ours that
                  the caller could also write, since the browser keeps only the first of two equal attributes and the caller's
                  would vanish: its own `@input` and `@focus` would be exactly that. They go on the box around it instead:
-                 `input` bubbles up to here, and so does `focusin` (`focus` does not). The text is bound with :value, not
-                 x-model, so that an x-model of the caller can be written on the text box without a second one. --}}
-            <div class="relative" x-on:input="search = $event.target.value" x-on:focusin="open = true">
+                 `input` bubbles up to here, and so does `focusin` (`focus` does not). The text is written from the box
+                 around it (the x-effect), not with :value nor x-model, so that an x-model of the caller can be written on the text box
+                 without a second one. An `x-model` on the text box holds the TEXT of the box: what is typed, and the label once an
+                 option is chosen (the key is in the hidden input and in `dbl-select-changed`). --}}
+            <div class="relative" x-on:input="typed($event.target.value)" x-on:focusin="open = true"
+                 x-effect="showSearch()">
                 <input
                     type="text"
-                    :value="search"
+                    value="{{ $selectedLabel }}"
                     placeholder="{{ $placeholder ?: __('Search...') }}"
                     {{ $attributes->merge(['id' => $controlId, 'class' => "input w-full {$sizeClass}"]) }}
                 />

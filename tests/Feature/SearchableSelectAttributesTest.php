@@ -26,6 +26,6 @@ it('keeps the listeners of the searchable select on the box around the text box,
     preg_match('/<div class="relative"[^>]*x-on:input[^>]*>/', $html, $box);
 
     expect($box)->not->toBeEmpty('the box around the text box has no listener')
-        ->and($box[0])->toContain('x-on:input="search = $event.target.value"')
+        ->and($box[0])->toContain('x-on:input="typed($event.target.value)"')
         ->and($box[0])->toContain('x-on:focusin="open = true"');   // focusin bubbles; focus does not
 });
