@@ -11,14 +11,14 @@
 
 @php
 $map = [
-    'online'     => ['color' => 'badge-success',  'icon' => 'heroicon-o-check-circle',    'label' => 'Online'],
-    'offline'    => ['color' => 'badge-neutral',   'icon' => 'heroicon-o-minus-circle',    'label' => 'Offline'],
-    'pending'    => ['color' => 'badge-warning',   'icon' => 'heroicon-o-clock',           'label' => 'Pending'],
-    'active'     => ['color' => 'badge-success',   'icon' => 'heroicon-o-check-circle',    'label' => 'Active'],
-    'inactive'   => ['color' => 'badge-neutral',   'icon' => 'heroicon-o-minus-circle',    'label' => 'Inactive'],
-    'processing' => ['color' => 'badge-info',      'icon' => 'heroicon-o-arrow-path',      'label' => 'Processing'],
-    'success'    => ['color' => 'badge-success',   'icon' => 'heroicon-o-check-circle',    'label' => 'Success'],
-    'error'      => ['color' => 'badge-error',     'icon' => 'heroicon-o-x-circle',        'label' => 'Error'],
+    'online'     => ['color' => 'badge-success',  'icon' => 'heroicon-o-check-circle',    'label' => __('Online')],
+    'offline'    => ['color' => 'badge-neutral',   'icon' => 'heroicon-o-minus-circle',    'label' => __('Offline')],
+    'pending'    => ['color' => 'badge-warning',   'icon' => 'heroicon-o-clock',           'label' => __('Pending')],
+    'active'     => ['color' => 'badge-success',   'icon' => 'heroicon-o-check-circle',    'label' => __('Active')],
+    'inactive'   => ['color' => 'badge-neutral',   'icon' => 'heroicon-o-minus-circle',    'label' => __('Inactive')],
+    'processing' => ['color' => 'badge-info',      'icon' => 'heroicon-o-arrow-path',      'label' => __('Processing')],
+    'success'    => ['color' => 'badge-success',   'icon' => 'heroicon-o-check-circle',    'label' => __('Success')],
+    'error'      => ['color' => 'badge-error',     'icon' => 'heroicon-o-x-circle',        'label' => __('Error')],
 ];
 $info      = $map[$status] ?? $map['pending'];
 $colorClass = $info['color'];

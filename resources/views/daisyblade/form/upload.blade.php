@@ -60,7 +60,7 @@
     {{-- Zona de soltar. El input real está oculto pero es el que enfoca el label. La zona es el control de este componente:
          recibe los atributos de quien lo usa, y la caja de fuera (que es también el ámbito de Alpine), `wrapper-class`. --}}
     <div {{ $attributes->merge(['class' => 'flex flex-col items-center gap-3 rounded-box border-2 border-dashed p-6 text-center transition-colors']) }}>
-        <x-heroicon-o-arrow-up-tray class="size-8 text-base-content/40" aria-hidden="true" />
+        <x-heroicon-o-arrow-up-tray class="size-8 text-base-content/40" />
         {{-- The colours of the zone follow `dragging`; set from here and not with an `x-bind:class` on the zone, which takes the
              attributes of the caller. --}}
         <p class="text-sm text-base-content/70"
@@ -100,10 +100,10 @@
                         <img x-bind:src="item.preview || item.thumb || item.url" alt="" class="size-full object-cover" />
                     </template>
                     <template x-if="isPdf(item)">
-                        <x-heroicon-o-document-text class="size-6 text-error" aria-hidden="true" />
+                        <x-heroicon-o-document-text class="size-6 text-error" />
                     </template>
                     <template x-if="!isImage(item) && !isPdf(item)">
-                        <x-heroicon-o-document class="size-6 text-base-content/50" aria-hidden="true" />
+                        <x-heroicon-o-document class="size-6 text-base-content/50" />
                     </template>
                 </div>
 
@@ -128,18 +128,18 @@
                         <span class="flex">
                             <button type="button" class="btn btn-ghost btn-xs btn-square" x-bind:disabled="index === 0"
                                     aria-label="{{ $t('move_up') }}" x-on:click="move(item, -1)">
-                                <x-heroicon-o-chevron-up class="size-4" aria-hidden="true" />
+                                <x-heroicon-o-chevron-up class="size-4" />
                             </button>
                             <button type="button" class="btn btn-ghost btn-xs btn-square" x-bind:disabled="index === items.length - 1"
                                     aria-label="{{ $t('move_down') }}" x-on:click="move(item, 1)">
-                                <x-heroicon-o-chevron-down class="size-4" aria-hidden="true" />
+                                <x-heroicon-o-chevron-down class="size-4" />
                             </button>
                         </span>
                     </template>
                     <button type="button" class="btn btn-ghost btn-xs btn-square text-error"
                             x-show="item.status !== 'uploading'"
                             aria-label="{{ $t('delete') }}" x-on:click="remove(item)">
-                        <x-heroicon-o-trash class="size-4" aria-hidden="true" />
+                        <x-heroicon-o-trash class="size-4" />
                     </button>
                 </div>
             </li>

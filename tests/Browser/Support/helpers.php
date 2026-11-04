@@ -49,6 +49,20 @@ function browserPage(string $name, string $template, array $options = []): strin
 }
 
 /**
+ * Like `browserPage()`, but for HTML that is already painted (what a component of the catalog gave): it is not Blade any more,
+ * so it must not go through the compiler again (`@click` and `{{` mean something else to it).
+ */
+function browserPageOfHtml(string $name, string $html, array $options = []): string
+{
+    registerBrowserEndpoints();
+
+    Route::get('/page/'.$name, fn () => response(browserLayout($html, $options['modules'] ?? []))
+        ->header('Content-Type', 'text/html; charset=utf-8'));
+
+    return '/page/'.$name;
+}
+
+/**
  * The HTML shell of every page: daisyblade.js (module) before Alpine (defer), as the README asks.
  * `registerXxx(Alpine)` of the optional components runs on `alpine:init`, as an application would do it.
  *
@@ -70,6 +84,8 @@ function browserLayout(string $body, array $modules = []): string
     // Fake network (see `window.__net`): records every fetch and lets a test delay or fail one by URL.
     $net = <<<'JS'
 window.__net = { log: [], delay: {}, fail: {} }
+// A page must never run an `alert()` that a text of the user wrote: the catalog test looks at this flag.
+window.alert = () => { window.__alerted = true }
 const realFetch = window.fetch.bind(window)
 window.fetch = async (input, init) => {
     const url = typeof input === 'string' ? input : input.url
@@ -120,6 +136,15 @@ function registerBrowserEndpoints(): void
         ->where('path', '.*')->name('browser.assets');
     Route::get('/_assets/node/{path}', fn (string $path) => $serve(browserPath('node_modules/'.$path), $typeOf($path)))
         ->where('path', '.*');
+
+    // A 1x1 picture for every image of the catalog, a resource and two fragments of lazy tabs.
+    Route::get('/pixel.png', fn () => response(
+        base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='),
+        200,
+        ['Content-Type' => 'image/png'],
+    ));
+    Route::get('/res', fn () => response()->json(['name' => 'Ana', 'email' => 'ana@example.test']));
+    Route::get('/frag{suffix?}', fn () => response('<p>Fragment</p>', 200, ['Content-Type' => 'text/html']))->where('suffix', '[0-9]*');
 
     // Select options: `{data: [...]}` is not needed here, the select accepts a plain list too.
     Route::get('/options', fn () => response()->json([['value' => '1', 'label' => 'One'], ['value' => '2', 'label' => 'Two']]));

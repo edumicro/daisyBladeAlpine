@@ -134,10 +134,11 @@ $config = [
                                     >
                                         {{ $col['label'] ?? ucfirst($col['key']) }}
                                         <span class="flex flex-col text-base-content/30">
-                                            <x-heroicon-m-chevron-up class="w-3 h-3 -mb-1"
-                                                ::class="sort === @js($col['key']) && direction === 'asc' ? 'text-primary' : ''" />
-                                            <x-heroicon-m-chevron-down class="w-3 h-3"
-                                                ::class="sort === @js($col['key']) && direction === 'desc' ? 'text-primary' : ''" />
+                                            {{-- The arrow that is on takes the colour of the span around it (an icon paints with currentColor). A `::class`
+                                                 written on the icon component itself did not compile: `@js($col['key'])` inside the attribute of a component
+                                                 is evaluated outside the loop, where `$col` does not exist. --}}
+                                            <span :class="sort === @js($col['key']) && direction === 'asc' ? 'text-primary' : ''"><x-heroicon-m-chevron-up class="w-3 h-3 -mb-1" /></span>
+                                            <span :class="sort === @js($col['key']) && direction === 'desc' ? 'text-primary' : ''"><x-heroicon-m-chevron-down class="w-3 h-3" /></span>
                                         </span>
                                     </button>
                                 @else

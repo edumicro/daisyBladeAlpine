@@ -89,3 +89,20 @@ return response()->json(['imported' => $count]);
 `registerDaisyBlade(Alpine, { axios })` (y los `registerXxx` de los componentes opcionales) aceptan un `axios` propio. Las reglas
 valen igual: se le pasan `Accept` y `X-Requested-With` en la configuración de cada llamada, y se lee la cabecera `Content-Type`
 de su respuesta. Si tu cliente no devuelve cabeceras, decide la forma del cuerpo (un objeto o una lista; un texto no es JSON).
+
+## Texto y HTML de confianza
+
+Todo texto que pasas a un componente (`label`, `title`, `message`, `placeholder`, el nombre de una opción…) se escapa: es texto, nunca
+HTML, y se prueba pintando el catálogo de componentes con un texto hostil. Las únicas props que son **HTML de confianza** (HTML que
+escribe el desarrollador, no el usuario final) son estas, y nada más:
+
+| Componente | Prop |
+|---|---|
+| `navigation.tabs` | `items[].content` |
+| `display.accordion` | `items[].content` |
+| `display.collapse` | `content` |
+| `display.card` | `body` |
+| `display.timeline` | `items[].content` |
+| `display.carousel` | `items[].content` |
+
+No metas en ellas texto que venga de otras personas sin escaparlo tú antes (`e($texto)`).
