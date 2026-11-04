@@ -41,3 +41,13 @@ it('refuses an event handler, which belongs in the events prop', function () {
 it('refuses a name that would break out of the tag', function () {
     Attrs::render(['x onload=evil() y' => '1']);
 })->throws(InvalidArgumentException::class, 'Invalid attribute name');
+
+it('joins the class of the schema to the classes of the component in one attribute', function () {
+    $html = (string) Attrs::render(['class' => 'font-mono', 'autocomplete' => 'off'], 'input w-full');
+
+    expect($html)->toBe('class="input w-full font-mono" autocomplete="off"');
+});
+
+it('writes the classes of the component when the schema brings none', function () {
+    expect((string) Attrs::render(['autocomplete' => 'off'], 'input w-full'))->toBe('class="input w-full" autocomplete="off"');
+});
