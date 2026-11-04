@@ -40,7 +40,7 @@
                     <tr class="{{ $rowClass }} {{ $class }}">
                         @if($showLineNumbers)
                             <td class="w-12 text-center text-xs text-base-content/50 select-none font-mono">
-                                {{ $change['lineNumber'] ?? $index + 1 }}
+                                {{ $change['line_number'] ?? $index + 1 }}
                             </td>
                         @endif
                         <td class="w-8 text-center select-none">

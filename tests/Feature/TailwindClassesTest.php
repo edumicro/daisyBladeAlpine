@@ -111,7 +111,7 @@ it('maps the tabs style, the menu badge color, the indicator position and the sk
     }
     expect(Blade::render('<x-dbl::navigation.tabs :items="[[\'label\' => \'A\', \'content\' => \'a\']]" />'))->toContain('tabs-lifted');
 
-    expect(Blade::render('<x-dbl::navigation.menu :items="[[\'label\' => \'A\', \'badge\' => 3, \'badgeColor\' => \'error\']]" />'))->toContain('badge-error')
+    expect(Blade::render('<x-dbl::navigation.menu :items="[[\'label\' => \'A\', \'badge\' => 3, \'badge_color\' => \'error\']]" />'))->toContain('badge-error')
         ->and(Blade::render('<x-dbl::navigation.menu :items="[[\'label\' => \'A\', \'badge\' => 3]]" />'))->toContain('badge-primary');
 
     foreach (['start', 'center', 'end'] as $horizontal) {

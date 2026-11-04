@@ -37,8 +37,8 @@ $overlayAnim  = match($overlayEffect) { 'fade'=>'opacity-0 group-hover:opacity-1
                     @if(isset($image['description']))
                         <p class="text-white/80 text-sm mb-4 line-clamp-2">{{ $image['description'] }}</p>
                     @endif
-                    @if(isset($image['viewUrl']))
-                        <a href="{{ $image['viewUrl'] }}" class="btn btn-sm btn-outline btn-light">{{ __('View') }}</a>
+                    @if(isset($image['view_url']))
+                        <a href="{{ $image['view_url'] }}" class="btn btn-sm btn-outline btn-light">{{ __('View') }}</a>
                     @endif
                 </div>
             @endif

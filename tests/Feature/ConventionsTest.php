@@ -310,3 +310,19 @@ it('5. never writes the value of size into a class: it always goes through a mat
 
     expect($offenders)->toBe([]);
 });
+
+// ── 2 (second half). Keys of configuration arrays: snake_case ───────────────
+
+it('2. reads the keys of the item arrays in snake_case, as Laravel does', function () {
+    // `$item['badge_color']`, not `$item['badgeColor']`. `$config` is excluded: it is the array that is
+    // handed to the JavaScript, whose keys are camelCase there.
+    $offenders = conventionOffenders(conventionViews(), '/\$(?!config\b)\w+\[\'[a-z]+[A-Z]\w*\'\]/');
+
+    expect($offenders)->toBe([]);
+});
+
+it('2. takes the badge color of a menu item from badge_color, and the line number of a diff change from line_number', function () {
+    expect(Illuminate\Support\Facades\Blade::render('<x-dbl::navigation.menu :items="[[\'label\' => \'A\', \'badge\' => 3, \'badge_color\' => \'error\']]" />'))->toContain('badge-error')
+        ->and(Illuminate\Support\Facades\Blade::render('<x-dbl::display.diff :changes="[[\'type\' => \'add\', \'content\' => \'x\', \'line_number\' => 42]]" />'))->toContain('42')
+        ->and(Illuminate\Support\Facades\Blade::render('<x-dbl::display.hover-gallery :images="[[\'src\' => \'/a.jpg\', \'view_url\' => \'/ver/1\']]" />'))->toContain('/ver/1');
+});
