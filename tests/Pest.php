@@ -38,5 +38,22 @@ function xDataConfig(string $html, string $factory): array
     return json_decode(json_decode('"'.($found[1] ?? '{}').'"'), true, flags: JSON_THROW_ON_ERROR);
 }
 
+/** The source of every view of the package, by path. */
+function viewsOfThePackage(): array
+{
+    $views = [];
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(__DIR__.'/../resources/views'));
+
+    foreach ($files as $file) {
+        if (str_ends_with($file->getFilename(), '.blade.php')) {
+            $views[str_replace(realpath(__DIR__.'/../resources/views').'/', '', $file->getRealPath())] = file_get_contents($file->getRealPath());
+        }
+    }
+
+    ksort($views);
+
+    return $views;
+}
+
 // A browser test that waits for something that never comes must fail in 5 seconds, not in the 30 of the default.
 pest()->browser()->timeout(5000);

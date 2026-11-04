@@ -11,12 +11,16 @@ import { createMapLibreAdapter } from './map/maplibre.js'
 import { createGoogleAdapter } from './map/google.js'
 import { findFeature, boundsOf } from './map/features.js'
 import { request, latestOnly, answerShapes } from '../http.js'
+import { withConfig } from '../factoryConfig.js'
 
 let deps = {}
 
 const emptyCollection = { type: 'FeatureCollection', features: [] }
 
-export const dblMap = (config = {}) => {
+export const dblMap = withConfig({
+    driver: 'maplibre', base: '', center: [0, 0], zoom: 2, layers: [], picker: false, pickerValue: null,
+    geocodeUrl: '', googleKey: '', name: '', fit: false, labels: {},
+}, (config) => {
     // El adaptador y los datos crudos viven en la clausura, fuera del proxy reactivo de Alpine
     // (envolver objetos de MapLibre/Google en un Proxy los rompe).
     let adapter = null
@@ -37,7 +41,7 @@ export const dblMap = (config = {}) => {
         error: '',
 
         async init() {
-            const layers = config.layers ?? []
+            const layers = config.layers
             this.layerState = layers.map((l) => ({
                 id: l.id, label: l.label ?? l.id, color: l.color ?? '#2563eb', icon: l.icon ?? '',
                 cluster: !!l.cluster, loadUrl: l.load_url, visible: true, loading: true,
@@ -170,7 +174,7 @@ export const dblMap = (config = {}) => {
 
         destroy() { adapter?.destroy(); adapter = null },
     }
-}
+})
 
 export function registerMap(Alpine, injected = {}) {
     deps = injected

@@ -1,6 +1,7 @@
 'use strict'
 
 import { request as sendRequest, latestOnly, answerShapes } from '../http.js'
+import { withConfig } from '../factoryConfig.js'
 
 // ── Fechas: funciones puras (se prueban con `node --test`) ─────────────────
 // Los días se manejan como cadenas 'YYYY-MM-DD'. Así no hay zonas horarias de por medio.
@@ -64,9 +65,9 @@ export function groupByDay(events) {
 
 const intlLocale = l => (l === 'ca' ? 'ca-ES' : (l || 'es').replace('_', '-'))
 
-export const dblCalendar = (config = {}, deps = {}) => ({
+export const dblCalendar = withConfig({ loadUrl: '', locale: '', initialDate: '', initialView: '', weekStartsOn: 1 }, (config, deps = {}) => ({
     locale: intlLocale(config.locale),
-    weekStartsOn: config.weekStartsOn ?? 1,
+    weekStartsOn: config.weekStartsOn,
     view: 'month',
     cursor: null,       // primer día del mes que se muestra
     focused: null,      // día con el foco del teclado
@@ -198,7 +199,7 @@ export const dblCalendar = (config = {}, deps = {}) => ({
         this.emit(ev)
         if (ev.url) window.location.href = ev.url
     },
-})
+}))
 
 export function registerCalendar(Alpine, deps = {}) {
     Alpine.data('dblCalendar', config => dblCalendar(config, deps))

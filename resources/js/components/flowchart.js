@@ -3,6 +3,7 @@
 import {
     autoLayout, layoutEdges, boxAt, draftLine, drawingBounds, groupBands, shapePath, snap, clampPos, normalizeShape, sizeOf,
 } from './flowchart/geometry.js'
+import { withConfig } from '../factoryConfig.js'
 import { responder, provisionalEdge, finalizeEdge, samePos } from './flowchart/protocol.js'
 
 // ── Datos: funciones puras (se prueban con `node --test`) ──────────────────
@@ -99,18 +100,18 @@ const DRAG_THRESHOLD = 4   // px que hay que mover antes de que un clic sea un a
 const KEY_STEP = 10        // px por pulsación de flecha; con Shift, un paso de rejilla
 const ARROWS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']
 
-export const dblFlowchart = (config = {}) => ({
+export const dblFlowchart = withConfig({ name: '', editable: false, grid: 0, showMuted: false, fit: false, direction: 'vertical', icons: {}, labels: {}, nodes: [], edges: [] }, (config) => ({
     editable: !!config.editable,
-    name: config.name ?? '',
-    grid: config.grid ?? 0,
+    name: config.name,
+    grid: config.grid,
     showMuted: !!config.showMuted,
     fitOnLoad: !!config.fit,
     zoomed: false,                 // la persona ya tocó el zoom: no se reencuadra sola
     scale: 1,                      // zoom: el lienzo se pinta con `transform: scale()`
     offset: { x: 0, y: 0 },        // px que se corre el dibujo para centrarlo tras encuadrar o hacer zoom (0 al cargar)
     direction: config.direction === 'horizontal' ? 'horizontal' : 'vertical',
-    icons: config.icons ?? {},     // nombre de icono -> SVG ya pintado por el servidor (x-html)
-    labels: config.labels ?? {},
+    icons: config.icons,     // nombre de icono -> SVG ya pintado por el servidor (x-html)
+    labels: config.labels,
 
     nodes: [], edges: [],          // todo lo que mandó el padre (normalizado)
     vNodes: [], vEdges: [],        // lo que se pinta
@@ -449,7 +450,7 @@ export const dblFlowchart = (config = {}) => ({
     onRemoveEdge(detail) { if (this.forMe(detail)) this.removeEdge(detail.id) },
     /** `dbl-flowchart-remove-node` { name, id } */
     onRemoveNode(detail) { if (this.forMe(detail)) this.removeNode(detail.id) },
-})
+}))
 
 export function registerFlowchart(Alpine) {
     Alpine.data('dblFlowchart', config => dblFlowchart(config))

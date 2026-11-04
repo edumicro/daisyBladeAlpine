@@ -1,4 +1,5 @@
 import { request, isCanceled, answerShapes } from '../http.js'
+import { withConfig } from '../factoryConfig.js'
 
 /**
  * dblUpload — subida de ficheros para <x-dbl::form.upload>.
@@ -7,7 +8,7 @@ import { request, isCanceled, answerShapes } from '../http.js'
  * Los existentes nacen 'done'; los nuevos pasan por validar -> subir -> done/error.
  * Contrato del servidor: ver docs/components/upload.md.
  */
-export const dblUpload = (config = {}, deps = {}) => ({
+export const dblUpload = withConfig({ uploadUrl: '', existing: [], multiple: false, accept: '', maxFiles: 0, maxSize: 0, deleteUrl: '', reorderUrl: '', messages: {} }, (config, deps = {}) => ({
     items: [],
     dragging: false,
     status: '',          // texto para el aria-live
@@ -19,7 +20,7 @@ export const dblUpload = (config = {}, deps = {}) => ({
     get http() { return deps.axios ?? globalThis.window?.axios },
 
     init() {
-        this.items = (config.existing ?? []).map(f => this.makeItem({ ...f, status: 'done' }))
+        this.items = config.existing.map(f => this.makeItem({ ...f, status: 'done' }))
     },
 
     makeItem(data) {
@@ -160,7 +161,7 @@ export const dblUpload = (config = {}, deps = {}) => ({
 
     isImage(item) { return !!(item.preview || item.thumb || /\.(png|jpe?g|gif|webp|svg)$/i.test(item.name)) },
     isPdf(item) { return /\.pdf$/i.test(item.name) },
-})
+}))
 
 export function registerUpload(Alpine, deps = {}) {
     Alpine.data('dblUpload', config => dblUpload(config, deps))

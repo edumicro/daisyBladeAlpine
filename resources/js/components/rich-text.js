@@ -12,15 +12,18 @@
  */
 
 import { request, answerShapes } from '../http.js'
+import { withConfig } from '../factoryConfig.js'
 
 // Solo se aceptan enlaces http(s) y mailto. El servidor debe volver a comprobarlo al sanear.
 const SAFE_URL = /^(https?:\/\/|mailto:)/i
 
-export const dblRichText = (config = {}, deps = {}) => {
+export const dblRichText = withConfig({
+    name: '', label: '', placeholder: '', maxLength: 0, minimal: false, uploadUrl: '', labels: {},
+}, (config, deps = {}) => {
     // El editor vive en el cierre, NO en `this`: Alpine envolvería el editor en un Proxy
     // y Tiptap dejaría de funcionar bien.
     let editor = null
-    const labels = config.labels ?? {}
+    const labels = config.labels
 
     return {
         buttons: [],      // se construye una vez en init(), cuando el editor ya existe
@@ -71,7 +74,7 @@ export const dblRichText = (config = {}, deps = {}) => {
 
         // Tells whoever listens above that the content changed, with the name of the field and its HTML.
         announce() {
-            this.$dispatch('dbl-rich-text-changed', { name: config.name ?? '', value: this.$refs.input.value })
+            this.$dispatch('dbl-rich-text-changed', { name: config.name, value: this.$refs.input.value })
         },
 
         // Puts the cursor in the editor. The label of the component calls it when it is pressed (it cannot use `for`:
@@ -161,7 +164,7 @@ export const dblRichText = (config = {}, deps = {}) => {
             editor = null
         },
     }
-}
+})
 
 // Registra el componente Alpine con las dependencias ya inyectadas.
 export function registerRichText(Alpine, deps) {

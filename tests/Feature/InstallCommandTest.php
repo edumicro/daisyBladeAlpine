@@ -46,7 +46,8 @@ it('installs with --vite flag', function () {
     // daisyblade.js imports ./http.js: without it beside it, the published copy cannot even load.
     expect(file_exists(resource_path('js/daisyblade.js')))->toBeTrue()
         ->and(file_exists(resource_path('js/http.js')))->toBeTrue()
-        ->and(file_exists(resource_path('js/modelBinding.js')))->toBeTrue();
+        ->and(file_exists(resource_path('js/modelBinding.js')))->toBeTrue()
+        ->and(file_exists(resource_path('js/factoryConfig.js')))->toBeTrue();
 });
 
 it('installs the components folder too, with the same layout it has in the package', function () {
@@ -98,5 +99,6 @@ it('installs with --public flag', function () {
 
     expect(file_exists(public_path('vendor/daisyblade/daisyblade.js')))->toBeTrue()
         ->and(file_exists(public_path('vendor/daisyblade/http.js')))->toBeTrue()
-        ->and(file_exists(public_path('vendor/daisyblade/modelBinding.js')))->toBeTrue();
+        ->and(file_exists(public_path('vendor/daisyblade/modelBinding.js')))->toBeTrue()
+        ->and(file_exists(public_path('vendor/daisyblade/factoryConfig.js')))->toBeTrue();
 });

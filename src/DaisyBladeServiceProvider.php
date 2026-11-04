@@ -38,12 +38,14 @@ class DaisyBladeServiceProvider extends ServiceProvider
                 __DIR__.'/../config/daisyblade.php' => config_path('daisyblade.php'),
             ], 'daisyblade-config');
 
-            // daisyblade.js imports ./http.js and ./modelBinding.js, and the components import ../http.js: they travel
+            // daisyblade.js imports ./http.js, ./modelBinding.js and ./factoryConfig.js, and the components import ../http.js and
+            // ../factoryConfig.js: they travel
             // together, with the same folders they have in the package.
             $this->publishes([
                 __DIR__.'/../resources/js/daisyblade.js' => public_path('vendor/daisyblade/daisyblade.js'),
                 __DIR__.'/../resources/js/http.js'       => public_path('vendor/daisyblade/http.js'),
                 __DIR__.'/../resources/js/modelBinding.js' => public_path('vendor/daisyblade/modelBinding.js'),
+                __DIR__.'/../resources/js/factoryConfig.js' => public_path('vendor/daisyblade/factoryConfig.js'),
                 __DIR__.'/../resources/js/components'    => public_path('vendor/daisyblade/components'),
             ], 'daisyblade-assets');
 

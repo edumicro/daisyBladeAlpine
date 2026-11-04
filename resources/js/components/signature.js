@@ -7,10 +7,12 @@
 // Alpine: x-data="dblSignature({ required: true })"
 // La vista debe tener un <canvas x-ref="canvas"> y un <input type="hidden" x-ref="input">.
 
+import { withConfig } from '../factoryConfig.js'
+
 const INK = '#111111'        // trazo oscuro...
 const PAPER = '#ffffff'      // ...sobre blanco, también en modo oscuro: el PDF es blanco
 
-const dblSignature = (config = {}, deps = {}) => ({
+const dblSignature = withConfig({ name: '', required: false }, (config, deps = {}) => ({
     pad: null,
     empty: true,
     error: false,
@@ -73,7 +75,7 @@ const dblSignature = (config = {}, deps = {}) => ({
         this.empty = this.pad.isEmpty()
         this.$refs.input.value = this.empty ? '' : this.pad.toDataURL('image/png')
         if (!this.empty) this.error = false
-        if (notify) this.$dispatch(this.empty ? 'dbl-signature-cleared' : 'dbl-signature-signed', { name: config.name ?? '', value: this.$refs.input.value })
+        if (notify) this.$dispatch(this.empty ? 'dbl-signature-cleared' : 'dbl-signature-signed', { name: config.name, value: this.$refs.input.value })
     },
 
     undo() {
@@ -87,7 +89,7 @@ const dblSignature = (config = {}, deps = {}) => ({
         this.pad.clear()
         this.sync(true)
     },
-})
+}))
 
 function registerSignature(Alpine, deps) {
     Alpine.data('dblSignature', (config = {}) => dblSignature(config, deps))

@@ -17,6 +17,7 @@ function cleanInstalledJs(): void
     File::delete(resource_path('js/daisyblade.js'));
     File::delete(resource_path('js/http.js'));
     File::delete(resource_path('js/modelBinding.js'));
+    File::delete(resource_path('js/factoryConfig.js'));
     File::deleteDirectory(public_path('vendor/daisyblade'));
 }
 

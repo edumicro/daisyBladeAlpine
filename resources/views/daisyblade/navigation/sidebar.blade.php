@@ -39,7 +39,7 @@
      el escuchador permitiria cerrarla desde fuera, que es justo lo que esa opcion promete evitar. --}}
 {{-- The root is the caller's element; the scope of the component is the element inside (`contents`: it takes no room of its own). --}}
 <div {{ $attributes }}>
-    <div x-data="dblSidebar()" class="contents">
+    <div x-data="dblSidebar(@js(['collapsible' => (bool) $collapsible]))" class="contents">
 
         @if($collapsible && $floatingToggle)
             {{-- The way back in once it is closed.

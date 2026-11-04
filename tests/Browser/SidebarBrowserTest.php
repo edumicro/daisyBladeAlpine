@@ -43,8 +43,8 @@ it('sidebar collapsible=false: stays open even when dbl_sidebar says false', fun
     $page->script("localStorage.setItem('dbl_sidebar', 'false')");
     $page->refresh();
 
-    expect($page->script(alpineData('[x-data="dblSidebar()"]', 'open')))->toBeTrue();
-})->skip('Pending: ronda3-3x/INFORME.md MEDIA 4 (SB): collapsible=false, the factory never receives the config (cause 7). Activate when fixed.');
+    expect($page->script(alpineData('[x-data^="dblSidebar("]', 'open')))->toBeTrue();
+});
 
 it('sidebar collapsible=false: stays open on a phone-width screen too', function () {
     $page = visit(browserPage('sidebar-not-collapsible-phone', '<x-dbl::navigation.sidebar :collapsible="false"><a href="#x">menu link</a></x-dbl::navigation.sidebar>'));
@@ -52,5 +52,5 @@ it('sidebar collapsible=false: stays open on a phone-width screen too', function
     $page->script("localStorage.removeItem('dbl_sidebar')");
     $page->refresh();
 
-    expect($page->script(alpineData('[x-data="dblSidebar()"]', 'open')))->toBeTrue();
-})->skip('Pending: ronda3-3x/INFORME.md MEDIA 4 (SBM): collapsible=false below 1024px (cause 7). Activate when fixed.');
+    expect($page->script(alpineData('[x-data^="dblSidebar("]', 'open')))->toBeTrue();
+});

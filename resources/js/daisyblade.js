@@ -2,6 +2,7 @@
 
 import { request, joinUrl, latestOnly, answerShapes } from './http.js'
 import { modelBinding, modelOfElement } from './modelBinding.js'
+import { withConfig } from './factoryConfig.js'
 
 // Every server call of this file goes through request() (see http.js): the client injected with
 // registerDaisyBlade(), else window.axios, else fetch.
@@ -49,14 +50,14 @@ const dblModal = () => ({
 })
 
 // The container of the toasts that come from the order `dbl-toast-show` ({ message, type?, duration? }).
-const dblToast = (config = {}) => {
+const dblToast = withConfig({ duration: 4000 }, (config) => {
     let sequence = 0    // ids of the toasts: Date.now() repeats when two arrive in the same millisecond, and removing one removed both
 
     return {
         toasts: [],
         // The order of the window: the duration of the prop is the default of the toasts that do not bring theirs.
         show(detail = {}) {
-            this.add(detail.message, detail.type ?? 'info', detail.duration ?? config.duration ?? 4000)
+            this.add(detail.message, detail.type ?? 'info', detail.duration ?? config.duration)
         },
         add(message, type = 'info', duration = 4000) {
             const id = ++sequence
@@ -67,68 +68,68 @@ const dblToast = (config = {}) => {
             this.toasts = this.toasts.filter(t => t.id !== id)
         },
     }
-}
+})
 
 // One toast that is already in the page (`<x-dbl::feedback.toast message="...">`); it can close itself.
-const dblToastSingle = (config = {}) => ({
+const dblToastSingle = withConfig({ autoClose: false, duration: 4000 }, (config) => ({
     visible: true,
     init() {
-        if (config.autoClose) setTimeout(() => { this.visible = false }, config.duration ?? 4000)
+        if (config.autoClose) setTimeout(() => { this.visible = false }, config.duration)
     },
-})
+}))
 
 // navigation.tabs: tabs whose panels are already in the page. `active` is the index of the open one.
-const dblTabs = (config = {}) => ({
-    active: config.active ?? 0,
+const dblTabs = withConfig({ active: 0 }, (config) => ({
+    active: config.active,
     select(index) { this.active = index },
     isActive(index) { return this.active === index },
-})
+}))
 
 // navigation.steps: the steps with Back / Next. `current` counts from 1.
-const dblSteps = (config = {}) => ({
-    current: config.current ?? 1,
-    total: config.total ?? 0,
+const dblSteps = withConfig({ current: 1, total: 0 }, (config) => ({
+    current: config.current,
+    total: config.total,
     go(step) {
         this.current = step
         this.$dispatch('dbl-steps-step-changed', { step: this.current })
     },
     prev() { if (this.current > 1) this.go(this.current - 1) },
     next() { if (this.current < this.total) this.go(this.current + 1) },
-})
+}))
 
 // display.carousel: one slide visible at a time.
-const dblCarousel = (config = {}) => ({
+const dblCarousel = withConfig({ total: 0 }, (config) => ({
     active: 0,
-    total: config.total ?? 0,
+    total: config.total,
     go(index) { this.active = index },
     prev() { this.active = (this.active - 1 + this.total) % this.total },
     next() { this.active = (this.active + 1) % this.total },
-})
+}))
 
 // display.text-rotate: changes the visible text every `duration` ms when `autoRotate` is on.
-const dblTextRotate = (config = {}) => {
+const dblTextRotate = withConfig({ texts: [], autoRotate: false, duration: 3000 }, (config) => {
     let timer = null    // out of the reactive object: Alpine does not need to watch it
 
     return {
         current: 0,
-        texts: config.texts ?? [],
+        texts: config.texts,
         init() {
-            if (config.autoRotate && this.texts.length > 1) timer = setInterval(() => this.next(), config.duration ?? 3000)
+            if (config.autoRotate && this.texts.length > 1) timer = setInterval(() => this.next(), config.duration)
         },
         next() { this.current = (this.current + 1) % this.texts.length },
         destroy() { clearInterval(timer) },
     }
-}
+})
 
 // form.repeater: a list of rows that the user can add and remove.
 // config: { name, rows, emptyRow, min, max }. Announces `dbl-repeater-changed` { name, rows } after every change.
-const dblRepeater = (config = {}) => ({
-    rows: config.rows ?? [],
+const dblRepeater = withConfig({ name: '', rows: [], emptyRow: {}, min: 0, max: 0 }, (config) => ({
+    rows: config.rows,
     get canRemove() { return !config.min || this.rows.length > config.min },
     get canAdd() { return !config.max || this.rows.length < config.max },
     add() {
         // A copy of the empty row: every new row starts from the defaults of the fields, and none shares an object with another.
-        this.rows.push(JSON.parse(JSON.stringify(config.emptyRow ?? {})))
+        this.rows.push(JSON.parse(JSON.stringify(config.emptyRow)))
         this.notify()
     },
     remove(index) {
@@ -137,16 +138,16 @@ const dblRepeater = (config = {}) => ({
         this.notify()
     },
     notify() { this.$dispatch('dbl-repeater-changed', { name: config.name, rows: this.rows }) },
-})
+}))
 
 // form.select with `searchable`: a text box that filters the options (flat { value: label } or grouped { group: { value: label } }).
 // config: { name, search (the text to show at the start), options }. Announces `dbl-select-changed` { name, value }.
-const dblSelectSearch = (config = {}) => ({
-    search: config.search ?? '',
+const dblSelectSearch = withConfig({ name: '', search: '', chosen: '', options: {} }, (config) => ({
+    search: config.search,
     open: false,
     choosing: false,   // true while choose() writes the label in the text box
 
-    options: config.options ?? {},
+    options: config.options,
     get isGrouped() {
         const first = Object.values(this.options)[0]
         return typeof first === 'object' && first !== null
@@ -181,8 +182,8 @@ const dblSelectSearch = (config = {}) => ({
     get textBox() { return this.$root?.parentElement?.querySelector('input[type="text"]') ?? null },
     // The chosen KEY: what the `x-model` of the caller reads and writes (`x-modelable="chosen"` in the view). '' = nothing chosen.
     // `shown` is the key whose label the text box shows now: when `chosen` is another one, it was changed from outside.
-    chosen: config.chosen ?? '',
-    shown: String(config.chosen ?? ''),
+    chosen: config.chosen,
+    shown: String(config.chosen),
     starting: true,   // true while the page starts: x-modelable copies the model into `chosen` a moment AFTER the first sync()
     init() {
         this.$nextTick(() => { this.starting = false })
@@ -207,7 +208,7 @@ const dblSelectSearch = (config = {}) => ({
     sync() {
         // The rule of modelBinding.js, only while starting: a model with a key wins, an empty one receives the `value` of the view.
         // Later, an empty model is the page resetting the field, and the box must empty.
-        if (this.starting) this.binding.reconcile(config.chosen ?? '')
+        if (this.starting) this.binding.reconcile(config.chosen)
         const key = this.chosen === null || this.chosen === undefined ? '' : String(this.chosen)
         if (key !== this.shown) {
             // Changed from outside (the model): the box shows the label of that key, or nothing.
@@ -233,7 +234,7 @@ const dblSelectSearch = (config = {}) => ({
             this.shown = ''
             this.binding.write('')
             if (this.$refs.value) this.$refs.value.value = ''
-            this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: '' })
+            this.$dispatch('dbl-select-changed', { name: config.name, value: '' })
         }
     },
     // The user chose an option: the model gets its key, the text box shows its label, the hidden input (x-ref="value") gets the key.
@@ -251,16 +252,16 @@ const dblSelectSearch = (config = {}) => ({
             this.choosing = false
         }
         if (this.$refs.value) this.$refs.value.value = item.key
-        this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: item.key })
+        this.$dispatch('dbl-select-changed', { name: config.name, value: item.key })
     },
-})
+}))
 
 // form.textarea with `max-length`: the number of characters typed (the "12/200" of the label).
 // It lives in the label, BESIDE the textarea and not around it, so it cuts no scope of the caller. It finds the textarea in the box
 // of the component. The count comes from the model of the textarea when it has an `x-model` (rule 3 of modelBinding.js: the model
 // changes from outside, a "clear" button, with no `input` event; an edit form starts with text), and from the textarea otherwise.
-const dblCharacterCounter = (config = {}) => ({
-    typed: config.start ?? 0,
+const dblCharacterCounter = withConfig({ start: 0 }, (config) => ({
+    typed: config.start,
     ready: false,   // false until the textarea has started: its x-model does not exist before that, and the effect must run again
     get textarea() { return this.$root.closest('[data-dbl-textarea-box]')?.querySelector('textarea') ?? null },
     init() {
@@ -274,28 +275,30 @@ const dblCharacterCounter = (config = {}) => ({
         const model = modelBinding(modelOfElement(this.textarea))
         this.typed = String(model.current(this.textarea.value) ?? '').length
     },
-})
+}))
 
 // form.select, native mode: announces `dbl-select-changed` { name, value } when its <select> changes. Its scope is a hidden element
 // BESIDE the <select> (never around it, so the `x-ref` and data of the caller stay theirs); the window hears every `change`.
-const dblSelectAnnouncer = (config = {}) => ({
+const dblSelectAnnouncer = withConfig({ name: '' }, (config) => ({
     get field() { return this.$root.parentElement.querySelector('select') },
     announce(event) {
         const field = this.field
         if (event.target !== field) return    // the `change` of any other control of the page
-        this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: field.multiple ? [...field.selectedOptions].map(option => option.value) : field.value })
+        this.$dispatch('dbl-select-changed', { name: config.name, value: field.multiple ? [...field.selectedOptions].map(option => option.value) : field.value })
     },
-})
+}))
 
-const dblNavbar = (config = {}) => ({
+const dblNavbar = () => ({
     open: false,
     toggle() { this.open = !this.open },
     close() { this.open = false },
 })
 
-// navigation.sidebar: open from 1024px up, and it remembers the last choice of the user in localStorage.
-// It takes no configuration: the view passes none.
-const dblSidebar = () => ({
+// navigation.sidebar. Two behaviours, chosen once by `collapsible` (the pattern "strategy": the decision is taken here, not in
+// every method):
+//  - collapsible (the default): open from 1024px up, and it remembers the last choice of the user in localStorage;
+//  - pinned (`collapsible: false`): always open. The methods exist (the view and the window orders call them) and do nothing.
+const collapsibleSidebar = () => ({
     open: window.innerWidth >= 1024,
     init() {
         const saved = readStored(localStorage, 'dbl_sidebar')
@@ -308,7 +311,16 @@ const dblSidebar = () => ({
     close() { this.open = false },
 })
 
-const dblSidebarTree = (config = {}) => ({
+const pinnedSidebar = () => ({
+    open: true,
+    init() {},
+    toggle() {},
+    close() {},
+})
+
+const dblSidebar = withConfig({ collapsible: true }, config => (config.collapsible ? collapsibleSidebar() : pinnedSidebar()))
+
+const dblSidebarTree = () => ({
     expanded: {},
     toggle(key) { this.expanded[key] = !this.expanded[key] },
     isOpen(key) { return !!this.expanded[key] },
@@ -332,11 +344,11 @@ const stillOffered = (selected, options) => selected.filter(text => options.some
  * With `dependsOn` (the `name` of another control) it asks again each time that control changes,
  * sending its value as a param named like the control: `?country_code=ES`.
  */
-const dblSelectRemote = (config = {}) => ({
+const dblSelectRemote = withConfig({ name: '', loadUrl: '', multiple: false, value: null, dependsOn: '', disabled: false, params: {}, messages: {} }, (config) => ({
     options: [],
     loading: false,
     selected: toTexts(config.value),    // what is chosen now, as texts
-    disabled: config.disabled ?? false, // the `disabled` prop
+    disabled: config.disabled,          // the `disabled` prop
     waiting: false,                     // true while the control we depend on is empty
     error: '',                          // message when the options could not be loaded ('' = all fine)
     latest: latestOnly(),               // only the newest request counts (see latestOnly in http.js)
@@ -408,7 +420,7 @@ const dblSelectRemote = (config = {}) => ({
     remember() {
         const values = [...this.field.selectedOptions].map(option => option.value)
         this.selected = toTexts(values)
-        this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: config.multiple ? values : (values[0] ?? '') })
+        this.$dispatch('dbl-select-changed', { name: config.name, value: config.multiple ? values : (values[0] ?? '') })
     },
 
     // The "Retry" button of the error message.
@@ -438,7 +450,7 @@ const dblSelectRemote = (config = {}) => ({
     async loadOptions() {
         this.loading = true
         this.error = ''
-        const params = { ...(config.params ?? {}), ...dependencyParams(config.dependsOn, this.dependencyValue()) }
+        const params = { ...config.params, ...dependencyParams(config.dependsOn, this.dependencyValue()) }
         const outcome = await this.latest.run(async () => {
             if (this.waiting) return []
             const { data } = await http({ url: config.loadUrl, params })
@@ -508,14 +520,14 @@ const dblSelectRemote = (config = {}) => ({
         // The options kept from the server are selected too (they were written selected, but a new choice may have changed that).
         field.querySelectorAll('option[data-initial]').forEach(option => { option.selected = true })
     },
-})
+}), { optional: ['params'] })
 
-const dblResourceDetails = (config = {}) => ({
+const dblResourceDetails = withConfig({ loadUrl: '', fields: [], messages: {} }, (config) => ({
     resource: null, loading: true, error: null,
     latest: latestOnly(),   // refresh() while a load is running: only the newest answer counts
     get displayData() {
         if (!this.resource) return {}
-        if (config.fields?.length) return Object.fromEntries(config.fields.map(k => [k, this.resource[k]]))
+        if (config.fields.length) return Object.fromEntries(config.fields.map(k => [k, this.resource[k]]))
         return this.resource
     },
     async init() { await this.load() },
@@ -536,16 +548,16 @@ const dblResourceDetails = (config = {}) => ({
         }
     },
     refresh() { return this.load() },
-})
+}))
 
-const dblTabsLazy = (config = {}) => {
+const dblTabsLazy = withConfig({ active: 0, tabs: [], messages: {} }, (config) => {
     // One "latest only" per tab: a retry of a tab discards its own old answer, and tabs never discard each other's.
     const latestByTab = {}
     const latestOf = index => (latestByTab[index] ??= latestOnly())
 
     return {
-        active: config.active ?? 0,
-        tabs: config.tabs ?? [],
+        active: config.active,
+        tabs: config.tabs,
         contents: {},
         loading: {},
         errors: {},        // tab index -> message, for the tabs whose content could not be loaded
@@ -575,9 +587,9 @@ const dblTabsLazy = (config = {}) => {
         isLoading(i) { return !!this.loading[i] },
         hasError(i) { return !!this.errors[i] },
     }
-}
+})
 
-const dblSpreadsheetImport = (config = {}) => ({
+const dblSpreadsheetImport = withConfig({ uploadUrl: '', accept: '', chunkSize: 0, messages: {} }, (config) => ({
     // step: 'upload' (choose the file) → 'confirm' (name and size) → 'importing' → 'done' | 'error'
     file: null, step: 'upload',
     progress: 0, loading: false, error: null, result: null,
@@ -607,7 +619,7 @@ const dblSpreadsheetImport = (config = {}) => ({
     },
     // Does the file match `accept` (a list like ".xlsx,.csv,text/csv,image/*")? Without `accept`, anything goes.
     accepts(file) {
-        const wanted = String(config.accept ?? '').split(',').map(token => token.trim().toLowerCase()).filter(Boolean)
+        const wanted = String(config.accept).split(',').map(token => token.trim().toLowerCase()).filter(Boolean)
         if (wanted.length === 0) return true
         const name = String(file.name ?? '').toLowerCase()
         const type = String(file.type ?? '').toLowerCase()
@@ -640,9 +652,9 @@ const dblSpreadsheetImport = (config = {}) => ({
             this.error = e.response?.data?.message ?? messageOf(config, 'uploadFailed', 'Upload failed'); this.step = 'error'
         } finally { this.loading = false }
     },
-})
+}))
 
-const dblDataTable = (config = {}) => ({
+const dblDataTable = withConfig({ loadUrl: '', params: {}, messages: {} }, (config) => ({
     rows: [], meta: {}, loading: true,
     error: '',          // message when the rows could not be loaded ('' = all fine)
     latest: latestOnly(),   // only the newest load() counts (see latestOnly in http.js)
@@ -651,7 +663,7 @@ const dblDataTable = (config = {}) => ({
     // (applyFilters / clearFilters below) change `params`, which must exist in the Alpine data scope.
     // Reading config.params directly meant those handlers threw a ReferenceError and the filter
     // bar silently did nothing.
-    params: { ...(config.params ?? {}) },
+    params: { ...config.params },
     filterKeys: [],     // the params that came from a filter bar, so that changing or clearing the filters removes them
     async init() { await this.load() },
     async load() {
@@ -707,7 +719,7 @@ const dblDataTable = (config = {}) => ({
     // Remove the params the filters added. If one had the name of a fixed param (the `params` prop),
     // that fixed value comes back instead of disappearing.
     dropFilters() {
-        const fixed = config.params ?? {}
+        const fixed = config.params
         for (const key of this.filterKeys) {
             if (key in fixed) this.params[key] = fixed[key]
             else delete this.params[key]
@@ -720,10 +732,10 @@ const dblDataTable = (config = {}) => ({
         this.page = 1; this.load()
     },
     goTo(p) { this.page = p; this.load() },
-})
+}))
 
-const dblAutoForm = (config = {}) => ({
-    values: config.values ?? {},
+const dblAutoForm = withConfig({ submitUrl: '', method: 'POST', values: {}, onSuccess: null, messages: {} }, (config) => ({
+    values: config.values,
     errors: {},
     globalError: '',
     success: false,
@@ -733,7 +745,7 @@ const dblAutoForm = (config = {}) => ({
         try {
             // A redirect or an HTML answer is not a success (an expired session, or an empty `submit-url` that posts to the
             // current page): http.js fails them as a contract error, and "Saved!" is never shown. A 204 is accepted.
-            const { data: answer } = await http({ method: config.method ?? 'POST', url: config.submitUrl, data: this.values, answer: 'json-or-empty' })
+            const { data: answer } = await http({ method: config.method, url: config.submitUrl, data: this.values, answer: 'json-or-empty' })
             const data = answerShapes.formAnswer(answer, config.submitUrl)
             this.success = true
             if (data.redirect) window.location.href = data.redirect
@@ -750,13 +762,13 @@ const dblAutoForm = (config = {}) => ({
     hasError(field) { return !!this.errors[field] },
     firstError(field) { return this.errors[field]?.[0] ?? '' },
     reset() { this.errors = {}; this.globalError = ''; this.success = false },
-})
+}), { optional: ['onSuccess'] })
 
-const dblWizard = (config = {}) => {
-    const key = `dbl_wizard_${config.userId ?? 'guest'}_${config.formId ?? 'wizard'}_v${config.schemaVersion ?? 1}`
+const dblWizard = withConfig({ submitUrl: '', method: 'POST', values: {}, userId: 'guest', formId: 'wizard', schemaVersion: 1, onSuccess: null, messages: {} }, (config) => {
+    const key = `dbl_wizard_${config.userId}_${config.formId}_v${config.schemaVersion}`
     return {
         // The values the Blade gives (`config.values`, those of all the steps) are the starting point of the form...
-        step: 0, data: { ...(config.values ?? {}) }, errors: {}, globalError: '', loading: false,
+        step: 0, data: { ...config.values }, errors: {}, globalError: '', loading: false,
         init() {
             const saved = readStored(localStorage, key)
             // ...and the progress saved for this same wizard goes on top of them: what the user typed is not lost.
@@ -770,7 +782,7 @@ const dblWizard = (config = {}) => {
             this.loading = true; this.errors = {}; this.globalError = ''
             try {
                 // A redirect or an HTML answer (the login page) is a failure: the saved progress must stay.
-                const { data: answer } = await http({ method: config.method ?? 'POST', url: config.submitUrl, data: this.data, answer: 'json-or-empty' })
+                const { data: answer } = await http({ method: config.method, url: config.submitUrl, data: this.data, answer: 'json-or-empty' })
                 const data = answerShapes.formAnswer(answer, config.submitUrl)
                 this.clear()
                 if (data.redirect) window.location.href = data.redirect
@@ -785,10 +797,10 @@ const dblWizard = (config = {}) => {
             } finally { this.loading = false }
         },
     }
-}
+}, { optional: ['onSuccess'] })
 
-const dblKvEditor = (config = {}) => ({
-    rows: (config.rows ?? []).map((r, i) => ({ ...r, id: i })),
+const dblKvEditor = withConfig({ rows: [] }, (config) => ({
+    rows: config.rows.map((r, i) => ({ ...r, id: i })),
 
     init() {
         if (this.rows.length === 0) this.addRow()
@@ -832,10 +844,10 @@ const dblKvEditor = (config = {}) => ({
         }
         return JSON.stringify(obj)
     },
-})
+}))
 
-const dblListEditor = (config = {}) => ({
-    items: config.items ?? [],
+const dblListEditor = withConfig({ items: [] }, (config) => ({
+    items: config.items,
     draft: '',
 
     add() {
@@ -852,7 +864,7 @@ const dblListEditor = (config = {}) => ({
     },
 
     toJson() { return JSON.stringify(this.items) },
-})
+}))
 
 // ── Registration ───────────────────────────────────────────────────────────
 

@@ -19,23 +19,6 @@
  *      component (upload zone, signature pad, editor box).
  */
 
-/** The source of every view of the package, by path. */
-function viewsOfThePackage(): array
-{
-    $views = [];
-    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(__DIR__.'/../../resources/views'));
-
-    foreach ($files as $file) {
-        if (str_ends_with($file->getFilename(), '.blade.php')) {
-            $views[str_replace(realpath(__DIR__.'/../../resources/views').'/', '', $file->getRealPath())] = file_get_contents($file->getRealPath());
-        }
-    }
-
-    ksort($views);
-
-    return $views;
-}
-
 /**
  * The opening tags of a view that are plain HTML (not `<x-...>` Blade components), as [tag name, source of the tag, line].
  * A tag ends at the first `>` that is not inside a quoted value, a `{{ }}` or the parentheses of a Blade directive.

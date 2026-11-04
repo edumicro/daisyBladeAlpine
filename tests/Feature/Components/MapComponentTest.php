@@ -32,7 +32,7 @@ it('map passes props through as config', function () {
         ->and($c['center'])->toBe([39.42, -0.38])
         ->and($c['zoom'])->toEqual(12)
         ->and($c['googleKey'])->toBe('K')
-        ->and($c['filters'])->toBe(['layers' => true, 'categories' => false])
+        ->and($c)->not->toHaveKey('filters')   // which panels are drawn is PHP only
         ->and($c['layers'][0])->toMatchArray(['id' => 'ent', 'load_url' => '/ent.geojson', 'cluster' => true])
         ->and($html)->toContain('height: 30rem');
 });

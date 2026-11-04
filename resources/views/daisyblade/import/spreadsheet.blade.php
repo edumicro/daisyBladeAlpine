@@ -23,7 +23,6 @@
 
 $config = [
     'uploadUrl'   => $uploadUrl,
-    'templateUrl' => $templateUrl,
     'chunkSize'   => (int) $chunkSize,
     'accept'      => $accept,   // the drop zone filters by it too
     'messages'    => ['uploadFailed' => __('Upload failed'), 'wrongType' => __('This file type is not accepted')],

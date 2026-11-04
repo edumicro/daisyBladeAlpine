@@ -40,6 +40,8 @@
 @php
     $filters = is_array($filters) ? $filters : ['layers' => (bool) $filters, 'categories' => (bool) $filters];
     $height = preg_match('/^\d+(\.\d+)?(px|rem|em|vh|%)$/', (string) $height) ? $height : '24rem';
+    // Which filter panels are drawn: PHP only, the factory does not need it.
+    $showFilters = ['layers' => (bool) ($filters['layers'] ?? true), 'categories' => (bool) ($filters['categories'] ?? true)];
     $hasValue = is_array($pickerValue) && count($pickerValue) === 2 && is_numeric($pickerValue[0]) && is_numeric($pickerValue[1]);
 
     $config = [
@@ -48,7 +50,6 @@
         'center'      => array_map('floatval', array_values($center)),
         'zoom'        => (float) $zoom,
         'layers'      => array_values($layers),
-        'filters'     => ['layers' => (bool) ($filters['layers'] ?? true), 'categories' => (bool) ($filters['categories'] ?? true)],
         'picker'      => (bool) $picker,
         'pickerValue' => $hasValue ? [(float) $pickerValue[0], (float) $pickerValue[1]] : null,
         'geocodeUrl'  => (string) $geocodeUrl,
@@ -85,12 +86,12 @@
             <p class="text-sm" x-show="results.length === 0 && searched" x-cloak>{{ __('daisyblade::map.no_results') }}</p>
         @endif
 
-        @if($config['filters']['layers'] || $config['filters']['categories'])
+        @if($showFilters['layers'] || $showFilters['categories'])
             <details class="collapse collapse-arrow border border-base-300 bg-base-100"
                      x-show="layerState.length > 1 || categories.length" x-cloak>
                 <summary class="collapse-title text-sm font-medium">{{ __('daisyblade::map.filters') }}</summary>
                 <div class="collapse-content flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                    @if($config['filters']['layers'])
+                    @if($showFilters['layers'])
                         <fieldset class="flex flex-wrap gap-x-4 gap-y-2" x-show="layerState.length > 1">
                             <legend class="sr-only">{{ __('daisyblade::map.layers') }}</legend>
                             <template x-for="l in layerState" :key="l.id">
@@ -104,7 +105,7 @@
                             </template>
                         </fieldset>
                     @endif
-                    @if($config['filters']['categories'])
+                    @if($showFilters['categories'])
                         <fieldset class="flex flex-wrap gap-x-4 gap-y-2" x-show="categories.length" x-cloak>
                             <legend class="sr-only">{{ __('daisyblade::map.categories') }}</legend>
                             <template x-for="c in categories" :key="c.value">

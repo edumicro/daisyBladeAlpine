@@ -28,10 +28,10 @@
                         <span x-show="$root.closest('aside')?.__x?.$data?.open ?? true" class="flex-1 text-left truncate">
                             {{ __($item['label'] ?? '') }}
                         </span>
-                        <x-heroicon-o-chevron-right
-                            class="w-4 h-4 shrink-0 transition-transform duration-200"
-                            ::class="{ 'rotate-90': isOpen(@js($nodeKey)) }"
-                        />
+                        {{-- In a <span> and not on the icon: `@js()` inside the tag of a Blade component would not see the variables of this view. --}}
+                        <span class="shrink-0 transition-transform duration-200" :class="{ 'rotate-90': isOpen(@js($nodeKey)) }">
+                            <x-heroicon-o-chevron-right class="w-4 h-4" />
+                        </span>
                     </button>
                     <ul x-show="isOpen(@js($nodeKey))" x-cloak>
                         @foreach($item['children'] as $child)
