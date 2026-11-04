@@ -135,7 +135,7 @@ window.dispatchEvent(new CustomEvent('dbl-flowchart', { detail: { name: 'flujo',
 - **Flechas**: con punta, salen y llegan al borde de la caja. Varias entre el mismo par, y la ida y vuelta, se reparten en curvas separadas, con etiquetas que no se pisan. Una flecha de un nodo a sí mismo es un bucle bajo la caja.
 - **Teclado**: Tab recorre cajas y flechas; Enter (o Espacio) dispara el clic. Con `editable`, las flechas del teclado mueven la caja seleccionada 10 px (con Shift, un paso de `grid`, o 20 px si no hay rejilla) y **al soltar la tecla** se emite `node-move`. Cajas y flechas llevan `aria-label`.
 - **Tema**: usa las variables de color de DaisyUI (`--color-base-100`, `--color-primary`, ...), así que sigue el tema claro u oscuro. Funciona a 390 px de ancho: el lienzo hace scroll dentro, no la página.
-- El lienzo no tiene coordenadas negativas: las cajas no se pueden arrastrar más allá del borde superior o izquierdo.
+- El lienzo no tiene coordenadas negativas: las cajas no se pueden arrastrar más allá del borde superior o izquierdo, y una `x` o `y` negativa que mande el padre se lleva a 0.
 
 ## Slots
 
