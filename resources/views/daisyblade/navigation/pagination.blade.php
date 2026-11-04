@@ -30,7 +30,8 @@ if ($showFirstLast && $current < ($last - $window - 1)) {
 $pageUrl = fn(int $p) => $baseUrl ? ($baseUrl . (str_contains($baseUrl, '?') ? '&' : '?') . 'page=' . $p) : '#';
 @endphp
 
-<div {{ $attributes->merge(['class' => 'flex flex-col gap-4']) }}>
+{{-- `x-data` makes the root an Alpine scope of its own, so `$dispatch` in the buttons works outside any other scope (layout.app has none). --}}
+<div x-data {{ $attributes->merge(['class' => 'flex flex-col gap-4']) }}>
     @if($total > 0)
         <div class="text-sm text-base-content/70 text-center">
             {{ __('Showing') }}

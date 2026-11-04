@@ -47,7 +47,7 @@ Respuesta 2xx:
 { "id": 12, "name": "acta.pdf", "url": "/storage/acta.pdf", "thumb": "/storage/acta_t.jpg", "size": 48213 }
 ```
 
-`thumb` es opcional; `size` en bytes. `id` es lo que viaja en `name[]`.
+`thumb` es opcional; `size` en bytes. `id` es lo que viaja en `name[]`. `id` es obligatorio: una respuesta 2xx sin él (un 204, `{}`) o que no sea JSON (un texto, la página de login de una sesión caducada) cuenta como fallo y el fichero queda con error.
 
 **Errores** — un 422 de Laravel se muestra en el fichero que falló (primer mensaje de `errors`, o `message`):
 

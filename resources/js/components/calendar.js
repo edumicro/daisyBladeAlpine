@@ -1,6 +1,6 @@
 'use strict'
 
-import { request as sendRequest } from '../http.js'
+import { request as sendRequest, expectJson } from '../http.js'
 
 // ── Fechas: funciones puras (se prueban con `node --test`) ─────────────────
 // Los días se manejan como cadenas 'YYYY-MM-DD'. Así no hay zonas horarias de por medio.
@@ -132,6 +132,7 @@ export const dblCalendar = (config = {}, deps = {}) => ({
         this.loading = true
         try {
             const data = await this.request(config.loadUrl, { start, end })
+            expectJson(data)    // an HTML answer (the login page of an expired session) is an error, not an empty month that gets cached
             this.cache[key] = Array.isArray(data) ? data : (data.data ?? [])
             // Si el usuario ya se movió a otro mes mientras llegaba, no pisamos la pantalla.
             if (key === this.currentKey()) this.setEvents(this.cache[key])

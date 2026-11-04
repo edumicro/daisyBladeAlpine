@@ -26,6 +26,7 @@
                 type="button"
                 class="btn btn-ghost lg:hidden"
                 @click="toggle()"
+                aria-label="{{ __('Menu') }}"
                 :aria-expanded="open"
             >
                 <x-heroicon-o-bars-3 class="w-6 h-6" />

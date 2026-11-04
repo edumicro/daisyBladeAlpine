@@ -105,12 +105,17 @@ $controlId = $attributes->get('id', $name ?: null);
                  `input` bubbles up to here, and so does `focusin` (`focus` does not). The text is written from the box
                  around it (the x-effect), not with :value nor x-model. The model of the caller holds the chosen KEY
                  (`''` while nothing is chosen, as a native <select>), and the text box shows its label. --}}
+            {{-- Escape closes the list. The `input` stops here (the x-model of the box above would take the typed text as the key)
+                 and typed() / choose() send the form a new one that carries the chosen key. --}}
             <div class="relative" x-on:input.stop="typed($event.target.value)" x-on:focusin="open = true"
+                 x-on:keydown.escape="open = false"
                  x-effect="sync()">
                 <input
                     type="text"
                     value="{{ $selectedLabel }}"
                     placeholder="{{ $placeholder ?: __('Search...') }}"
+                    @if($disabled) disabled @endif
+                    @if($required) required @endif
                     {{ $boxAttributes->merge(['id' => $controlId, 'class' => "input w-full {$sizeClass}"]) }}
                 />
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/40">
@@ -143,7 +148,7 @@ $controlId = $attributes->get('id', $name ?: null);
             </div>
 
             @if($name)
-                <input type="hidden" x-ref="value" name="{{ $name }}" value="{{ $selected[0] ?? '' }}" />
+                <input type="hidden" x-ref="value" name="{{ $name }}" value="{{ $selected[0] ?? '' }}" @if($disabled) disabled @endif />
             @endif
         </div>
     @else

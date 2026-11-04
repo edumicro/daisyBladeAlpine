@@ -33,7 +33,9 @@ $badgeClass = fn ($color) => match($color) {
 };
 @endphp
 
+{{-- `x-data` makes the root an Alpine scope of its own, so the `$dispatch` of an item with `action` works outside any other scope. --}}
 <ul
+    x-data
     {{ $attributes->merge(['class' => trim("menu {$sizeClass} {$dirClass} " . ($fullWidth ? 'w-full ' : '') . (!$compact ? 'bg-base-100 rounded-lg' : ''))]) }}
 >
     @foreach($items as $item)

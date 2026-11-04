@@ -10,7 +10,7 @@
 import { createMapLibreAdapter } from './map/maplibre.js'
 import { createGoogleAdapter } from './map/google.js'
 import { findFeature, boundsOf } from './map/features.js'
-import { request } from '../http.js'
+import { request, expectJson } from '../http.js'
 
 let deps = {}
 
@@ -100,6 +100,7 @@ export const dblMap = (config = {}) => {
                 // Una capa propia usa la escalera de http.js (axios inyectado, window.axios o fetch);
                 // una capa de otro dominio va siempre por fetch y sin cabeceras de Laravel.
                 const { data } = await request({ url: l.loadUrl, headers: { Accept: 'application/geo+json, application/json' } }, deps)
+                expectJson(data)    // an HTML answer (the login page) is a failed layer, not an empty one without a warning
                 raw[l.id] = data
             } catch {
                 raw[l.id] = emptyCollection
@@ -150,6 +151,7 @@ export const dblMap = (config = {}) => {
             this.error = ''
             try {
                 const { data } = await request({ url: config.geocodeUrl, params: { q } }, deps)
+                expectJson(data)    // an HTML answer (the login page) is `search_failed`, not "no results"
                 this.results = data.data ?? []
             } catch {
                 this.results = []

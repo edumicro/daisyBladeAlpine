@@ -41,10 +41,10 @@ $typeClass = match($type) {
         x-data="dblToastSingle(@js(['duration' => (int) $duration, 'autoClose' => (bool) $autoClose]))"
         {{ $attributes->merge(['class' => "toast {$verticalClass} {$positionClass} z-50"]) }}
     >
-        <div class="alert {{ $typeClass }}" x-effect="$root.style.display = visible ? '' : 'none'">
+        <div class="alert {{ $typeClass }}" x-effect="if (!visible) $root.style.display = 'none'">  {{-- only closing writes `display`: the caller's own `display:none` is not wiped at the start --}}
             <span>{{ $message }}</span>
             @if($closable)
-                <button type="button" @click="visible = false" class="btn btn-ghost btn-xs">✕</button>
+                <button type="button" @click="visible = false" class="btn btn-ghost btn-xs" aria-label="{{ __('Close') }}">✕</button>
             @endif
         </div>
     </div>
@@ -74,7 +74,7 @@ $typeClass = match($type) {
                 x-transition:leave-end="opacity-0"
             >
                 <span x-text="toast.message"></span>
-                <button type="button" class="btn btn-ghost btn-xs" @click="remove(toast.id)">✕</button>
+                <button type="button" class="btn btn-ghost btn-xs" aria-label="{{ __('Close') }}" @click="remove(toast.id)">✕</button>
             </div>
         </template>
     </div>

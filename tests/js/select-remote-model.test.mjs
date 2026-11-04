@@ -109,3 +109,35 @@ test('a model that is undefined does not clear the value prop', async () => {
 
     assert.deepEqual(chosen(field), ['2'])
 })
+
+// An edit form of a `multiple` select: the model starts as an empty LIST and the view wrote value=['1','2'].
+test('a multiple <select> with an EMPTY LIST in the model keeps the value prop', async () => {
+    pageWithAxios(OPTIONS)
+    const { select, field } = selectWithModel({ loadUrl: '/options', name: 'city', multiple: true, value: ['1', '2'] }, { value: [] })
+
+    await select.init()
+
+    assert.deepEqual(select.selected, ['1', '2'])
+    assert.deepEqual(chosen(field), ['1', '2'])
+})
+
+// The select shows "Two" (from the value prop) but the model stayed '': a form that sends the model sent an empty value.
+test('an empty model receives the value prop that the select shows', async () => {
+    pageWithAxios(OPTIONS)
+    const model = { value: '' }
+    const { select } = selectWithModel({ loadUrl: '/options', name: 'city', value: '2' }, model)
+
+    await select.init()
+
+    assert.equal(model.value, '2')
+})
+
+test('an empty model of a multiple select receives the list that the select shows', async () => {
+    pageWithAxios(OPTIONS)
+    const model = { value: [] }
+    const { select } = selectWithModel({ loadUrl: '/options', name: 'city', multiple: true, value: ['1', '2'] }, model)
+
+    await select.init()
+
+    assert.deepEqual(model.value, ['1', '2'])
+})

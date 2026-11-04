@@ -27,7 +27,8 @@ $iconSizeClass = match($iconSize) {
 $dirClass = $direction === 'vertical' ? 'flex-col' : 'flex-row';
 @endphp
 
-<div {{ $attributes->merge(['class' => "fixed {$posClass} p-4 z-40"]) }}>
+{{-- `x-data` makes the root an Alpine scope of its own, so the `$dispatch` of an item with `action` works outside any other scope. --}}
+<div x-data {{ $attributes->merge(['class' => "fixed {$posClass} p-4 z-40"]) }}>
     <div class="flex {{ $dirClass }} gap-2 bg-base-100 shadow-2xl rounded-full p-3 backdrop-blur-sm border border-base-300 {{ $barClass }}">
         @foreach($items as $item)
             <div class="relative group">

@@ -12,7 +12,7 @@ function searchableWithBox(config = {}) {
     const announced = []
     const box = { value: '', dispatchEvent: event => { inputEvents.push([event.type, box.value]); select.typed(box.value) } }
     const select = Object.assign(dblSelectSearch({ name: 'city', options: { 1: 'One', 2: 'Two' }, ...config }), {
-        $root: { querySelector: () => box },
+        $root: { querySelector: () => box, dispatchEvent() {} },
         $refs: { value: { value: '' } },
         $dispatch: (name, detail) => announced.push([name, detail]),
     })
@@ -146,4 +146,18 @@ test('a model that holds a key at the start wins over the value of the view', ()
 
     assert.equal(select.chosen, '1')
     assert.equal(box.value, 'One')
+})
+
+// The native `input` of the text box is stopped at the box around it (the x-model would take the typed text as the key),
+// so a form that listens to `input` (autosave, "dirty") hears a new one, sent from the parent of the select (not through the x-model).
+test('typing and choosing tell the form with an `input`', () => {
+    const { select } = searchableWithBox()
+    const sent = []
+    select.$root.parentElement = { dispatchEvent: event => sent.push([event.type, event.bubbles]) }
+
+    select.typed('On')
+    select.choose({ key: '1', label: 'One' })
+
+    assert.deepEqual(sent.at(-1), ['input', true])
+    assert.equal(sent.length, 2)   // once for typing, once for choosing (not a third one from the synthetic input of choose())
 })

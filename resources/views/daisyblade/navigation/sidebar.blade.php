@@ -75,6 +75,8 @@
     <aside
         @if($collapsible) @dbl-sidebar-toggle.window="toggle()" @endif
         :class="open ? 'translate-x-0' : '-translate-x-full lg:hidden'"
+        {{-- Closed, the panel is only moved out of the screen: `inert` also takes its links out of the keyboard order. --}}
+        :inert="!open"
         class="w-64 shrink-0 fixed lg:static inset-y-0 left-0 z-40 min-h-screen bg-base-200 transition-transform duration-300 flex flex-col overflow-hidden {{ $asideClass }}"
     >
         @if($collapsible)

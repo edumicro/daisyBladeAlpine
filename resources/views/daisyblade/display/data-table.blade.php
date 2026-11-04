@@ -5,6 +5,9 @@
                        { data: [...rows], meta: { current_page, last_page, total, per_page } }
     @prop columns   — [ ['key'=>'name', 'label'=>'Name', 'sortable'=>true] ]
     @prop filters   — filters config forwarded to <x-dbl::form.filters> (optional)
+    @prop externalFilters — true when a <x-dbl::form.filters> placed ELSEWHERE in the page filters this table: the table
+                      then listens to the window. Without it (and without `filters`) the table listens to no filters at all,
+                      so it is never reloaded with the filters of another table.
     @prop params    — extra static query params merged on every request
     @prop searchable — show global search input
     @prop perPage   — default page size
@@ -33,6 +36,7 @@
     'loadUrl'        => '',
     'columns'        => [],
     'filters'        => [],
+    'externalFilters' => false,
     'params'         => [],
     'searchable'     => true,
     'perPage'        => 15,
@@ -59,13 +63,13 @@ $config = [
     {{-- Header. form.filters announces two events, and the table listens to nothing else. They are not on the root, which
          takes the attributes of the caller (a `@dbl-filters-applied.window` of theirs would be a second one).
          With the `filters` prop the panel is INSIDE this header, so the events reach it by rising: no `.window`, which
-         would also answer to the filters of every other table on the page. Without it, the filters are somewhere else
-         in the page and the table listens on the window. --}}
+         would also answer to the filters of every other table on the page. The window is listened to only when the
+         caller says so with `external-filters` (its panel is somewhere else in the page). With neither, no filters are heard. --}}
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4"
         @if(!empty($filters))
             @dbl-filters-applied="applyFilters($event.detail.filters)"
             @dbl-filters-cleared="clearFilters()"
-        @else
+        @elseif($externalFilters)
             @dbl-filters-applied.window="applyFilters($event.detail.filters)"
             @dbl-filters-cleared.window="clearFilters()"
         @endif

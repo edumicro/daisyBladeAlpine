@@ -1,6 +1,6 @@
 'use strict'
 
-import { request, joinUrl, expectJson } from './http.js'
+import { request, joinUrl, expectJson, rejectHtmlPage } from './http.js'
 
 // Every server call of this file goes through request() (see http.js): the client injected with
 // registerDaisyBlade(), else window.axios, else fetch.
@@ -38,9 +38,13 @@ const readStored = (storage, key) => {
 // actions.modal: closed at the start; it opens with `dbl-modal-open` (see the view). It takes no configuration.
 const dblModal = () => ({
     open: false,
-    show() { this.open = true },
+    // Opening moves the focus into the dialog (its panel, `x-ref="panel"`), so a keyboard user does not stay behind it.
+    show() {
+        this.open = true
+        this.$nextTick?.(() => this.$refs?.panel?.focus())
+    },
     hide() { this.open = false },
-    toggle() { this.open = !this.open },
+    toggle() { this.open ? this.hide() : this.show() },
 })
 
 // The container of the toasts that come from the order `dbl-toast-show` ({ message, type?, duration? }).
@@ -216,6 +220,14 @@ const dblSelectSearch = (config = {}) => ({
             if (this.$refs.value) this.$refs.value.value = ''
             this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: '' })
         }
+        this.tellTheForm()
+    },
+    // The native `input` of the text box is stopped at the box around it (otherwise the `x-model` of this scope, which also
+    // listens to `input`, would take the TYPED TEXT as the model). A form that listens to `input` (autosave, "dirty") would
+    // hear nothing, so this sends it a new `input` from the PARENT of the scope's element: it rises from there to the form,
+    // and it never passes through the element that holds the `x-model`.
+    tellTheForm() {
+        this.$root?.parentElement?.dispatchEvent(new Event('input', { bubbles: true }))
     },
     // The user chose an option: the model gets its key, the text box shows its label, the hidden input (x-ref="value") gets the key.
     choose(item) {
@@ -233,6 +245,7 @@ const dblSelectSearch = (config = {}) => ({
         }
         if (this.$refs.value) this.$refs.value.value = item.key
         this.$dispatch('dbl-select-changed', { name: config.name ?? '', value: item.key })
+        this.tellTheForm()
     },
 })
 
@@ -411,7 +424,7 @@ const dblSelectRemote = (config = {}) => ({
     // appear. So the first application, which ran before our options existed, found none and chose nothing, and nobody
     // applies it again once they arrive. The model is the truth of an input that has `x-model`, so we take what it holds
     // as what is chosen, and showOptions() marks that one. An EMPTY model (null or '') is "nothing typed yet", not a choice: an edit
-    // form that starts its model empty keeps the `value` the view wrote (the saved one), as in 2.4.0.
+    // form that starts its model empty (null, '' or an empty list) keeps the `value` the view wrote (the saved one), as in 2.4.0.
     //
     // Alpine has no public way to read the model of an element: `Alpine.evaluate()` needs the TEXT of the expression, and
     // getting it means parsing the attribute by hand (`x-model`, `x-model.number`, `x-model.debounce.500ms`...), which misses
@@ -421,7 +434,11 @@ const dblSelectRemote = (config = {}) => ({
     // as it did before this fix.
     takeModel() {
         const model = this.field._x_model?.get()
-        if (model !== undefined && model !== null && model !== '') this.selected = toTexts(model)
+        const modelIsEmpty = model === undefined || model === null || model === '' || (Array.isArray(model) && model.length === 0)
+        if (!modelIsEmpty) this.selected = toTexts(model)
+        // An empty model with a `value` shown (an edit form): the model receives what the select shows, as the searchable one does,
+        // so a form that sends the model does not send an empty one.
+        else if (this.field._x_model && this.selected.length) this.field._x_model.set(config.multiple ? [...this.selected] : this.selected[0])
     },
 
     // Write `options` as <option>s of the <select>, marking the ones in `selected`.
@@ -502,12 +519,40 @@ const dblSpreadsheetImport = (config = {}) => ({
     file: null, step: 'upload',
     progress: 0, loading: false, error: null, result: null,
     // The browser does not read the file (an .xlsx needs a library to be opened), so there is no preview of its rows.
-    handleFile(event) { this.choose(event.target.files[0]) },
-    handleDrop(event) { this.choose(event.dataTransfer.files[0]) },
+    handleFile(event) {
+        const file = event.target.files[0]
+        // The <input type=file> keeps its value: choosing the SAME path again (the file fixed on disk after an error, or after
+        // "Cancel") would fire no `change`. So it is emptied once the file is taken (the File object stays valid).
+        event.target.value = ''
+        this.choose(file)
+    },
+    // A file DROPPED on the zone does not go through the filter of the file dialog (`accept` of the <input>), so it is checked here.
+    handleDrop(event) {
+        const file = event.dataTransfer.files[0]
+        if (file && !this.accepts(file)) {
+            this.refusal = messageOf(config, 'wrongType', 'This file type is not accepted')
+            return
+        }
+        this.choose(file)
+    },
+    refusal: '',   // the message when the dropped file is not of an accepted type ('' = none)
     choose(file) {
         if (!file) return
+        this.refusal = ''
         this.file = file
         this.step = 'confirm'
+    },
+    // Does the file match `accept` (a list like ".xlsx,.csv,text/csv,image/*")? Without `accept`, anything goes.
+    accepts(file) {
+        const wanted = String(config.accept ?? '').split(',').map(token => token.trim().toLowerCase()).filter(Boolean)
+        if (wanted.length === 0) return true
+        const name = String(file.name ?? '').toLowerCase()
+        const type = String(file.type ?? '').toLowerCase()
+        return wanted.some(token => {
+            if (token.startsWith('.')) return name.endsWith(token)                       // an extension
+            if (token.endsWith('/*')) return type.startsWith(token.slice(0, -1))        // a family: image/*
+            return type === token                                                       // an exact type
+        })
     },
     // "12 KB" / "1.4 MB": what the confirmation step shows next to the name.
     get fileSizeText() {
@@ -527,7 +572,10 @@ const dblSpreadsheetImport = (config = {}) => ({
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: e => { this.progress = e.total ? Math.round(e.loaded * 100 / e.total) : 50 },
             })
-            expectJson(data)    // an HTML answer (the login page of an expired session) is a failure, not "Import complete"
+            // Only an HTML PAGE (the login page of an expired session) is a failure. The answer need not be JSON (the view reads
+            // `imported` from it if there is one), and the rows ARE imported when the server answers "OK": calling that an
+            // error would make the user retry and import them twice.
+            rejectHtmlPage(data)
             this.result = data; this.step = 'done'
         } catch (e) {
             this.error = e.response?.data?.message ?? messageOf(config, 'uploadFailed', 'Upload failed'); this.step = 'error'

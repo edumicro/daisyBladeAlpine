@@ -6,6 +6,8 @@
 ])
 
 @php
+// The id the dialog is named by (its title). Without an `id` of the caller there is no title either to point at, unless it has one.
+$titleId = ($id ?: 'dbl-modal-'.\Illuminate\Support\Str::random(6)).'-title';
 $sizeClass = match($size) {
     'xs'   => 'max-w-xs',
     'sm'   => 'max-w-sm',
@@ -30,6 +32,7 @@ $sizeClass = match($size) {
 >
     {{-- Panel --}}
     <div class="modal-box relative {{ $sizeClass }} w-11/12"
+        role="dialog" aria-modal="true" @if($title) aria-labelledby="{{ $titleId }}" @endif tabindex="-1" x-ref="panel"
         {{-- `$root` is the .modal above: its `modal-open` class follows `open` (a class toggled, not a `:class`, so the caller's stay). --}}
         x-effect="$root.classList.toggle('modal-open', open)"
         @if($id)
@@ -44,11 +47,12 @@ $sizeClass = match($size) {
                 type="button"
                 class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
                 @click="hide()"
+                aria-label="{{ __('Close') }}"
             >✕</button>
         @endif
 
         @if($title)
-            <h3 class="font-bold text-lg mb-4">{{ $title }}</h3>
+            <h3 id="{{ $titleId }}" class="font-bold text-lg mb-4">{{ $title }}</h3>
         @endif
 
         {{ $slot }}

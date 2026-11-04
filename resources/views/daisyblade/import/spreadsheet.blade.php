@@ -25,7 +25,8 @@ $config = [
     'uploadUrl'   => $uploadUrl,
     'templateUrl' => $templateUrl,
     'chunkSize'   => (int) $chunkSize,
-    'messages'    => ['uploadFailed' => __('Upload failed')],
+    'accept'      => $accept,   // the drop zone filters by it too
+    'messages'    => ['uploadFailed' => __('Upload failed'), 'wrongType' => __('This file type is not accepted')],
 ];
 @endphp
 
@@ -41,7 +42,11 @@ $config = [
     <div x-show="step === 'upload'" class="space-y-4">
         <div
             class="border-2 border-dashed border-base-300 rounded-xl p-8 text-center hover:border-primary transition-colors cursor-pointer"
+            {{-- The zone is a <div>, so a keyboard needs a way in: it takes focus, and Enter or Space open the file dialog. --}}
+            tabindex="0" role="button"
             @click="$refs.fileInput.click()"
+            @keydown.enter.prevent="$refs.fileInput.click()"
+            @keydown.space.prevent="$refs.fileInput.click()"
             @dragover.prevent
             @drop.prevent="handleDrop($event)"
         >
@@ -57,6 +62,8 @@ $config = [
                 class="hidden"
             />
         </div>
+
+        <p x-show="refusal" x-cloak style="display: none" x-text="refusal" class="text-sm text-error text-center" role="alert"></p>
 
         @if($templateUrl)
             <div class="flex justify-center">

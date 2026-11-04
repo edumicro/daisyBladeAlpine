@@ -228,7 +228,7 @@ it('data-table hands the filter events to methods of its factory instead of touc
     // living only in the closed-over config, that threw a ReferenceError and filtering did
     // nothing at all. Now the factory owns `params` (tests/js/loading-errors.test.mjs) and the
     // template only calls applyFilters() / clearFilters().
-    $html = Blade::render('<x-dbl::display.data-table load-url="/api/x" :columns="[]" />');
+    $html = Blade::render('<x-dbl::display.data-table load-url="/api/x" :columns="[]" external-filters />');
 
     expect($html)->toContain('applyFilters($event.detail.filters)')->not->toContain('Object.assign(params');
 });

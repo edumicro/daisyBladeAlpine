@@ -19,7 +19,8 @@ $defaultIcon = $icon ?: match($type) { 'success'=>'heroicon-o-check-circle','war
     {{ $attributes->merge(['class' => "alert {$alertClass}"]) }}
 >
     <div class="flex items-start gap-3 w-full {{ $contentClass }}"
-         x-effect="$root.style.display = open ? '' : 'none'">
+         {{-- Only CLOSING writes `display`: writing '' when it starts would wipe the `x-show="false"` or `style="display:none"` of the caller. --}}
+         x-effect="if (!open) $root.style.display = 'none'">
         <x-dynamic-component :component="$defaultIcon" class="w-6 h-6 flex-shrink-0" />
 
         <div class="flex-1">
@@ -30,7 +31,7 @@ $defaultIcon = $icon ?: match($type) { 'success'=>'heroicon-o-check-circle','war
         </div>
 
         @if($closable)
-            <button type="button" @click="open = false" class="btn btn-ghost btn-sm btn-circle">
+            <button type="button" @click="open = false" class="btn btn-ghost btn-sm btn-circle" aria-label="{{ __('Close') }}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                 </svg>

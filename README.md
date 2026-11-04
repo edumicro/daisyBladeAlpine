@@ -318,7 +318,7 @@ Event badge colours: `end` → green, `abort` → amber, `fail` → red, no term
 />
 ```
 
-The table asks `load-url` with these query params: `page`, `per_page`, `search`, `sort` (the column key), `direction` (`asc` or `desc`) and one param per active filter. The `filters` prop shows the `form.filters` dropdown; a `<x-dbl::form.filters>` placed anywhere on the page filters the table too (the table listens to its `dbl-filters-applied` and `dbl-filters-cleared` events). If the request fails, the table shows a message with a **Retry** button instead of spinning for ever.
+The table asks `load-url` with these query params: `page`, `per_page`, `search`, `sort` (the column key), `direction` (`asc` or `desc`) and one param per active filter. The `filters` prop shows the `form.filters` dropdown; a `<x-dbl::form.filters>` placed somewhere else on the page filters the table too if you say so with the `external-filters` prop (the table then listens to the `dbl-filters-applied` and `dbl-filters-cleared` events of the window; without the prop it listens to no filters, so a table without filters is never reloaded with the filters of another one). If the request fails, the table shows a message with a **Retry** button instead of spinning for ever.
 
 #### Toolbar links — export, print, anything
 
@@ -668,7 +668,7 @@ vendor/bin/pest
 node --test tests/js/*.test.mjs
 ```
 
-`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 539 Pest tests (2221 assertions) and 224 JavaScript tests, all green. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
+`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 561 Pest tests (2261 assertions) and 242 JavaScript tests, all green. `tests/Feature/ConventionsTest.php` and `tests/js/conventions.test.mjs` hold one test per convention of the table above, so the package cannot slide back to a 2.x name.
 
 ---
 

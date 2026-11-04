@@ -37,7 +37,10 @@ foreach ($steps as $step) {
         }
     }
     foreach (($step['values'] ?? []) as $k => $v) {
-        $initValues[$k] = $v;
+        // A `null` does not cancel the default of the field (form.fields reads `$values[$key] ?? default`).
+        if ($v !== null || ! array_key_exists($k, $initValues)) {
+            $initValues[$k] = $v;
+        }
     }
 }
 

@@ -50,7 +50,7 @@ it('keeps the other selects without any Alpine scope on the container', function
 // ── data-table listens to the filter panel ────────────────────────────────────
 
 it('data-table listens to the two events of form.filters', function () {
-    $html = Blade::render('<x-dbl::display.data-table load-url="/rows" :columns="[]" />');
+    $html = Blade::render('<x-dbl::display.data-table load-url="/rows" :columns="[]" external-filters />');
 
     expect($html)->toContain('@dbl-filters-applied.window="applyFilters($event.detail.filters)"')
         ->toContain('@dbl-filters-cleared.window="clearFilters()"');

@@ -24,6 +24,8 @@ $sizeClass = match($size) {
 };
 // The id that links the label to the control: the caller's, if it wrote one; else the name.
 $controlId = $attributes->get('id', $name ?: null);
+// The expression of the caller's `x-model` (`x-model.lazy`, `x-model.debounce`... too), or null if there is none.
+$modelExpression = collect($attributes->getAttributes())->first(fn ($expression, $attribute) => str_starts_with($attribute, 'x-model'));
 @endphp
 
 {{-- The main element of a form control is the control itself: everything the caller writes (class, min, max, step,
@@ -36,6 +38,9 @@ $controlId = $attributes->get('id', $name ?: null);
         x-data="{ dblTypedCharacters: 0 }"
         x-init="dblTypedCharacters = $el.querySelector('textarea').value.length"
         x-on:input="dblTypedCharacters = $event.target.value.length"
+        {{-- With an `x-model` on the textarea the counter also follows the MODEL: it changes from outside (a "clear" button, a loaded
+             record) without any `input` event, and an edit form starts with text that the `value` prop does not carry. --}}
+        @if($modelExpression) x-effect="dblTypedCharacters = String({{ $modelExpression }} ?? '').length" @endif
     @endif
 >
     @if($label)

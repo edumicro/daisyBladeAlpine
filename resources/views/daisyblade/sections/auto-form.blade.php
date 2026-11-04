@@ -49,10 +49,18 @@ foreach ($fields as $fieldKey => $field) {
     }
 }
 
+// The `values` go over the defaults, except a `null`: it does not cancel the default of the field (form.fields reads `$values[$key] ?? default`).
+$startValues = $defaults;
+foreach ($values as $valueKey => $value) {
+    if ($value !== null || ! array_key_exists($valueKey, $defaults)) {
+        $startValues[$valueKey] = $value;
+    }
+}
+
 $config = [
     'submitUrl' => $submitUrl,
     'method'    => strtoupper($method),
-    'values'    => (object) array_merge($defaults, $values),
+    'values'    => (object) $startValues,
     'messages'  => ['failed' => __('An error occurred')],
 ];
 @endphp

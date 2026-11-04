@@ -46,8 +46,11 @@ $animClass = match($animation) {
 <label {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => "swap swap-animate {$animClass}"]) }}>
     <input type="checkbox" @disabled($disabled) {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }} />
 
+    {{-- A <button> inside a <label> is interactive content: the label does not pass its click on to the checkbox. So each button
+         clicks the checkbox itself (plain `onclick`, so it works outside any Alpine scope), and it leaves the keyboard order
+         (`tabindex="-1"`): the checkbox is the control that the keyboard reaches. --}}
     <div class="swap-off">
-        <button type="button" @disabled($disabled) class="btn {{ $colorClass }} {{ $sizeClass }} {{ $buttonClass }}">
+        <button type="button" @disabled($disabled) tabindex="-1" onclick="this.closest('label').querySelector('input[type=checkbox]').click()" class="btn {{ $colorClass }} {{ $sizeClass }} {{ $buttonClass }}">
             @if($offIcon)
                 <x-dynamic-component :component="$offIcon" class="w-5 h-5" />
             @endif
@@ -58,7 +61,7 @@ $animClass = match($animation) {
     </div>
 
     <div class="swap-on">
-        <button type="button" @disabled($disabled) class="btn {{ $colorClass }} {{ $sizeClass }} {{ $buttonClass }}">
+        <button type="button" @disabled($disabled) tabindex="-1" onclick="this.closest('label').querySelector('input[type=checkbox]').click()" class="btn {{ $colorClass }} {{ $sizeClass }} {{ $buttonClass }}">
             @if($onIcon)
                 <x-dynamic-component :component="$onIcon" class="w-5 h-5" />
             @endif

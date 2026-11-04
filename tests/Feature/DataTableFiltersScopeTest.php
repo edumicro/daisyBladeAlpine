@@ -16,8 +16,14 @@ it('listens only to its own filters when it carries the panel', function () {
         ->not->toContain('dbl-filters-cleared.window');
 });
 
-it('listens on the window when its filters are somewhere else in the page', function () {
+it('listens to no filters at all without the filters prop nor external-filters', function () {
     $html = Blade::render('<x-dbl::display.data-table load-url="/rows" :columns="[[\'key\' => \'id\']]" />');
+
+    expect($html)->not->toContain('dbl-filters-applied')->not->toContain('dbl-filters-cleared');
+});
+
+it('listens on the window only when external-filters says its filters are somewhere else in the page', function () {
+    $html = Blade::render('<x-dbl::display.data-table load-url="/rows" :columns="[[\'key\' => \'id\']]" external-filters />');
 
     expect($html)->toContain('@dbl-filters-applied.window="applyFilters($event.detail.filters)"')
         ->toContain('@dbl-filters-cleared.window="clearFilters()"');

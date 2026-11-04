@@ -102,6 +102,8 @@ export const dblUpload = (config = {}, deps = {}) => ({
                 onUploadProgress: e => { item.progress = e.total ? Math.round(e.loaded * 100 / e.total) : 50 },
             }, deps)
             expectJson(data)    // an HTML answer (the login page of an expired session) is a failure: the file did not arrive
+            // The form sends the ids of the files: an answer without one (a 204, or `{}`) would leave a "done" file that posts `files[]=`.
+            if (data?.id == null) throw new Error('The server did not answer with the id of the file')
             Object.assign(item, { id: data.id, name: data.name ?? item.name, url: data.url,
                                   thumb: data.thumb ?? null, size: data.size ?? item.size,
                                   status: 'done', progress: 100, file: null, cancel: null })

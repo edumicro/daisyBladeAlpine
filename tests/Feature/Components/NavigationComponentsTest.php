@@ -182,5 +182,5 @@ it('tabs names a tab without label in the language of the page, not in English',
     $html = Blade::render('<x-dbl::navigation.tabs :items="$items" />', ['items' => [['content' => 'x']]]);
     App::setLocale('en');
 
-    expect($html)->toContain('Pestaña 0')->not->toContain('Tab 0');
+    expect($html)->toContain('Pestaña 1')->not->toContain('Tab 1')->not->toContain('Pestaña 0');
 });
