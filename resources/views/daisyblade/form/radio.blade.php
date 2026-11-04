@@ -40,7 +40,11 @@ $sizeClass = match($size) {
 
 {{-- The main element of a form control is the control itself: everything the caller writes (class, min, max, step,
      autocomplete, x-model, wire:model, data-*...) goes to it, as in Breeze's text-input. The box around it (label,
-     hint, error) takes its classes from `wrapper-class`. --}}
+     hint, error) takes its classes from `wrapper-class`.
+     A radio group is one control made of several inputs, so every attribute goes to EACH radio (that is how `x-model`
+     and `class` reach them all), except `id`: the same id on every radio would be invalid HTML, and `getElementById`
+     or `aria-describedby` would only ever find the first. The `id` of the caller goes to the FIRST radio, and the
+     others have none. The label of the group has no `for`: it would check the first radio when clicked. --}}
 <div class="w-full {{ $wrapperClass }}">
     @if($label)
         <label class="mb-1 block text-sm font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
@@ -56,7 +60,7 @@ $sizeClass = match($size) {
                     @if($value !== null && (string)$value === (string)$optVal) checked @endif
                     @if($disabled) disabled @endif
                     @if($required) required @endif
-                    {{ $attributes->merge(['class' => "radio {$colorClass} {$sizeClass}"]) }}
+                    {{ ($loop->first ? $attributes : $attributes->except('id'))->merge(['class' => "radio {$colorClass} {$sizeClass}"]) }}
                 />
                 <span class="text-sm">{{ $optLabel }}</span>
             </label>
