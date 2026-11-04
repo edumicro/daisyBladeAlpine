@@ -22,7 +22,7 @@ Botones y textos grandes; el trazo es siempre oscuro sobre blanco, también en m
 | `height` | `220` | Alto del lienzo en px |
 | `required` | `false` | Impide enviar el formulario sin firma |
 | `hint` | `''` | Ayuda visible bajo el lienzo |
-| `class` | | Clases de la raíz (como en cualquier componente) |
+| `class`, `wrapper-class` | | `class` y el resto de atributos van al lienzo (el control); `wrapper-class` a la caja de fuera |
 
 ## Valor enviado
 

@@ -23,7 +23,7 @@
     'reorderUrl'     => '',
     'required'       => false,
     'hint'           => '',
-    'dropzoneClass'  => '',
+    'wrapperClass'   => '',
 ])
 
 @php
@@ -45,13 +45,14 @@
     $hasHint = $maxSize || $maxFiles;
 @endphp
 
-<div {{ $attributes->merge(['class' => 'w-full']) }} x-data="dblUpload(@js($config))">
+<div class="w-full {{ $wrapperClass }}" x-data="dblUpload(@js($config))">
     @if($label)
         <label class="mb-1 block text-sm font-medium" for="{{ $id }}">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
 
-    {{-- Zona de soltar. El input real está oculto pero es el que enfoca el label. --}}
-    <div class="flex flex-col items-center gap-3 rounded-box border-2 border-dashed p-6 text-center transition-colors {{ $dropzoneClass }}"
+    {{-- Zona de soltar. El input real está oculto pero es el que enfoca el label. La zona es el control de este componente:
+         recibe los atributos de quien lo usa, y la caja de fuera (que es también el ámbito de Alpine), `wrapper-class`. --}}
+    <div {{ $attributes->merge(['class' => 'flex flex-col items-center gap-3 rounded-box border-2 border-dashed p-6 text-center transition-colors']) }}
          x-bind:class="dragging ? 'border-primary bg-primary/10' : 'border-base-300'"
          x-on:dragover.prevent="dragging = true"
          x-on:dragleave.prevent="dragging = false"

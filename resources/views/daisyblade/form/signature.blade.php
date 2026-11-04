@@ -5,6 +5,7 @@
     'height'      => 220,
     'required'    => false,
     'hint'        => '',
+    'wrapperClass' => '',
 ])
 
 @php
@@ -16,7 +17,7 @@
 @endphp
 
 <div x-data="dblSignature(@js($config))"
-     {{ $attributes->merge(['class' => 'w-full']) }}>
+     class="w-full {{ $wrapperClass }}">
 
     @if($label)
         <div id="{{ $id }}-label" class="mb-1 text-lg font-semibold">
@@ -29,7 +30,8 @@
     <p class="mb-2 text-base text-base-content/70" aria-hidden="true">{{ __('daisyblade::signature.hint') }}</p>
 
     {{-- Siempre blanco con trazo oscuro, también en modo oscuro: el PDF es blanco. --}}
-    <div class="relative rounded-box border-2 bg-white"
+    {{-- The control of this component is the pad: it takes the attributes of the caller. The box around it, which is also the Alpine scope, takes `wrapper-class`. --}}
+    <div {{ $attributes->merge(['class' => 'relative rounded-box border-2 bg-white']) }}
          x-bind:class="error ? 'border-error' : 'border-base-content/40'">
         <canvas x-ref="canvas"
                 id="{{ $id }}"

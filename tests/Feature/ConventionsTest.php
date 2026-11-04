@@ -404,10 +404,19 @@ it('6. has no card action that takes a class as its color', function () {
     expect($html)->toContain('btn-error')->and(Illuminate\Support\Facades\Blade::render('<x-dbl::display.card :actions="[[\'label\' => \'Ver\']]">x</x-dbl::display.card>'))->toContain('btn-primary');
 });
 
-// ── 7. `class` and the other attributes go to the root ─────────────────────
+// ── 7. `class` and the other attributes go to the main element of the component ──
+//
+// The main element of a component is its root, except in a form control: there it is the control itself
+// (the <input>, the <textarea>, the <select>...), and the box around it takes `wrapper-class`.
+
+/** The form controls: the components that paint one named field, with its label, hint and error around it. */
+const CONVENTION_CONTROLS = [
+    'form/input.blade.php', 'form/textarea.blade.php', 'form/select.blade.php', 'form/checkbox.blade.php', 'form/radio.blade.php',
+    'form/toggle.blade.php', 'form/rich-text.blade.php', 'form/signature.blade.php', 'form/upload.blade.php',
+];
 
 it('7. has no view that declares class or containerClass as a prop, or reads $class', function () {
-    // `class` is not a prop: it stays in $attributes and Blade merges it into the root, as in any Laravel component.
+    // `class` is not a prop: it stays in $attributes and Blade merges it into the main element, as in any Laravel component.
     $offenders = [];
 
     foreach (conventionViewProps() as $path => $props) {
@@ -423,7 +432,7 @@ it('7. has no view that declares class or containerClass as a prop, or reads $cl
 });
 
 it('7. names the class of an inner part <part>-class', function () {
-    // Every prop that ends in Class is `<part>Class` (kebab-case in the tag: `input-class`, `dropzone-class`...).
+    // Every prop that ends in Class is `<part>Class` (kebab-case in the tag: `wrapper-class`, `canvas-class`, `table-class`...).
     $names = [];
 
     foreach (conventionViewProps() as $props) {
@@ -434,9 +443,19 @@ it('7. names the class of an inner part <part>-class', function () {
         }
     }
 
-    // The ones the brief names, among the others.
-    expect(array_keys($names))->toContain('inputClass', 'canvasClass', 'dropzoneClass')
+    expect(array_keys($names))->toContain('wrapperClass', 'canvasClass', 'tableClass')
         ->and(array_filter(array_keys($names), fn ($name) => preg_match('/^[a-z]+(?:[A-Z][a-z]+)*Class$/', $name) !== 1))->toBe([]);
+});
+
+it('7. gives every form control a wrapper-class for its box, and no <control>-class: the class of the control is class', function () {
+    $without = array_values(array_diff(CONVENTION_CONTROLS, conventionViewsWithProp('wrapperClass')));
+    $old = [];
+
+    foreach (['inputClass', 'textareaClass', 'selectClass', 'checkboxClass', 'radioClass', 'toggleClass', 'dropzoneClass'] as $name) {
+        $old = [...$old, ...conventionViewsWithProp($name)];
+    }
+
+    expect($without)->toBe([])->and($old)->toBe([]);
 });
 
 it('7. applies $attributes in every view', function () {
@@ -456,6 +475,9 @@ function conventionMinimalProps(): array
         'form/list-editor.blade.php' => 'name="l"',
         'form/validator.blade.php' => 'message="Mal"',
         'form/rich-text.blade.php' => 'name="r"',
+        'form/radio.blade.php' => ':options="[\'a\' => \'A\']"',
+        'form/select.blade.php' => ':options="[\'a\' => \'A\']"',
+        'form/upload.blade.php' => 'upload-url="/u"',
         'layout/indicator.blade.php' => 'label="1"',
         'navigation/sidebar-tree.blade.php' => ':items="[[\'label\' => \'A\']]"',
     ];
@@ -467,52 +489,108 @@ function conventionTagOf(string $path): string
     return 'dbl::'.str_replace('/', '.', preg_replace('/\.blade\.php$/', '', $path));
 }
 
-it('7. puts class and every other attribute on the root element of each component', function () {
+/** Every opening tag of `$html` that is not a <style>, <script> or <template>. A `>` inside a quoted attribute (the `=>` of an x-data) does not end a tag. */
+function conventionOpeningTags(string $html): array
+{
+    preg_match_all('/<(?!\/|!|style\b|script\b|template\b)[a-z](?:"[^"]*"|\'[^\']*\'|[^\'">])*>/i', $html, $tags);
+
+    return $tags[0];
+}
+
+it('7. puts class and every other attribute on the root element of each component that is not a form control', function () {
     $this->withoutVite();   // the layouts call @vite, and testbench has no compiled manifest
     $minimal = conventionMinimalProps();
     $offenders = [];
 
     foreach (array_keys(conventionViews()) as $path) {
+        if (in_array($path, CONVENTION_CONTROLS, true)) {
+            continue;
+        }
+
         $tag = conventionTagOf($path);
         $html = Illuminate\Support\Facades\Blade::render("<x-{$tag} ".($minimal[$path] ?? '').' class="probe-class" data-probe="yes">x</x-'.$tag.'>');
+        $root = conventionOpeningTags($html)[0] ?? '(no element)';
 
-        // The first element that is not a <style>, <script> or <template> (some components print their CSS first).
-        // (A `>` inside a quoted attribute, such as the `=>` of an x-data, does not end the tag.)
-        preg_match('/<(?!\/|!|style\b|script\b|template\b)[a-z](?:"[^"]*"|\'[^\']*\'|[^\'">])*>/i', $html, $root);
-
-        if (! isset($root[0]) || ! str_contains($root[0], 'data-probe="yes"') || ! str_contains($root[0], 'probe-class')) {
-            $offenders[$path] = $root[0] ?? '(no element)';
+        if (! str_contains($root, 'data-probe="yes"') || ! str_contains($root, 'probe-class')) {
+            $offenders[$path] = $root;
         }
     }
 
     expect($offenders)->toBe([]);
 });
 
-it('7. sends the binding of the value (x-model) to the control, and the rest to the root', function () {
+it('7. puts class and every other attribute of a form control on the control, and wrapper-class on its box', function () {
+    $minimal = conventionMinimalProps();
+    // The element that must carry them: a native control, or (rich-text, signature, upload) the box that is the control.
+    $control = [
+        'form/input.blade.php' => '<input', 'form/textarea.blade.php' => '<textarea', 'form/select.blade.php' => '<select',
+        'form/checkbox.blade.php' => '<input', 'form/radio.blade.php' => '<input', 'form/toggle.blade.php' => '<input',
+        'form/rich-text.blade.php' => '<div', 'form/signature.blade.php' => '<div', 'form/upload.blade.php' => '<div',
+    ];
+    $offenders = [];
+
+    foreach (CONVENTION_CONTROLS as $path) {
+        $tag = conventionTagOf($path);
+        $html = Illuminate\Support\Facades\Blade::render("<x-{$tag} name=\"f\" ".($minimal[$path] ?? '').' class="probe-class" wrapper-class="probe-wrapper" data-probe="yes" x-model="form.f" />');
+        $tags = conventionOpeningTags($html);
+        $root = $tags[0];
+        $carrying = array_values(array_filter($tags, fn ($t) => str_contains($t, 'data-probe="yes"')));
+
+        $ok = count($carrying) === 1
+            && str_starts_with($carrying[0], $control[$path])
+            && $carrying[0] !== $root
+            && str_contains($carrying[0], 'probe-class') && str_contains($carrying[0], 'x-model="form.f"')
+            && str_contains($root, 'probe-wrapper') && ! str_contains($root, 'probe-class') && ! str_contains($root, 'x-model');
+
+        if (! $ok) {
+            $offenders[$path] = ['root' => $root, 'carrying' => $carrying];
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('7. gives the attributes of a select to its <select> in every mode, and to the text box in the searchable one', function () {
     $options = ':options="[\'a\' => \'A\']"';
 
-    foreach (['input' => '', 'textarea' => '', 'checkbox' => '', 'toggle' => '', 'radio' => $options, 'select' => $options] as $control => $extra) {
-        $html = Illuminate\Support\Facades\Blade::render("<x-dbl::form.{$control} name=\"f\" {$extra} x-model=\"form.f\" data-probe=\"yes\" class=\"probe-class\" />");
+    foreach (['' => '<select', 'load-url="/o"' => '<select', 'searchable' => '<input'] as $mode => $expected) {
+        $html = Illuminate\Support\Facades\Blade::render("<x-dbl::form.select name=\"f\" {$options} {$mode} class=\"probe-class\" data-probe=\"yes\" />");
+        $carrying = array_values(array_filter(conventionOpeningTags($html), fn ($t) => str_contains($t, 'data-probe="yes"')));
 
-        preg_match_all('/<(?:div|input|textarea|select)\b[^>]*>/', $html, $tags);
-        $withModel = array_values(array_filter($tags[0], fn ($t) => str_contains($t, 'x-model="form.f"')));
-        $withProbe = array_values(array_filter($tags[0], fn ($t) => str_contains($t, 'data-probe="yes"') && str_contains($t, 'probe-class')));
-
-        expect($withModel)->not->toBe([], "{$control}: x-model not found")
-            ->and($withModel[0])->not->toStartWith('<div', "{$control}: x-model on the root")
-            ->and($withProbe[0])->toStartWith('<div', "{$control}: class not on the root");
+        expect($carrying)->toHaveCount(1, "mode [{$mode}]")->and($carrying[0])->toStartWith($expected)->toContain('probe-class');
     }
 });
 
-it('7. gives a part of a component its own class prop', function () {
+it('7. lets a number input keep its min, max, step and autocomplete, as in Breeze', function () {
+    $html = Illuminate\Support\Facades\Blade::render('<x-dbl::form.input name="qty" type="number" min="0" max="9" step="0.5" autocomplete="off" x-model="qty" />');
+
+    expect($html)->toMatch('/<input[^>]*type="number"[^>]*min="0"[^>]*max="9"[^>]*step="0.5"[^>]*autocomplete="off"[^>]*x-model="qty"/s');
+});
+
+it('7. links the label to the id the caller writes on a control, or to its name', function () {
     $render = fn (string $blade) => Illuminate\Support\Facades\Blade::render($blade);
 
-    expect($render('<x-dbl::form.input name="x" input-class="mi-input" class="mi-raiz" />'))
-        ->toMatch('/<div[^>]*mi-raiz/')->toMatch('/<input[^>]*mi-input/')
-        ->and($render('<x-dbl::form.upload name="f" upload-url="/u" dropzone-class="mi-zona" class="mi-raiz" />'))
-        ->toMatch('/<div[^>]*mi-raiz/')->toMatch('/<div[^>]*mi-zona/')
+    foreach (['input', 'textarea'] as $control) {
+        expect($render("<x-dbl::form.{$control} name=\"a\" label=\"A\" />"))->toContain('for="a"')->toContain('id="a"')
+            ->and($render("<x-dbl::form.{$control} name=\"a\" label=\"A\" id=\"mine\" />"))->toContain('for="mine"')->toContain('id="mine"')->not->toContain('id="a"');
+    }
+});
+
+it('7. gives the box of a control its own class', function () {
+    $render = fn (string $blade) => Illuminate\Support\Facades\Blade::render($blade);
+
+    expect($render('<x-dbl::form.input name="x" wrapper-class="mi-caja" class="mi-control" />'))
+        ->toMatch('/<div class="w-full mi-caja">/')->toMatch('/<input[^>]*mi-control/')
         ->and($render('<x-dbl::display.flowchart canvas-class="mi-lienzo" class="mi-raiz" />'))
         ->toMatch('/<div[^>]*mi-raiz/')->toMatch('/<div[^>]*mi-lienzo/');
+});
+
+it('7. leaves the editors (kv-editor, list-editor, repeater) with their attributes on the root, which is their main element', function () {
+    $render = fn (string $blade) => Illuminate\Support\Facades\Blade::render($blade);
+
+    foreach (['kv-editor', 'list-editor', 'repeater'] as $editor) {
+        expect(conventionOpeningTags($render("<x-dbl::form.{$editor} name=\"e\" class=\"probe-class\" />"))[0])->toContain('probe-class');
+    }
 });
 
 it('7. gives the attributes of a page layout to its <html>', function () {

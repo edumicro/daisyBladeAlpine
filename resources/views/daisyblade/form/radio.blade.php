@@ -9,7 +9,7 @@
     'color'          => 'primary',
     'size'           => 'md',   // xs | sm | md | lg | xl
     'inline'         => false,
-    'radioClass'     => '',
+    'wrapperClass'   => '',
 ])
 
 @php
@@ -38,9 +38,10 @@ $sizeClass = match($size) {
 };
 @endphp
 
-{{-- Everything the caller writes (class, id, data-*, aria-*...) goes to the root, as in any Laravel component.
-     The one exception is the binding of the value (x-model, wire:model): it only means something on the control. --}}
-<div {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => 'w-full']) }}>
+{{-- The main element of a form control is the control itself: everything the caller writes (class, min, max, step,
+     autocomplete, x-model, wire:model, data-*...) goes to it, as in Breeze's text-input. The box around it (label,
+     hint, error) takes its classes from `wrapper-class`. --}}
+<div class="w-full {{ $wrapperClass }}">
     @if($label)
         <label class="mb-1 block text-sm font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
@@ -54,8 +55,7 @@ $sizeClass = match($size) {
                     @if($name) name="{{ $name }}" @endif
                     @if($value !== null && (string)$value === (string)$optVal) checked @endif
                     @if($disabled) disabled @endif
-                    {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }}
-                    class="{{ trim("radio {$colorClass} {$sizeClass} " . $radioClass) }}"
+                    {{ $attributes->merge(['class' => "radio {$colorClass} {$sizeClass}"]) }}
                 />
                 <span class="text-sm">{{ $optLabel }}</span>
             </label>

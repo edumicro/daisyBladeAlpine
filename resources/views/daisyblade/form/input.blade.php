@@ -12,7 +12,7 @@
     'error'          => '',
     'value'          => null,
     'hint'           => '',
-    'inputClass'     => '',
+    'wrapperClass'   => '',
 ])
 
 @php
@@ -24,13 +24,16 @@ $sizeClass = match($size) {
     'xl' => 'input-xl',
     default => 'input-md',
 };
+// The id that links the label to the control: the caller's, if it wrote one; else the name.
+$controlId = $attributes->get('id', $name ?: null);
 @endphp
 
-{{-- Everything the caller writes (class, id, data-*, aria-*...) goes to the root, as in any Laravel component.
-     The one exception is the binding of the value (x-model, wire:model): it only means something on the control. --}}
-<div {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => 'w-full']) }}>
+{{-- The main element of a form control is the control itself: everything the caller writes (class, min, max, step,
+     autocomplete, x-model, wire:model, data-*...) goes to it, as in Breeze's text-input. The box around it (label,
+     hint, error) takes its classes from `wrapper-class`. --}}
+<div class="w-full {{ $wrapperClass }}">
     @if($label)
-        <label class="mb-1 block text-sm font-medium" @if($name) for="{{ $name }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
+        <label class="mb-1 block text-sm font-medium" @if($controlId) for="{{ $controlId }}" @endif>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</label>
     @endif
 
     <div class="relative flex items-center">
@@ -44,16 +47,14 @@ $sizeClass = match($size) {
             type="{{ $type }}"
             placeholder="{{ $placeholder }}"
             @if($value !== null) value="{{ $value }}" @endif
-            @if($name) id="{{ $name }}" name="{{ $name }}" @endif
+            @if($name) name="{{ $name }}" @endif
             @if($disabled) disabled @endif
             @if($readonly) readonly @endif
             @if($required) required @endif
-            {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }}
-            class="{{ trim('input w-full ' . $sizeClass . ' '
+            {{ $attributes->merge(['id' => $controlId, 'class' => trim('input w-full ' . $sizeClass . ' '
                 . ($icon && $iconSide === 'left' ? 'pl-10 ' : '')
                 . ($icon && $iconSide === 'right' ? 'pr-10 ' : '')
-                . ($error ? 'input-error ' : ($name && isset($errors) && $errors->has($name) ? 'input-error ' : ''))
-                . $inputClass) }}"
+                . ($error ? 'input-error' : ($name && isset($errors) && $errors->has($name) ? 'input-error' : '')))]) }}
         />
 
         @if($icon && $iconSide === 'right')

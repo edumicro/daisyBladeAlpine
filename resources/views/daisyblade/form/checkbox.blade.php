@@ -7,7 +7,7 @@
     'required'       => false,
     'color'          => 'primary',
     'size'           => 'md',   // xs | sm | md | lg | xl
-    'checkboxClass'  => '',
+    'wrapperClass'   => '',
 ])
 
 @php
@@ -39,9 +39,10 @@ $sizeClass = match($size) {
 $checked = filter_var($value, FILTER_VALIDATE_BOOLEAN);
 @endphp
 
-{{-- Everything the caller writes (class, id, data-*, aria-*...) goes to the root, as in any Laravel component.
-     The one exception is the binding of the value (x-model, wire:model): it only means something on the control. --}}
-<div {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => 'w-full']) }}>
+{{-- The main element of a form control is the control itself: everything the caller writes (class, min, max, step,
+     autocomplete, x-model, wire:model, data-*...) goes to it, as in Breeze's text-input. The box around it (label,
+     hint, error) takes its classes from `wrapper-class`. --}}
+<div class="w-full {{ $wrapperClass }}">
     @if($name && isset($errors))
         <input type="hidden" name="{{ $name }}" value="0" />
     @endif
@@ -49,12 +50,11 @@ $checked = filter_var($value, FILTER_VALIDATE_BOOLEAN);
     <label class="flex w-full cursor-pointer items-center justify-start gap-3 py-1">
         <input
             type="checkbox"
-            @if($name) id="{{ $name }}" name="{{ $name }}" value="1" @endif
+            @if($name) name="{{ $name }}" value="1" @endif
             @if($disabled) disabled @endif
             @if($required) required @endif
             @checked($checked)
-            {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }}
-            class="{{ trim("checkbox {$colorClass} {$sizeClass} " . $checkboxClass) }}"
+            {{ $attributes->merge(['id' => $attributes->get('id', $name ?: null), 'class' => "checkbox {$colorClass} {$sizeClass}"]) }}
         />
         @if($label)
             <span class="text-sm font-medium">{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>

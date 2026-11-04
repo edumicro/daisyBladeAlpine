@@ -7,7 +7,7 @@
     'required'       => false,
     'color'          => 'primary',
     'size'           => 'md',   // xs | sm | md | lg | xl
-    'toggleClass'    => '',
+    'wrapperClass'   => '',
 ])
 
 @php
@@ -39,9 +39,10 @@ $sizeClass = match($size) {
 $checked = filter_var($value, FILTER_VALIDATE_BOOLEAN);
 @endphp
 
-{{-- Everything the caller writes (class, id, data-*, aria-*...) goes to the root, as in any Laravel component.
-     The one exception is the binding of the value (x-model, wire:model): it only means something on the control. --}}
-<div {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => 'w-full']) }}>
+{{-- The main element of a form control is the control itself: everything the caller writes (class, min, max, step,
+     autocomplete, x-model, wire:model, data-*...) goes to it, as in Breeze's text-input. The box around it (label,
+     hint, error) takes its classes from `wrapper-class`. --}}
+<div class="w-full {{ $wrapperClass }}">
     @if($name && isset($errors))
         <input type="hidden" name="{{ $name }}" value="0" />
     @endif
@@ -55,8 +56,7 @@ $checked = filter_var($value, FILTER_VALIDATE_BOOLEAN);
             @if($name) name="{{ $name }}" value="1" @endif
             @if($disabled) disabled @endif
             @checked($checked)
-            {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }}
-            class="{{ trim("toggle {$colorClass} {$sizeClass} " . $toggleClass) }}"
+            {{ $attributes->merge(['class' => "toggle {$colorClass} {$sizeClass}"]) }}
         />
     </label>
 

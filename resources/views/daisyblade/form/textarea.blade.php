@@ -9,7 +9,7 @@
     'readonly'       => false,
     'required'       => false,
     'hint'           => '',
-    'textareaClass'  => '',
+    'wrapperClass'   => '',
     'value'          => null,
 ])
 
@@ -22,16 +22,19 @@ $sizeClass = match($size) {
     'xl' => 'textarea-xl',
     default => 'textarea-md',
 };
+// The id that links the label to the control: the caller's, if it wrote one; else the name.
+$controlId = $attributes->get('id', $name ?: null);
 @endphp
 
-{{-- Everything the caller writes (class, id, data-*, aria-*...) goes to the root, as in any Laravel component.
-     The one exception is the binding of the value (x-model, wire:model): it only means something on the control. --}}
-<div {{ $attributes->whereDoesntStartWith(['x-model', 'wire:model'])->merge(['class' => 'w-full']) }}>
+{{-- The main element of a form control is the control itself: everything the caller writes (class, min, max, step,
+     autocomplete, x-model, wire:model, data-*...) goes to it, as in Breeze's text-input. The box around it (label,
+     hint, error) takes its classes from `wrapper-class`. --}}
+<div class="w-full {{ $wrapperClass }}">
     @if($label)
         {{-- Texto y contador en la misma linea: `flex justify-between` explicito, porque la
              clase `.label` de DaisyUI 4 que lo hacia ya no existe en la 5. --}}
         <label class="mb-1 flex items-center justify-between gap-2 text-sm font-medium"
-               @if($name) for="{{ $name }}" @endif>
+               @if($controlId) for="{{ $controlId }}" @endif>
             <span>{{ $label }}@if($required)<span class="text-error ml-1">*</span>@endif</span>
             @if($maxLength > 0) <span class="text-xs font-normal text-base-content/60">0/{{ $maxLength }}</span> @endif
         </label>
@@ -40,15 +43,13 @@ $sizeClass = match($size) {
     <textarea
         placeholder="{{ $placeholder }}"
         rows="{{ $rows }}"
-        @if($name) id="{{ $name }}" name="{{ $name }}" @endif
+        @if($name) name="{{ $name }}" @endif
         @if($disabled) disabled @endif
         @if($readonly) readonly @endif
         @if($required) required @endif
         @if($maxLength > 0) maxlength="{{ $maxLength }}" @endif
-        {{ $attributes->whereStartsWith(['x-model', 'wire:model']) }}
-        class="{{ trim('textarea w-full ' . $sizeClass . ' '
-            . ($name && isset($errors) && $errors->has($name) ? 'textarea-error ' : '')
-            . $textareaClass) }}"
+        {{ $attributes->merge(['id' => $controlId, 'class' => trim('textarea w-full ' . $sizeClass . ' '
+            . ($name && isset($errors) && $errors->has($name) ? 'textarea-error' : ''))]) }}
     >{{ $value }}</textarea>
 
     @if($name && isset($errors))

@@ -27,7 +27,7 @@ Subida de ficheros: arrastrar y soltar más botón, vista previa, progreso por f
 | `name` | Los ids subidos se envían como `name[]` (inputs ocultos). |
 | `label`, `hint`, `required` | Etiqueta, ayuda (bajo el campo) y asterisco. |
 | `upload-url` | URL POST de subida. |
-| `class`, `dropzone-class` | `class` va a la raíz; `dropzone-class` a la zona de soltar. |
+| `class`, `wrapper-class` | `class` y el resto de atributos van a la zona de soltar (el control); `wrapper-class` a la caja de fuera (etiqueta, zona, lista y ayuda). |
 | `multiple` | Varios ficheros. Sin él, un fichero nuevo sustituye al anterior. |
 | `accept` | Extensiones, tipos o comodines: `image/*,.pdf`. Se valida también en el cliente. |
 | `max-size` | MB por fichero. |

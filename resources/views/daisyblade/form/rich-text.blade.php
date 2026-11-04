@@ -8,6 +8,7 @@
     'required'       => false,
     'hint'           => '',
     'minimal'        => false,
+    'wrapperClass'   => '',
 ])
 
 @php
@@ -47,7 +48,9 @@
     </style>
 @endonce
 
-<div {{ $attributes->merge(['class' => 'w-full']) }} x-data="dblRichText(@js($config))">
+{{-- The control of this component is the bordered box that holds the toolbar and the editor: it takes the attributes of the
+     caller. The box around it (label, hint, error), which is also the Alpine scope, takes `wrapper-class`. --}}
+<div class="w-full {{ $wrapperClass }}" x-data="dblRichText(@js($config))">
     @if($label)
         <label class="mb-1 flex items-center justify-between gap-2 text-sm font-medium"
                @if($name) for="{{ $name }}-editor" @endif>
@@ -63,7 +66,7 @@
     {{-- Lo que viaja en el formulario: el HTML del editor, que el servidor DEBE sanear. --}}
     <input type="hidden" x-ref="input" @if($name) name="{{ $name }}" @endif value="{{ $value }}">
 
-    <div class="rounded-box border border-base-300 bg-base-100 focus-within:border-primary">
+    <div {{ $attributes->merge(['class' => 'rounded-box border border-base-300 bg-base-100 focus-within:border-primary']) }}>
         <div role="toolbar" aria-label="{{ __('daisyblade::rich-text.toolbar') }}"
              class="flex flex-wrap gap-1 border-b border-base-300 p-1">
             <template x-for="button in buttons" x-bind:key="button.id">

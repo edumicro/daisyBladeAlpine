@@ -23,7 +23,7 @@ que **pide sus opciones a una URL** (`load-url`) y, opcionalmente, **las vuelve 
 | `depends-on` | `''` | El `name` de **otro control del mismo formulario** (si el select no está en un `<form>`, del documento). Solo vale junto a `load-url`. |
 | `value` | `null` | Lo que queda elegido cuando llegan las opciones (un array con `multiple`). |
 | `options` | `[]` | Opciones que ya conoce el servidor (por ejemplo la guardada). Salen **antes** de que cargue el JS, o si no carga nunca, y el JS las sustituye por las que lleguen. |
-| `name`, `label`, `hint`, `placeholder`, `multiple`, `required`, `disabled`, `size`, `class`, `select-class` | | Igual que en el desplegable normal. `placeholder` no se pinta con `multiple`. `class` y el resto de atributos van a la raíz; `select-class` al `<select>`. |
+| `name`, `label`, `hint`, `placeholder`, `multiple`, `required`, `disabled`, `size`, `class`, `wrapper-class` | | Igual que en el desplegable normal. `placeholder` no se pinta con `multiple`. `class` y el resto de atributos (`x-model`, `data-*`...) van al `<select>` (a la caja de texto en el modo `searchable`); `wrapper-class` a la caja que lo rodea. |
 
 ## Respuesta de la URL
 

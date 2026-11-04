@@ -4,23 +4,26 @@ use Illuminate\Support\Facades\Blade;
 
 /**
  * The listeners and bindings of `<x-dbl::form.select load-url="...">` live on its container, which is the Alpine scope,
- * and the <select> carries no Alpine attribute of its own. In 2.x this protected the `x-on:change` and `:disabled` a
- * view passed to the <select>: written twice in the same tag, the browser keeps only the first and the user's
- * vanished without any error. In 3.x everything the caller passes goes to the root (the container), where the
- * attributes of the component have other names (`x-on:change.capture`...), but the rule stays: each attribute once.
+ * and the <select> carries no Alpine attribute of its own. The <select> is the main element of the component, so it
+ * receives what the caller writes (`x-on:change`, `:disabled`...): if the template wrote the same attribute on the
+ * <select> as well, the HTML would have it twice, and the browser keeps only the FIRST one, so the caller's would
+ * vanish without any error.
  */
 
-it('keeps the x-on:change and :disabled a view passes to the remote select, each attribute written once, on the container', function () {
+it('keeps the x-on:change and :disabled a view passes to the remote select, each attribute written once, on the <select>', function () {
     $html = Blade::render('<x-dbl::form.select name="city" load-url="/cities" x-on:change="mine()" ::disabled="locked" />');
 
-    preg_match('/<div\b[^>]*x-data="dblSelectRemote[^>]*>/s', $html, $match);
-    $containerTag = $match[0];
+    preg_match('/<select\b[^>]*>/s', $html, $match);
+    $selectTag = $match[0];
 
-    expect(substr_count($containerTag, ' x-on:change='))->toBe(1)
-        ->and($containerTag)->toContain('x-on:change="mine()"')
-        ->and($containerTag)->toContain('x-on:change.capture="remember()"')
-        ->and(substr_count($containerTag, ':disabled='))->toBe(1)
-        ->and($containerTag)->toContain(':disabled="locked"');
+    expect(substr_count($selectTag, 'x-on:change='))->toBe(1)
+        ->and($selectTag)->toContain('x-on:change="mine()"')
+        ->and(substr_count($selectTag, ':disabled='))->toBe(1)
+        ->and($selectTag)->toContain(':disabled="locked"');
+
+    // And the container keeps its own listener, which is another attribute (x-on:change.capture).
+    preg_match('/<div\b[^>]*x-data="dblSelectRemote[^>]*>/s', $html, $container);
+    expect($container[0])->toContain('x-on:change.capture="remember()"')->not->toContain('mine()');
 });
 
 it('puts no Alpine binding of its own on the remote <select>', function () {
