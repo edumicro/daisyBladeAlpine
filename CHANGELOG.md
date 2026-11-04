@@ -3,6 +3,16 @@
 Formato: lo que está sin publicar arriba. Al sacar versión, esa sección pasa a llevar su número
 y su fecha, y se etiqueta.
 
+## [2.4.1] — sin publicar
+
+Solo arreglos, sin cambiar ningún nombre de propiedad, evento ni clase.
+
+### Corregido
+- `form.select` con `options-url` y `x-model` en el `<select>`: el modelo no se aplicaba nunca. Alpine aplica un modelo a un `<select>` cuando el modelo cambia, no cuando aparecen las `<option>`; la primera vez no había opciones y al llegar nadie lo repetía, así que el select quedaba vacío con el modelo en `'2'` (y con `value="2"` y el modelo vacío, al revés). Ahora, al llegar las opciones, lo que tenga el modelo es lo que queda elegido (el modelo manda sobre `value`, como en cualquier campo con `x-model`). Prueba: `tests/js/select-remote-model.test.mjs`.
+- `form.toggle` y `form.radio`: `required` pintaba el asterisco pero no llegaba al `<input>`, así que el navegador dejaba enviar el formulario con el toggle apagado o sin radio marcado. Ahora lo llevan el toggle y cada radio.
+- `form.radio`: el `id` que escribe quien lo usa iba a todos los radios del grupo (HTML inválido). Ahora va solo al primero; el resto de atributos siguen yendo a cada radio.
+- `form.toggle`: toma su `id` de `name`, como el checkbox (y el `id` que escribas manda). Pruebas de estos tres: `tests/Feature/ToggleRadioFixesTest.php`.
+
 ## [2.4.0] — 2026-11-04
 
 ### Añadido
