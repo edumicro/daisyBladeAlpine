@@ -3,7 +3,7 @@
 Formato: lo que está sin publicar arriba. Al sacar versión, esa sección pasa a llevar su número
 y su fecha, y se etiqueta.
 
-## [2.4.1] — sin publicar
+## [2.4.1] — 2026-11-04
 
 Solo arreglos, sin cambiar ningún nombre de propiedad, evento ni clase.
 
