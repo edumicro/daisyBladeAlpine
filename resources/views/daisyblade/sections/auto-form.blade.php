@@ -40,10 +40,19 @@ if ($mode === 'alpine') {
 // [] al servidor: el formulario se envia vacio y el fallo se ve como un 422 de
 // "campo obligatorio". Afecta a todo formulario sin valores iniciales, es decir a
 // todos los de alta.
+// Where each field starts: the `default` of the field, and over it the `values` of the caller (as in form.fields).
+// In `alpine` mode the controls read their value from this object, so a default that is not here never shows.
+$defaults = [];
+foreach ($fields as $fieldKey => $field) {
+    if (array_key_exists('default', $field)) {
+        $defaults[$fieldKey] = $field['default'];
+    }
+}
+
 $config = [
     'submitUrl' => $submitUrl,
     'method'    => strtoupper($method),
-    'values'    => (object) $values,
+    'values'    => (object) array_merge($defaults, $values),
     'messages'  => ['failed' => __('An error occurred')],
 ];
 @endphp

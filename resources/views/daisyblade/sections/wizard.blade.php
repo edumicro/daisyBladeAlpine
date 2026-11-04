@@ -30,6 +30,12 @@
 $stepCount  = count($steps);
 $initValues = [];
 foreach ($steps as $step) {
+    // The `default` of each field of the step is where it starts, and the `values` of the step go over it (as in form.fields).
+    foreach (($step['schema'] ?? []) as $fieldKey => $field) {
+        if (array_key_exists('default', $field)) {
+            $initValues[$fieldKey] = $field['default'];
+        }
+    }
     foreach (($step['values'] ?? []) as $k => $v) {
         $initValues[$k] = $v;
     }
