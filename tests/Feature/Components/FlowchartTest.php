@@ -151,7 +151,7 @@ it('shows the link handle only on hover or focus, and always on touch screens', 
 it('gives every rendered chart its own help id', function () use ($nodes, $edges) {
     $ids = collect(range(1, 2))->map(function () use ($nodes, $edges) {
         $html = Blade::render('<x-dbl::display.flowchart :nodes="$nodes" :edges="$edges" editable name="igual" />', compact('nodes', 'edges'));
-        preg_match('/id="(dbf-[A-Za-z0-9]+)-help"/', $html, $m);
+        preg_match('/id="(dbl-flowchart-[A-Za-z0-9]+)-help"/', $html, $m);
 
         return $m[1];
     });

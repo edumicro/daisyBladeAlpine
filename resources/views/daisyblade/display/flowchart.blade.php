@@ -81,7 +81,7 @@
             'edge' => __('daisyblade::flowchart.edge'),
         ],
     ];
-    $uid = 'dbf-' . \Illuminate\Support\Str::random(8);   // único por render: dos diagramas iguales no comparten ids
+    $uid = 'dbl-flowchart-' . \Illuminate\Support\Str::random(8);   // único por render: dos diagramas iguales no comparten ids
 @endphp
 
 <div {{ $attributes->merge(['class' => 'dbl-flowchart min-w-0 max-w-full']) }}

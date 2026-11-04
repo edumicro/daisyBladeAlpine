@@ -828,3 +828,11 @@ it('11. keeps in the configuration only what the package reads: map and geo', fu
 it('11. has no dbTabs, the factory nobody used, in any spelling', function () {
     expect(conventionOffenders([...conventionViews(), ...conventionScripts()], '/\bdbTabs\b/'))->toBe([]);
 });
+
+it('1. names the ids that the components make with the dbl prefix too', function () {
+    // The flowchart builds an id for its keyboard help: `dbl-flowchart-<random>-help`, not the 2.x `dbf-<random>-help`.
+    $html = Illuminate\Support\Facades\Blade::render('<x-dbl::display.flowchart :editable="true" />');
+
+    expect($html)->toMatch('/id="dbl-flowchart-[A-Za-z0-9]+-help"/')
+        ->and(conventionOffenders(conventionViews(), '/[\'"]db(?!l-)[a-z]?-[\w-]*[\'"]/'))->toBe([]);
+});
