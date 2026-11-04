@@ -52,7 +52,7 @@ $edges = [
 | `x`, `y` | Posición. Sin ellas el nodo se coloca solo; con ellas se respeta. |
 | `shape` | `rectangle`, `rounded` (por defecto), `pill` (inicio/fin), `diamond` (decisión), `circle`. Las flechas cortan el borde de cada forma. |
 | `description` | Segunda línea de texto, más pequeña. |
-| `icon` | Nombre de un componente de icono (`heroicon-o-...`), el mismo sistema que `status`, `timeline` o `avatar`. Se pinta en el servidor; un nombre que no existe se omite. |
+| `icon` | Nombre de un icono de blade-icons (`heroicon-o-...`, o el de cualquier otro juego de iconos instalado). Se pinta en el servidor; solo valen iconos, no otros componentes Blade, y un nombre que no existe se omite. |
 | `badge` | Texto corto sobre la esquina de la caja. |
 | `group` | Nombre de grupo. Los nodos con el mismo nombre quedan dentro de una banda de fondo con ese nombre (departamentos, calles de un proceso). |
 | `variant` | `success`, `warning`, `error`, `neutral` (el mismo mapa que `node-graph`); cualquier otro valor se ignora. |
