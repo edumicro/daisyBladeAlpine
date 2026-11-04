@@ -14,7 +14,7 @@
 ])
 
 <div
-    x-data="dbResourceDetails({ loadUrl: '{{ $loadUrl }}', fields: @js($fields), messages: @js(['loadFailed' => __('Error loading resource')]) })"
+    x-data="dbResourceDetails({ loadUrl: @js($loadUrl), fields: @js($fields), messages: @js(['loadFailed' => __('Error loading resource')]) })"
     {{ $attributes->merge(['class' => $containerClass]) }}
 >
     @if($label)

@@ -32,8 +32,8 @@
 @if($mode === 'alpine')
     <div
         x-data="dbAutoForm({
-            action: '{{ $action }}',
-            method: '{{ strtoupper($method) }}',
+            action: @js($action),
+            method: @js(strtoupper($method)),
             {{-- (object) y no @js($values) a secas: en PHP un array asociativo VACIO se serializa
                  como [] —un array JS—, no como {}. x-model escribe values.email sin protestar,
                  pero JSON.stringify descarta las propiedades con nombre de un array y axios manda

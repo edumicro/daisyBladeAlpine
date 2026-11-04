@@ -11,7 +11,7 @@ it('spreadsheet has file input element', function () {
 
 it('spreadsheet includes upload-url in config', function () {
     $html = Blade::render('<x-dbl::import.spreadsheet upload-url="/api/import/products" />');
-    expect($html)->toContain('/api/import/products');
+    expect($html)->toContain('\/api\/import\/products');   // @js writes the slashes escaped
 });
 
 it('spreadsheet with template-url shows download link', function () {

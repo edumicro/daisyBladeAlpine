@@ -38,10 +38,12 @@ foreach ($steps as $step) {
 
 <div
     x-data="dbWizard({
-        action:        '{{ $action }}',
-        method:        '{{ strtoupper($method) }}',
-        userId:        '{{ $userId }}',
-        formId:        '{{ $formId }}',
+        action:        @js($action),
+        method:        @js(strtoupper($method)),
+        {{-- (string): they make the key of the saved progress in localStorage, and `{{ }}` always wrote them as text.
+             Keeping them text keeps the key, so the progress people have saved is still found. --}}
+        userId:        @js((string) $userId),
+        formId:        @js((string) $formId),
         schemaVersion: {{ $schemaVersion }},
         messages:      @js(['failed' => __('An error occurred')]),
     })"

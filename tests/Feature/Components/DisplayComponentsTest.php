@@ -181,7 +181,7 @@ it('data-table contains dbDataTable and load-url', function () {
     $html = Blade::render('<x-dbl::display.data-table load-url="/api/products" :columns="[]" />');
     expect($html)
         ->toContain('dbDataTable')
-        ->toContain('/api/products')
+        ->toContain('\/api\/products')   // @js writes the slash escaped
         ->toContain('x-data')
         ->not->toContain('wire:');
 });
@@ -379,7 +379,7 @@ it('resource-details contains Alpine factory and load-url', function () {
     $html = Blade::render('<x-dbl::display.resource-details load-url="/api/products/1" />');
     expect($html)
         ->toContain('dbResourceDetails')
-        ->toContain('/api/products/1')
+        ->toContain('\/api\/products\/1')   // @js writes the slashes escaped
         ->toContain('x-data')
         ->not->toContain('wire:');
 });

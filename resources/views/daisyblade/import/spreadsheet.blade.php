@@ -20,8 +20,8 @@
 
 <div
     x-data="dbSpreadsheetImport({
-        uploadUrl:   '{{ $uploadUrl }}',
-        templateUrl: '{{ $templateUrl }}',
+        uploadUrl:   @js($uploadUrl),
+        templateUrl: @js($templateUrl),
         chunkSize:   {{ (int)$chunkSize }},
         maxPreview:  {{ (int)$maxPreview }},
         messages:    @js(['uploadFailed' => __('Upload failed')]),

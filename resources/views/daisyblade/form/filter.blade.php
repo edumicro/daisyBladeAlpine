@@ -16,7 +16,7 @@
 <div
     x-data="{
         values: {},
-        applyUrl: '{{ $applyUrl }}',
+        applyUrl: @js($applyUrl),
         apply() {
             const qs = new URLSearchParams(Object.fromEntries(Object.entries(this.values).filter(([,v])=>v!==''&&v!==null)))
             if (this.applyUrl) {

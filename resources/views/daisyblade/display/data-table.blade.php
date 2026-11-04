@@ -45,7 +45,7 @@
 
 <div
     x-data="dbDataTable({
-        loadUrl: '{{ $loadUrl }}',
+        loadUrl: @js($loadUrl),
         params:  @js(array_merge(['per_page' => $perPage], $params)),
         messages: @js(['loadFailed' => __('Could not load the data')]),
     })"
