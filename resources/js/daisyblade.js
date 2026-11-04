@@ -95,13 +95,20 @@ const dbSelectRemote = (config = {}) => ({
     error: '',                          // message when the options could not be loaded ('' = all fine)
     lastRequest: 0,                     // number of the newest request: older answers are ignored
     disabledByUs: false,                // true while the <select> is disabled because of `waiting` or `disabled`
+    starting: null,                     // the first load of init() while it runs (null the rest of the time)
 
     // Alpine calls init() by itself when the component starts: load the options the first time.
-    async init() { await this.reload() },
+    // A view published with 2.3 also has `x-init="init()"`, so Alpine calls it a second time while the first call is
+    // still loading: that second call waits for the first one instead of asking the server again.
+    async init() {
+        if (this.starting) return this.starting
+        this.starting = this.reload()
+        try { await this.starting } finally { this.starting = null }
+    },
 
-    // The <select> itself. The Alpine scope is its container (so the error message can sit next to it),
-    // and the container holds no other <select>.
-    get field() { return this.$root.querySelector('select') },
+    // The <select> itself. In the current view the Alpine scope is its container (so the error message can sit next
+    // to it) and the container holds no other <select>. A view published with 2.3 has the scope on the <select>.
+    get field() { return this.$root.matches?.('select') ? this.$root : this.$root.querySelector('select') },
 
     // Value of the control we depend on (null if we depend on none), looked up by name
     // in our form or, if we are not in a form, in the whole page.
