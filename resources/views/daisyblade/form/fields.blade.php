@@ -1,7 +1,7 @@
 {{--
     Schema-driven field renderer. Two modes:
       mode='form'   — standard HTML POST: name, value, @error
-      mode='alpine' — Alpine x-model + JSON errors from Axios
+      mode='alpine' — Alpine x-model + JSON errors from the server
 
     $fields:       [ 'fieldKey' => ['type'=>'text', 'label'=>'...', 'cols'=>'col-span-6', ...] ]
     $values:       [ 'fieldKey' => 'value' ]  (form mode prefill)

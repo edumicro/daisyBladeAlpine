@@ -53,16 +53,17 @@ Un selector `searchable` guarda su valor en un `<input type="hidden">` que no la
 ## Evento
 
 Los tres modos (nativo, buscable y con `load-url`) anuncian lo elegido igual: `dbl-select-changed`, con
-`detail: {name, value}` (`value` es una lista con `multiple`). Burbujea desde la raíz del componente:
+`detail: {name, value}` (`value` es una lista con `multiple`). Sube por el DOM hasta tu elemento:
 `<div x-on:dbl-select-changed="…">`.
 
 ## Valor y envío
 
 - `value` queda marcado en cuanto llegan las opciones.
+- **Con `x-model`** (o `wire:model`) en el `<select>`, lo que tenga el modelo es lo que queda elegido cuando llegan las opciones, y se vuelve a leer cada vez que se piden otra vez. Si además escribes `value` y el modelo está vacío, manda el modelo, como en cualquier campo con `x-model`.
 - El control se envía con el formulario con su `name` (`name[]` con `multiple`).
 - Sin `<option value="">` (sin `placeholder`) un select de un solo valor no puede estar vacío: usa `placeholder` en los campos opcionales.
 
 ## JavaScript
 
-La factoría `dblSelectRemote` está en `resources/js/daisyblade.js` y se registra sola. Su ámbito Alpine (`x-data`) es el contenedor del select y no el `<select>`, para que el mensaje de error quede dentro; la factoría encuentra el `<select>` dentro del contenedor. Su parte pura
+La factoría `dblSelectRemote` está en `resources/js/daisyblade.js` y se registra sola. Su ámbito Alpine (`x-data`) es un elemento **junto al `<select>`**, que guarda el mensaje de error y el botón «Reintentar»; el `<select>` queda **fuera** de ese ámbito a propósito, para que lo que escribes en él (`::disabled="loading"`, `x-model="form.city"`...) lea tus datos y no el `loading`, `error`, `options`, `selected`, `disabled` o `waiting` del componente. Como el `<select>` no ve las `options` del componente, la factoría escribe las `<option>` ella misma. La factoría encuentra el `<select>` en el padre de su elemento. Su parte pura
 (`toTexts`, `dependencyParams`, `stillOffered`) se prueba con `node --test tests/js/select-remote.test.mjs`.

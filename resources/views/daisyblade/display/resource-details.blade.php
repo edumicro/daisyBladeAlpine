@@ -1,7 +1,7 @@
 {{--
-    Tipo 3: loads a resource via Axios and renders key-value details.
+    Tipo 3: loads a resource via the HTTP client of http.js and renders key-value details.
 
-    @prop loadUrl  — GET endpoint returning { data: { ... } } or plain object
+    @prop loadUrl  — GET endpoint (required) returning { data: { ... } } or plain object
     @prop label    — optional section heading
     @prop fields   — optional field whitelist [ 'name', 'email', ... ] (all if empty)
 --}}

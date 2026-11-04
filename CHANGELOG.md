@@ -13,7 +13,7 @@ Doce convenciones. Cada una tiene su párrafo y, después, una tabla por compone
 
 1. **Un solo prefijo, `dbl`.** Las etiquetas Blade ya eran `x-dbl::`. Ahora también lo son los eventos (`dbl-…`), las factorías de JavaScript (`dblSelectRemote`), las clases CSS propias (`dbl-flowchart`), los ids que genera un componente (`dbl-flowchart-<aleatorio>-help`) y las claves de localStorage (`dbl_sidebar`, `dbl_wizard_…`). Al leer, si solo existe la clave vieja `db_…`, su valor se mueve una vez a la nueva y la vieja se borra: nadie pierde la barra lateral ni el progreso de un asistente.
 2. **Propiedades de URL.** En PHP camelCase, en la etiqueta kebab-case, y las claves de los arrays de configuración en snake_case (como en Laravel). Cada URL dice para qué sirve: `load-url` (de dónde lee el componente sus datos), `submit-url` (adónde manda lo que el usuario rellenó), `upload-url` (adónde van los ficheros), `geocode-url` (se queda). Las claves de array que eran camelCase pasan a snake_case: `badge_color`, `view_url`, `line_number`.
-3. **Valor.** `value` es un solo valor, en todos los controles de formulario (input, checkbox y toggle lo ganan; checkbox y toggle quedan marcados si es verdadero). `values` es solo un mapa nombre → valor: auto-form, fields y los pasos del wizard.
+3. **Valor.** `value` es un solo valor, en todos los controles de formulario que arrancan con uno: input, textarea, select, checkbox, radio, toggle, rich-text, kv-editor, list-editor y repeater (input, checkbox y toggle lo ganan; checkbox y toggle quedan marcados si es verdadero). Dos controles no lo tienen porque arrancan de otra cosa: upload recibe sus ficheros en `existing` y signature empieza vacío (el trazo se dibuja). `values` es solo un mapa nombre → valor: auto-form, fields y los pasos del wizard.
 4. **Ayuda.** `hint` en todos los controles de formulario; `description` desaparece de ellos. Se pinta siempre debajo del control. select, radio y repeater ganan `hint`.
 5. **Tamaño.** `size` es siempre un token `xs|sm|md|lg|xl` (más los extras con sentido: `full` en modal, `2xl` en avatar, `2xl`, `3xl` y `4xl` en text-rotate). El componente lo traduce a su clase con un `match` de nombres escritos enteros; un valor desconocido da `md`. input, textarea, checkbox, radio y toggle ganan `size`.
 6. **Color.** `color` es siempre un token (`primary|secondary|accent|neutral|info|success|warning|error`, más `ghost|link` en los botones y `ghost` en badge), nunca la clase. `background` es el único nombre del fondo, con un token `base-100|base-200|base-300` o uno de los colores. Lo que no esté en la lista va por `class`.
@@ -37,6 +37,8 @@ Para pasar de la 2 a la 3, por este orden: (1) vuelve a publicar las vistas y el
 | (inline en la vista) | nuevas: `dblSteps`, `dblCarousel`, `dblTextRotate`, `dblRepeater`, `dblSelectSearch`, `dblToastSingle`, `dblTabs` |
 | `dbSelectRemote`: `search`, `open`, `value`, `filtered()`, `select()`, `labelFor()`, el parámetro `q` de `fetch()` | fuera (restos de un modo buscable que ninguna plantilla usaba; el select buscable es `dblSelectSearch`) |
 | `dbSelectRemote.fetch()` | `dblSelectRemote.loadOptions()` (compartía nombre con el `fetch` global) |
+| `dbSelectRemote` en el contenedor del `<select>`, con las `<option>` en un `<template x-for>` dentro del `<select>` | `dblSelectRemote` en un elemento junto al `<select>` (que queda fuera de su ámbito); la factoría escribe las `<option>` (`showOptions()`), aplica el `x-model` (`takeModel()`) y escucha en la ventana (`onChange()`) |
+| `dbModal({ open })`, `dbSidebar({ open, persistent })` (ninguna vista los pasaba) | `dblModal()` y `dblSidebar()`, sin configuración |
 | configuración `url` / `optionsUrl` (select), `action` (auto-form, wizard, upload), `tabs[].url` | `loadUrl`, `submitUrl`, `uploadUrl`, `tabs[].loadUrl` |
 | flowchart: `onWindowEvent(detail)` | `onSet`, `onFocus`, `onRemoveEdge`, `onRemoveNode` |
 
@@ -86,13 +88,13 @@ Clases CSS: `db-calendar`, `db-flowchart`, `db-flowchart-handle`, `db-rich-text-
 | `display.accordion` | `class` (título), `container-class` | `title-class`, `class` |
 | `display.avatar` | `class` | `avatar-class` (`class` va a la raíz) |
 | `display.badge` | `color` y `variant`, `ghost` booleano, `color="soft"` / `"dash"` / `"outline"` | solo `color` (admite `ghost`); `outline` sigue siendo booleano; `soft` y `dash` van por `class="badge-soft"` |
-| `display.calendar` | `event-click`; `dbCalendar` | `dbl-calendar-event-clicked`; `dblCalendar` |
+| `display.calendar` | `event-click`; `dbCalendar` | `dbl-calendar-event-clicked`; `dblCalendar`; `load-url` vacía lanza `InvalidArgumentException` |
 | `display.card` | `background` (cualquier color), `border-color`, `actions[].variant` (`btn-primary`) | `background` es un token; `border-color` fuera (`class="border border-primary"`); `actions[].color` (`primary`) |
 | `display.carousel` | `class` (diapositiva), `container-class` (la tira) | `slide-class`, `carousel-class`; `class` a la raíz |
 | `display.chat-bubble` | `class` | `bubble-class` |
 | `display.collapse` | `variant` (tinte del contenido), `class` (título), `container-class` | `background`, `title-class`, `class` |
 | `display.compare`, `display.table` | `class` (tabla), `container-class` | `table-class`, `class` |
-| `display.data-table` | `class` (tabla), `container-class`; escucha `filters-updated`, `filters-cleared`, `filter-apply`, `filter-clear`; lleva `display.filters` | `table-class`, `class`; escucha `dbl-filters-applied` y `dbl-filters-cleared`; lleva `form.filters` |
+| `display.data-table` | `class` (tabla), `container-class`; escucha `filters-updated`, `filters-cleared`, `filter-apply`, `filter-clear`; lleva `display.filters` | `table-class`, `class`; escucha `dbl-filters-applied` y `dbl-filters-cleared`; lleva `form.filters`; `load-url` vacía lanza `InvalidArgumentException` |
 | `display.diff` | `class` (cada fila); clave `lineNumber` | `row-class`; clave `line_number` |
 | `display.filters` | — | `form.filters` |
 | `display.flowchart` | `class` (lienzo), `container-class`; eventos y orden `dbl-flowchart`; id `dbf-…` | `canvas-class`, `class`; eventos y órdenes de las tablas de arriba; id `dbl-flowchart-…-help` |
@@ -103,7 +105,7 @@ Clases CSS: `db-calendar`, `db-flowchart`, `db-flowchart-handle`, `db-rich-text-
 | `display.map` | capas `url`; `map-picked`; `data-config` | capas `load_url`; `dbl-map-picked`; sin `data-config` |
 | `display.node-graph`, `display.tree` | `class` (el árbol), `container-class`; eventos del node-graph | `tree-class`, `class`; eventos de las tablas de arriba |
 | `display.radial-progress` | `class` | `circle-class` |
-| `display.resource-details` | `class` (contenido), `container-class` | `content-class`, `class` |
+| `display.resource-details` | `class` (contenido), `container-class` | `content-class`, `class`; `load-url` vacía lanza `InvalidArgumentException` |
 | `display.stat` | `background-color="bg-base-100"`; sin `$attributes` | `background="base-100"`; `class` a la raíz |
 | `display.status` | `class` | `text-class` (el texto de los modos `inline` y `dot`) |
 | `display.text-rotate` | `class`, `size="base"` | `text-class`, `size="md"` |
@@ -125,12 +127,12 @@ Clases CSS: `db-calendar`, `db-flowchart`, `db-flowchart-handle`, `db-rich-text-
 |---|---|---|
 | `form.input` | `class` (control), `container-class`, `description`; sin `value` ni `size` | `class` (control, con todos los atributos), `wrapper-class`, `hint`; `value`, `size` |
 | `form.textarea` | `class` (control), `container-class`, `description`; sin `size` | `class` (control), `wrapper-class`, `hint`; `size` |
-| `form.checkbox`, `form.toggle` | `class` (control), `container-class`, `description`; sin `value` ni `size` | `class` (control), `wrapper-class`, `hint`; `value`, `size` |
-| `form.radio` | `class` (cada radio), `container-class`; sin `hint` ni `size` | `class` (cada radio), `wrapper-class`; `hint`, `size` |
-| `form.select` | `options-url`, `class` (control), `container-class`; `select-change` solo en el buscable; sin `hint` | `load-url`, `class` (el `<select>`; en el modo `searchable`, la caja de texto), `wrapper-class`; `dbl-select-changed` en los tres modos; `hint` |
-| `form.rich-text` | `description`, `container-class` (la raíz); no lanzaba nada | `hint`, `wrapper-class`; `class` y los atributos van a la caja del editor; `dbl-rich-text-changed` |
+| `form.checkbox`, `form.toggle` | `class` (control), `container-class`, `description`; sin `value` ni `size`; el toggle sin `required` ni `id` | `class` (control), `wrapper-class`, `hint`; `value`, `size`; `required` e `id` (a `name` si no escribes `id`) llegan al control también en el toggle |
+| `form.radio` | `class` (cada radio), `container-class`; sin `hint` ni `size`; el `id` iba a todos los radios; `required` no llegaba a los radios | `class` (cada radio), `wrapper-class`; `hint`, `size`; `id` solo al primer radio; `required` en cada radio |
+| `form.select` | `options-url`, `class` (control), `container-class`; `select-change` solo en el buscable; sin `hint` | `load-url`, `class` (el `<select>`; en el modo `searchable`, la caja de texto), `wrapper-class`; `dbl-select-changed` en los tres modos; `hint`. Con `load-url`, el `<select>` queda fuera del ámbito del componente (lo que escribes en él lee tus datos) y su `x-model` se aplica cuando llegan las opciones; en `searchable`, tu `@input` y tu `@focus` funcionan |
+| `form.rich-text` | `description`, `container-class` (la raíz); no lanzaba nada | `hint`, `wrapper-class`; `class` y los atributos van a la caja del editor; `dbl-rich-text-changed`; la etiqueta enfoca el editor (sin `for`) |
 | `form.signature` | `description`, `class` (la raíz); `signed`, `cleared` | `hint`, `wrapper-class`; `class` y los atributos van al lienzo; `dbl-signature-signed`, `dbl-signature-cleared` |
-| `form.upload` | `action`, `description`, `class` (zona de soltar), `container-class`; `uploaded`, `removed` | `upload-url`, `hint`, `class` (zona de soltar), `wrapper-class`; `dbl-upload-uploaded`, `dbl-upload-removed` |
+| `form.upload` | `action`, `description`, `class` (zona de soltar), `container-class`; `uploaded`, `removed` | `upload-url` (obligatoria: vacía lanza `InvalidArgumentException`), `hint`, `class` (zona de soltar), `wrapper-class`; `dbl-upload-uploaded`, `dbl-upload-removed` |
 | `form.repeater` | `dbl-repeater-change`; sin `hint`; sin `$attributes` | `dbl-repeater-changed`; `hint`; `class` a la raíz |
 | `form.kv-editor`, `form.list-editor` | `class` | `class` (a la raíz; ya era la raíz) |
 | `form.fields` | `alpha-errors`; un fragmento sin raíz | `alpine-errors`; envuelto en un `<div class="contents">` que recibe `$attributes` |
@@ -153,10 +155,10 @@ Clases CSS: `db-calendar`, `db-flowchart`, `db-flowchart-handle`, `db-rich-text-
 | `navigation.steps` | `step-changed`; `class` (la lista) | `dbl-steps-step-changed`; `steps-class` |
 | `navigation.sidebar` | `sidebar-toggle`; `class` (el `<aside>`) | `dbl-sidebar-toggle`; `aside-class` (`class` va al `<div>` que lo envuelve) |
 | `navigation.navbar`, `navigation.sidebar-tree`, `navigation.tabs` | `class` como propiedad, o sin `$attributes` | `class` y atributos a la raíz |
-| `sections.auto-form` | `action`, `class` (el `<form>`), `container-class` | `submit-url`, `form-class`, `class` |
-| `sections.wizard` | `action`, `container-class`; `x-init` con los valores | `submit-url`, `class`; los `values` viajan en la configuración |
+| `sections.auto-form` | `action`, `class` (el `<form>`), `container-class` | `submit-url` (obligatoria en modo `alpine`: vacía lanza `InvalidArgumentException`), `form-class`, `class` |
+| `sections.wizard` | `action`, `container-class`; `x-init` con los valores | `submit-url` (obligatoria: vacía lanza `InvalidArgumentException`), `class`; los `values` viajan en la configuración |
 | `sections.tabs` | clave `'load-url'`, `class` (panel), `container-class` | clave `'load_url'`, `panel-class`, `class` |
-| `import.spreadsheet` | `container-class` | `class` (`upload-url` y `template-url` no cambian) |
+| `import.spreadsheet` | `container-class` | `class` (`upload-url` y `template-url` no cambian; `upload-url` es obligatoria: vacía lanza `InvalidArgumentException`) |
 
 #### Otros cambios que se ven
 

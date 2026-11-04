@@ -1,7 +1,7 @@
 'use strict'
 
 // ── Protocolo de respuesta de los eventos de edición: funciones puras ──────
-// El componente emite `node-move` y `edge-create` con `accept` y `reject` en el detalle.
+// El componente emite `dbl-flowchart-node-move-requested` y `dbl-flowchart-edge-requested` con `accept` y `reject` en el detalle.
 // Quien escucha decide (abrir su diálogo, preguntar a su servidor...) y responde cuando quiera.
 
 /**

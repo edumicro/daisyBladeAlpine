@@ -16,7 +16,7 @@ DaisyBlade is the evolution of [edumicro/daisylw4](https://github.com/edumicro/d
 
 - **Blade** renders structure
 - **Alpine.js** manages local UI state
-- **Axios** (or plain `fetch`, if the page has no axios) handles explicit server calls
+- **The HTTP client** (axios, or plain `fetch` if the page has none) handles explicit server calls
 - **DaisyUI 5** provides the design system
 
 Every server interaction is a plain Laravel controller returning JSON. No protocol overhead, no wire attributes, no object inspector surprises. If something breaks, you know exactly where to look.
@@ -143,12 +143,12 @@ Learn it once, it is the same everywhere. The migration guide from 2.x is in `CH
 
 | What | Rule |
 |---|---|
-| **URLs** | In PHP camelCase, in the tag kebab-case; the keys of the arrays you pass are snake_case. `load-url`: where the component reads its data (calendar, data-table, resource-details, remote select, lazy tabs with `load_url`, map layers with `load_url`). `submit-url`: where it sends what the user filled in (auto-form, wizard). `upload-url`: where the files go (upload, rich-text, spreadsheet). `geocode-url`: the address search of the map. |
-| **Value** | `value` is one value, in every form control (`input`, `checkbox` and `toggle` included: checked when it is true). `values` is a `name => value` map, only in `auto-form`, `fields` and the steps of `wizard`. |
+| **URLs** | In PHP camelCase, in the tag kebab-case; the keys of the arrays you pass are snake_case. A component that exists for its URL (`auto-form` in `alpine` mode, `wizard`, `data-table`, `resource-details`, `calendar`, `upload`, `spreadsheet`) throws an `InvalidArgumentException` when it is empty, which is what a 2.x name (`action=`) now looks like. `load-url`: where the component reads its data (calendar, data-table, resource-details, remote select, lazy tabs with `load_url`, map layers with `load_url`). `submit-url`: where it sends what the user filled in (auto-form, wizard). `upload-url`: where the files go (upload, rich-text, spreadsheet). `geocode-url`: the address search of the map. |
+| **Value** | `value` is one value, in every form control that starts with one: `input`, `textarea`, `select`, `checkbox`, `radio`, `toggle` (checked when it is true), `rich-text`, `kv-editor`, `list-editor` and `repeater`. `upload` starts from `existing` (a list of files) and `signature` starts empty. `values` is a `name => value` map, only in `auto-form`, `fields` and the steps of `wizard`. |
 | **Help** | `hint`, in every form control. There is no `description` on a control. |
 | **Size** | `size` is a token: `xs\|sm\|md\|lg\|xl` (and `full` in `modal`, `2xl`..`4xl` in `text-rotate`, `2xl` in `avatar`). The component turns it into its class with a literal map. Controls (`input`, `textarea`, `select`, `checkbox`, `radio`, `toggle`) have it. |
 | **Color** | `color` is a token: `primary\|secondary\|accent\|neutral\|info\|success\|warning\|error`, plus `ghost\|link` on buttons. `background` is the only name for a background: `base-100\|base-200\|base-300` or one of the colors (card, stat, footer, collapse). Anything else goes in `class`. |
-| **`class` and attributes** | Everything you write (`class`, `id`, `data-*`, `aria-*`, `x-on:*`) goes to the **main element** of the component. That is its root, as in any Laravel component; in a **form control** it is the control itself, as in Breeze's text-input: `<x-dbl::form.input type="number" min="0" x-model="qty">` puts `min` and `x-model` in the `<input>`. The box around a control (label, hint, error) takes its classes from `wrapper-class`. To style another inner part there is a `<part>-class` prop: `canvas-class`, `table-class`... There is no `container-class`. |
+| **`class` and attributes** | Everything you write (`class`, `id`, `data-*`, `aria-*`, `x-on:*`) goes to the **main element** of the component. That is its root, as in any Laravel component; in a **form control** it is the control itself, as in Breeze's text-input: `<x-dbl::form.input type="number" min="0" x-model="qty">` puts `min` and `x-model` in the `<input>`. The box around a control (label, hint, error) takes its classes from `wrapper-class`. `id` is the exception in a **radio** group (it goes to the first radio only: the same `id` on every radio would be invalid HTML). In `rich-text`, `signature` and `upload` the control is a box, not a native element, so the label does not point at it with `for` (the `rich-text` label focuses the editor when pressed). To style another inner part there is a `<part>-class` prop: `canvas-class`, `table-class`... There is no `container-class`. |
 | **Events** | What a component announces: `dbl-<component>-<what happened, in the past>` (`dbl-select-changed`, `dbl-pagination-page-changed`, `dbl-upload-removed`). The orders it listens to on the window: `dbl-<component>-<verb>` (`dbl-modal-open`, `dbl-modal-close`, `dbl-toast-show`, `dbl-sidebar-toggle`, `dbl-map-focus`, `dbl-flowchart-focus`). Always `$dispatch`, and the `detail` is always an object. |
 | **Filters** | One component, `x-dbl::form.filters`, announcing `dbl-filters-applied` and `dbl-filters-cleared` with `{ filters }`. `display.data-table` listens to those two. |
 | **Configuration for the JavaScript** | One way: `x-data="dblName(@js($config))"`. Nothing from PHP is glued inside a JavaScript text. |
@@ -210,7 +210,7 @@ No JavaScript. Receive props, render HTML.
 
 ### Type 2 — Interactive local (Alpine, no server calls)
 
-UI state managed by Alpine. No Axios.
+UI state managed by Alpine. No server calls.
 
 | Component | Usage |
 |---|---|
@@ -232,7 +232,7 @@ UI state managed by Alpine. No Axios.
 | `layout.auth` | Auth page layout |
 | `navigation.tabs` | Tab switcher (inline content) |
 
-### Type 3 — Interactive remote (Alpine + Axios)
+### Type 3 — Interactive remote (Alpine + server calls)
 
 Receive a `load-url`, `submit-url` or `upload-url` prop. Call plain Laravel controllers returning JSON.
 

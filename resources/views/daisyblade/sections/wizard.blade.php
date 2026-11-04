@@ -1,5 +1,5 @@
 {{--
-    Tipo 3: Multi-step wizard with Alpine + Axios + localStorage persistence.
+    Tipo 3: Multi-step wizard with Alpine + the HTTP client of http.js + localStorage persistence.
 
     @prop steps   — [ ['label'=>'Info', 'description'=>'', 'schema'=>[...], 'values'=>[...]] ]
     @prop submitUrl — endpoint that receives the values (POST by default)

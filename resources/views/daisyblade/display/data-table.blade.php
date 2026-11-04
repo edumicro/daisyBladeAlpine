@@ -1,7 +1,7 @@
 {{--
-    Tipo 3: server-driven data table via Alpine + Axios.
+    Tipo 3: server-driven data table via Alpine + the HTTP client of http.js (the injected client, else axios, else fetch).
 
-    @prop loadUrl   — Axios GET endpoint. Must return:
+    @prop loadUrl   — GET endpoint (required). Must return:
                        { data: [...rows], meta: { current_page, last_page, total, per_page } }
     @prop columns   — [ ['key'=>'name', 'label'=>'Name', 'sortable'=>true] ]
     @prop filters   — filters config forwarded to <x-dbl::form.filters> (optional)

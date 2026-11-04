@@ -1,14 +1,14 @@
 {{--
-    Tipo 3: schema-driven form with Alpine + Axios submit.
+    Tipo 3: schema-driven form with Alpine; the submit goes through the HTTP client of http.js.
 
     @prop fields      — [ 'key' => ['type'=>'text', 'label'=>'...', 'cols'=>'col-span-6', ...] ]
     @prop values      — initial values object (JSON serializable)
-    @prop submitUrl   — endpoint that receives the values (required for Axios mode; the <form action> in 'form' mode)
+    @prop submitUrl   — endpoint that receives the values (required in 'alpine' mode; the <form action> in 'form' mode)
     @prop method      — 'POST'|'PUT'|'PATCH'|'DELETE' (default POST)
-    @prop mode        — 'alpine' (Axios, default) | 'form' (standard HTML POST)
+    @prop mode        — 'alpine' (JSON submit, default) | 'form' (standard HTML POST)
     @prop submitLabel — button label
     @prop resetLabel  — optional reset button label
-    @prop successMsg  — inline success message shown after Axios submit
+    @prop successMsg  — inline success message shown after the submit
     @prop redirect    — redirect URL on success (overrides successMsg if server returns data.redirect)
 
     Server must return JSON (an empty body is fine; a text answer such as the login page counts as a failure):

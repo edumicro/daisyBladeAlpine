@@ -8,7 +8,7 @@
     @prop edges      — [{id, from, to, label?, variant?, muted?, flat?}]
     @prop direction  — vertical (de arriba abajo) | horizontal (de izquierda a derecha): colocación automática
     @prop editable   — mover cajas y crear flechas arrastrando desde el asa
-    @prop name       — identificador opcional, para el evento de ventana `dbl-flowchart`
+    @prop name       — identificador opcional: las órdenes de ventana (`dbl-flowchart-set`, `-focus`, `-remove-edge`, `-remove-node`) llevan el `name` del diagrama al que van
     @prop height     — altura CSS del lienzo (px, rem, em, vh o %); el contenido hace scroll dentro
     @prop grid       — paso de ajuste al soltar una caja, en px (0 = sin ajuste)
     @prop showMuted  — pintar también los `muted` (en discontinua); con `false` hay un interruptor

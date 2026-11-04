@@ -44,8 +44,9 @@ const expectJson = data => {
 // Every view starts its component the same way: `x-data="dblName(@js($config))"`. The factory gets
 // the configuration as one object; nothing from PHP is glued into JavaScript text.
 
-const dblModal = (config = {}) => ({
-    open: config.open ?? false,
+// actions.modal: closed at the start; it opens with `dbl-modal-open` (see the view). It takes no configuration.
+const dblModal = () => ({
+    open: false,
     show() { this.open = true },
     hide() { this.open = false },
     toggle() { this.open = !this.open },
@@ -193,17 +194,17 @@ const dblNavbar = (config = {}) => ({
     close() { this.open = false },
 })
 
-const dblSidebar = (config = {}) => ({
-    open: config.open ?? window.innerWidth >= 1024,
+// navigation.sidebar: open from 1024px up, and it remembers the last choice of the user in localStorage.
+// It takes no configuration: the view passes none.
+const dblSidebar = () => ({
+    open: window.innerWidth >= 1024,
     init() {
-        if (config.persistent ?? true) {
-            const saved = readStored(localStorage, 'dbl_sidebar')
-            if (saved !== null) this.open = saved === 'true'
-        }
+        const saved = readStored(localStorage, 'dbl_sidebar')
+        if (saved !== null) this.open = saved === 'true'
     },
     toggle() {
         this.open = !this.open
-        if (config.persistent ?? true) localStorage.setItem('dbl_sidebar', this.open)
+        localStorage.setItem('dbl_sidebar', this.open)
     },
     close() { this.open = false },
 })
@@ -214,7 +215,7 @@ const dblSidebarTree = (config = {}) => ({
     isOpen(key) { return !!this.expanded[key] },
 })
 
-// ── Tipo 3: Alpine + Axios ────────────────────────────────────────────────
+// ── Tipo 3: Alpine + server calls (through http.js: the injected client, else axios, else fetch) ─────────
 
 // Pure helpers of dblSelectRemote (tested with `node --test tests/js/select-remote.test.mjs`).
 

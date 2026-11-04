@@ -1,5 +1,5 @@
 {{--
-    Tipo 3: lazy-load tabbed sections via Alpine + Axios.
+    Tipo 3: lazy-load tabbed sections via Alpine + the HTTP client of http.js.
 
     @prop tabs   — [ ['label'=>'General', 'load_url'=>'/resource/1/general', 'icon'=>null] ]
     @prop active — initial active tab index (0-based)

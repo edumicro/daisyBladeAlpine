@@ -21,7 +21,7 @@ instala e inyecta la aplicación, así que decides tú qué extensiones (y qué 
 | Prop | Descripción |
 |---|---|
 | `name` | Nombre del `<input type="hidden">` que viaja en el formulario |
-| `label`, `hint`, `required` | Como en el resto de campos |
+| `label`, `hint`, `required` | Como en el resto de campos, salvo que la etiqueta no lleva `for` (el editor es un `<div>`, que no se puede etiquetar): al pulsarla enfoca el editor |
 | `class`, `wrapper-class` | `class` y el resto de atributos van a la caja del editor (el control); `wrapper-class` a la caja de fuera |
 | `value` | HTML inicial |
 | `placeholder` | Texto con el editor vacío (requiere `Placeholder`) |
