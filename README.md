@@ -52,6 +52,14 @@ php artisan daisyblade:install --vite
 php artisan daisyblade:install --public
 ```
 
+The JS files go into folders where your own files may live (`resources/js/components/calendar.js` can be yours). So a file that already exists and is different is **not overwritten**: the command lists what it left alone. After updating the package, run it again with `--force` to replace them with the new copy:
+
+```bash
+php artisan daisyblade:install --vite --force
+```
+
+The views are published to `resources/views/vendor/daisyblade/` every time (that folder is the package's own).
+
 The texts of the components (Spanish, Catalan and English) can be published too, and edited there:
 
 ```bash
