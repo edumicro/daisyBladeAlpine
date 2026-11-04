@@ -13,6 +13,7 @@
 
 import { request, answerShapes } from '../http.js'
 import { withConfig } from '../factoryConfig.js'
+import { announceValue } from '../modelBinding.js'
 
 // Solo se aceptan enlaces http(s) y mailto. El servidor debe volver a comprobarlo al sanear.
 const SAFE_URL = /^(https?:\/\/|mailto:)/i
@@ -74,6 +75,7 @@ export const dblRichText = withConfig({
 
         // Tells whoever listens above that the content changed, with the name of the field and its HTML.
         announce() {
+            announceValue(this.$refs.input)   // the field says it changed, as a native control does (modelBinding.js)
             this.$dispatch('dbl-rich-text-changed', { name: config.name, value: this.$refs.input.value })
         },
 

@@ -193,7 +193,7 @@ test('8. the upload announces dbl-upload-uploaded and dbl-upload-removed', async
 
 test('8. the signature announces dbl-signature-signed or dbl-signature-cleared with { name, value }', () => {
     const [signature, announced] = recording(dblSignature({ name: 'firma' }))
-    signature.$refs = { input: { value: '' } }
+    signature.$refs = { input: { value: '', dispatchEvent() {} } }
     signature.pad = { isEmpty: () => false, toDataURL: () => 'data:image/png;base64,AAA' }
     signature.sync(true)
     signature.pad = { isEmpty: () => true }
@@ -206,7 +206,7 @@ test('8. the signature announces dbl-signature-signed or dbl-signature-cleared w
 
 test('8. the rich text announces dbl-rich-text-changed with { name, value }', () => {
     const [richText, announced] = recording(dblRichText({ name: 'cuerpo' }, {}))
-    richText.$refs = { input: { value: '<p>Hola</p>' } }
+    richText.$refs = { input: { value: '<p>Hola</p>', dispatchEvent() {} } }
     richText.announce()
     assert.deepEqual(announced, [{ name: 'dbl-rich-text-changed', detail: { name: 'cuerpo', value: '<p>Hola</p>' } }])
 })
@@ -327,7 +327,7 @@ test('10. dblSelectSearch filters flat and grouped options, and announces the ch
     assert.equal(grouped.isEmpty, true)
 
     const [chooser, announced] = recording(dblSelectSearch({ name: 'lang', options: { es: 'Español' } }))
-    chooser.$refs = { value: { value: '' } }
+    chooser.$refs = { value: { value: '', dispatchEvent() {} } }
     chooser.choose({ key: 'es', label: 'Español' })
     assert.equal(chooser.search, 'Español')
     assert.equal(chooser.$refs.value.value, 'es')

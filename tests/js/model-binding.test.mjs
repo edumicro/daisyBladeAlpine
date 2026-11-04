@@ -93,3 +93,39 @@ test('observe: the control is told of every change of the model, not just the fi
     modelBinding(null).observe(watch, () => {})
     assert.equal(watchers.length, 1)
 })
+
+// ── The contract of a control with JavaScript: its field announces its changes as a native control does ──
+
+import { writeValue, announceValue } from '../../resources/js/modelBinding.js'
+
+/** A field that is only a value and an event target (it is all the helpers need from an <input>). */
+function fakeField(value = '') {
+    const field = new EventTarget()
+    field.value = value
+    field.heard = []
+    for (const type of ['input', 'change']) field.addEventListener(type, event => field.heard.push(`${event.type}:${event.bubbles}`))
+    return field
+}
+
+test('contract: writeValue writes the field and announces input and change, bubbling', () => {
+    const field = fakeField('')
+    writeValue(field, 'FR')
+    assert.equal(field.value, 'FR')
+    assert.deepEqual(field.heard, ['input:true', 'change:true'])
+})
+
+test('contract: writeValue says nothing when the value is already there', () => {
+    const field = fakeField('FR')
+    writeValue(field, 'FR')
+    assert.deepEqual(field.heard, [])
+})
+
+test('contract: a missing field is ignored (a searchable select without a name has no hidden input)', () => {
+    assert.doesNotThrow(() => writeValue(null, 'x'))
+})
+
+test('contract: announceValue fires both native events', () => {
+    const field = fakeField('x')
+    announceValue(field)
+    assert.deepEqual(field.heard, ['input:true', 'change:true'])
+})

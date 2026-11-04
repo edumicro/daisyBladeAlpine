@@ -98,7 +98,13 @@ test('init() called again once the first load has finished loads again', async (
 
 /** A form with the given controls, in document order: `{ name, type, value, checked }`. */
 function formWith(controls) {
-    return { querySelectorAll: selector => controls.filter(control => selector === `[name="${control.name}"]`) }
+    // The page answers `[name="x"], [name="x[]"]` with the controls of those names, and each control knows `matches` and what a select has chosen.
+    const asElement = control => ({
+        matches: selector => selector === 'select' && control.type.startsWith('select'),
+        selectedOptions: control.type.startsWith('select') ? [{ value: control.value }] : [],
+        ...control,
+    })
+    return { querySelectorAll: selector => controls.filter(control => selector.includes(`[name="${control.name}"]`) || selector.includes(`[name="${control.name}[]"]`)).map(asElement) }
 }
 
 /** A remote select that depends on `kind`, inside `form`. */

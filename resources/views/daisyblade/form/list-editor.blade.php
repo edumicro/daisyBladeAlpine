@@ -19,7 +19,7 @@ $placeholder = $placeholder !== '' ? $placeholder : __('Type and press Enter or 
         @endif
 
         {{-- Hidden input keeps the JSON array in sync --}}
-        <input type="hidden" name="{{ $name }}" :value="toJson()" />
+        <input type="hidden" x-ref="field" name="{{ $name }}" :value="toJson()" />
 
         {{-- Chip container + text input --}}
         <div

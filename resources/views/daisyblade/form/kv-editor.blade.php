@@ -37,7 +37,7 @@ $initialRows = collect($value)->map(function ($v, $k) {
         @endif
 
         {{-- Hidden input keeps the serialised JSON in sync --}}
-        <input type="hidden" name="{{ $name }}" :value="toJson()" />
+        <input type="hidden" x-ref="field" name="{{ $name }}" :value="toJson()" />
 
         {{-- Column headers --}}
         <div class="flex gap-2 mb-1.5 px-0.5 text-xs text-base-content/40 select-none">

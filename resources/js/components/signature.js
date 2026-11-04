@@ -8,6 +8,7 @@
 // La vista debe tener un <canvas x-ref="canvas"> y un <input type="hidden" x-ref="input">.
 
 import { withConfig } from '../factoryConfig.js'
+import { writeValue } from '../modelBinding.js'
 
 const INK = '#111111'        // trazo oscuro...
 const PAPER = '#ffffff'      // ...sobre blanco, también en modo oscuro: el PDF es blanco
@@ -73,7 +74,8 @@ const dblSignature = withConfig({ name: '', required: false }, (config, deps = {
     // Actualiza el campo oculto: PNG en data URL, o vacío si no hay firma.
     sync(notify = false) {
         this.empty = this.pad.isEmpty()
-        this.$refs.input.value = this.empty ? '' : this.pad.toDataURL('image/png')
+        // The field announces its change as a native control does (the contract of modelBinding.js).
+        writeValue(this.$refs.input, this.empty ? '' : this.pad.toDataURL('image/png'))
         if (!this.empty) this.error = false
         if (notify) this.$dispatch(this.empty ? 'dbl-signature-cleared' : 'dbl-signature-signed', { name: config.name, value: this.$refs.input.value })
     },

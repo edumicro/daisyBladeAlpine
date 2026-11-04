@@ -150,6 +150,9 @@
     <template x-for="id in ids" x-bind:key="id">
         <input type="hidden" name="{{ $name }}[]" x-bind:value="id" />
     </template>
+    {{-- Announces the changes of the list above (it has no fields when it is empty). Disabled: no form sends it. After the ids, so
+         that code which looks for the first `{{ $name }}[]` finds a real one. --}}
+    <input type="hidden" x-ref="field" name="{{ $name }}[]" disabled />
 
     @if($name && isset($errors))
         @error($name)

@@ -14,7 +14,7 @@ function searchableWithBox(config = {}) {
     const select = Object.assign(dblSelectSearch({ name: 'city', options: { 1: 'One', 2: 'Two' }, ...config }), {
         // The text box is BESIDE the scope: the component finds it in the parent of its own element.
         $root: { parentElement: { querySelector: () => box }, dispatchEvent() {} },
-        $refs: { value: { value: '' } },
+        $refs: { value: { value: '', dispatchEvent() {} } },
         $dispatch: (name, detail) => announced.push([name, detail]),
     })
     return { select, box, inputEvents, announced }

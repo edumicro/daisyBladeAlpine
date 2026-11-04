@@ -11,6 +11,7 @@ function singleFileField(config = {}) {
     const uploads = []
     const upload = Object.assign(dblUpload({ uploadUrl: '/u', accept: '.pdf', maxSize: 1, existing: [{ id: 7, name: 'saved.pdf' }], messages: { bad_type: 'wrong type' }, ...config }), {
         $dispatch() {},
+        $watch() {},    // the announcement of the field (modelBinding.js) is not the subject here
         send: async item => { uploads.push(item.name) },    // the network is not the subject here
     })
     upload.init()

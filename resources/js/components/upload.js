@@ -1,5 +1,6 @@
 import { request, isCanceled, answerShapes } from '../http.js'
 import { withConfig } from '../factoryConfig.js'
+import { announceWhenItChanges } from '../modelBinding.js'
 
 /**
  * dblUpload — subida de ficheros para <x-dbl::form.upload>.
@@ -21,6 +22,9 @@ export const dblUpload = withConfig({ uploadUrl: '', existing: [], multiple: fal
 
     init() {
         this.items = config.existing.map(f => this.makeItem({ ...f, status: 'done' }))
+        // The ids are the value of the field. There is one hidden input per id, and none when the list is empty, so the field that
+        // announces the change is a fixed one, disabled (a form never sends it) and with the same name (modelBinding.js).
+        announceWhenItChanges(this, () => this.ids.join(','), () => this.$refs.field)
     },
 
     makeItem(data) {

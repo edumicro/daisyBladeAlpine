@@ -1,7 +1,7 @@
 'use strict'
 
 import { request, joinUrl, latestOnly, answerShapes } from './http.js'
-import { modelBinding, modelOfElement, isEmptyValue } from './modelBinding.js'
+import { modelBinding, modelOfElement, isEmptyValue, writeValue, announceWhenItChanges } from './modelBinding.js'
 import { withConfig } from './factoryConfig.js'
 
 // Every server call of this file goes through request() (see http.js): the client injected with
@@ -215,7 +215,7 @@ const dblSelectSearch = withConfig({ name: '', search: '', chosen: '', options: 
             this.shown = key
             this.search = key === '' ? '' : this.labelOf(key)
         }
-        if (this.$refs.value) this.$refs.value.value = key
+        writeValue(this.$refs.value, key)
         const box = this.textBox
         if (box && box.value !== this.search) box.value = this.search
     },
@@ -233,7 +233,7 @@ const dblSelectSearch = withConfig({ name: '', search: '', chosen: '', options: 
         if (String(this.chosen ?? '') !== '') {
             this.shown = ''
             this.binding.write('')
-            if (this.$refs.value) this.$refs.value.value = ''
+            writeValue(this.$refs.value, '')
             this.$dispatch('dbl-select-changed', { name: config.name, value: '' })
         }
     },
@@ -251,7 +251,7 @@ const dblSelectSearch = withConfig({ name: '', search: '', chosen: '', options: 
             box.dispatchEvent(new Event('input', { bubbles: true }))
             this.choosing = false
         }
-        if (this.$refs.value) this.$refs.value.value = item.key
+        writeValue(this.$refs.value, String(item.key))
         this.$dispatch('dbl-select-changed', { name: config.name, value: item.key })
     },
 }))
@@ -336,6 +336,16 @@ const toTexts = value => [].concat(value ?? []).map(String).filter(text => text 
 /** The value a model gives to the select that depends on it: '' when empty, a list of texts, or a text. */
 const valueOfModel = value => (isEmptyValue(value) ? '' : (Array.isArray(value) ? value.map(String) : String(value)))
 
+/** The controls of `root` that send `name`: the control itself or, for a list, `name[]` (a `multiple` select, checkboxes of a group). */
+const controlsNamed = (root, name) => [...root.querySelectorAll(`[name="${name}"], [name="${name}[]"]`)]
+
+/** What one control would send, as a list of texts: a select gives its chosen options; a radio or a checkbox only if it is checked. */
+function valuesSentBy(control) {
+    if (control.matches('select')) return [...control.selectedOptions].map(option => option.value)
+    const isUnchecked = ['radio', 'checkbox'].includes(control.type) && !control.checked
+    return isUnchecked ? [] : [control.value]
+}
+
 /** Query-string params that carry the value of the control we depend on, under that control's name. */
 const dependencyParams = (name, value) => (name ? { [name]: value } : {})
 
@@ -407,20 +417,22 @@ const dblSelectRemote = withConfig({ name: '', loadUrl: '', multiple: false, val
     // (see form/select.blade.php for why), so we look for it in the parent, which holds no other <select>.
     get field() { return this.$root.parentElement.querySelector('select') },
 
-    // Value of the control we depend on (null if we depend on none), looked up by name
-    // in our form or, if we are not in a form, in the whole page.
+    // Value of the control we depend on (null if we depend on none), looked up by name (`country`, or `country[]` when it
+    // sends a list) in our form or, if we are not in a form, in the whole page.
     // It is the value the form would SEND for that name: a group of radios counts only through the checked one
     // ('' if none is), and an unchecked checkbox sends nothing. `form.checkbox` and `form.toggle` write a hidden
     // `0` before the checkbox, so when the checkbox is unchecked the value is that 0.
     dependencyValue() {
         if (!config.dependsOn) return null
-        const controls = [...(this.field.form ?? document).querySelectorAll(`[name="${config.dependsOn}"]`)]
+        const controls = controlsNamed(this.field.form ?? document, config.dependsOn)
         // A control with a model is followed through it (rule 3 of modelBinding.js): reading it inside Alpine's watch tracks it.
         const parentModel = controls.map(modelOfElement).find(Boolean)
         if (parentModel) return valueOfModel(modelBinding(parentModel).current())
-        const sent = controls.filter(control => !['radio', 'checkbox'].includes(control.type) || control.checked)
-        // When several controls send the name (hidden 0 + checked checkbox), the last one wins, as in a submitted form.
-        return sent[sent.length - 1]?.value ?? ''
+        const sent = controls.flatMap(valuesSentBy)
+        // A name that ends in `[]` sends a LIST; any other name sends one value: the last one when several controls send it
+        // (hidden 0 + checked checkbox), as in a submitted form.
+        const sendsAList = controls.some(control => control.name.endsWith('[]'))
+        return sendsAList ? valueOfModel(sent.filter(text => text !== '')) : (sent[sent.length - 1] ?? '')
     },
 
     // The window hears the `change` of every control of the page (our <select> is not inside our element, so its `change`
@@ -434,7 +446,8 @@ const dblSelectRemote = withConfig({ name: '', loadUrl: '', multiple: false, val
     // Every control of the page fires `change`: reload only for the one we depend on.
     onDependencyChange(event) {
         if (!config.dependsOn) return    // we depend on nothing: a control without a name must not match ''
-        if (event.target.name === config.dependsOn && event.target.form === this.field.form) this.reloadIfTheParentChanged()
+        const isTheParent = [config.dependsOn, `${config.dependsOn}[]`].includes(event.target.name)
+        if (isTheParent && event.target.form === this.field.form) this.reloadIfTheParentChanged()
     },
 
     // Keep the <select> in step with our state. Our element runs this from its `x-effect`, so it runs again
@@ -854,6 +867,8 @@ const dblKvEditor = withConfig({ rows: [] }, (config) => ({
 
     init() {
         if (this.rows.length === 0) this.addRow()
+        // The field of the view shows `toJson()`; any change of the rows is announced as a change of that field (modelBinding.js).
+        announceWhenItChanges(this, () => this.toJson(), () => this.$refs.field)
     },
 
     addRow() {
@@ -899,6 +914,11 @@ const dblKvEditor = withConfig({ rows: [] }, (config) => ({
 const dblListEditor = withConfig({ items: [] }, (config) => ({
     items: config.items,
     draft: '',
+
+    init() {
+        // The field of the view shows `toJson()`; any change of the items is announced as a change of that field (modelBinding.js).
+        announceWhenItChanges(this, () => this.toJson(), () => this.$refs.field)
+    },
 
     add() {
         const v = this.draft.trim()
