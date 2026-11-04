@@ -11,6 +11,15 @@ const http = options => request(options, injectedDeps)
 // `fallback` (English) is for views that do not pass them, such as a copy published before 2.4.
 const messageOf = (config, key, fallback) => config.messages?.[key] ?? fallback
 
+// What a component that loads JSON (select options, table rows, a resource) does with the body of the answer.
+// When the session has expired the server redirects to the login page; axios and fetch follow the redirect and hand
+// over its HTML as a normal 200 answer, which read as data looks like an empty list. So a text body is an error: the
+// component shows its "could not load" message with Retry. An empty body (a 204) is not text: it still means "nothing".
+const expectJson = data => {
+    if (typeof data === 'string' && data !== '') throw new Error('Expected JSON but the server sent text (an expired session redirected to the login page?)')
+    return data
+}
+
 // ── Tipo 2: local Alpine state, no server calls ────────────────────────────
 
 const dbModal = (config = {}) => ({
@@ -174,6 +183,7 @@ const dbSelectRemote = (config = {}) => ({
             const params = { ...(q ? { search: q } : {}), ...(config.params ?? {}), ...dependencyParams(config.dependsOn, this.dependencyValue()) }
             // `url` is what the Blade passes; `optionsUrl` is the old name.
             const { data } = this.waiting ? { data: [] } : await http({ url: config.url ?? config.optionsUrl, params })
+            expectJson(data)
             if (request !== this.lastRequest) return false
             this.options = Array.isArray(data) ? data : (data.data ?? [])
         } catch (error) {
@@ -214,6 +224,7 @@ const dbResourceDetails = (config = {}) => ({
         this.loading = true; this.error = null
         try {
             const { data } = await http({ url: config.loadUrl })
+            expectJson(data)
             this.resource = data.data ?? data
         } catch (e) {
             this.error = e.response?.data?.message ?? messageOf(config, 'loadFailed', 'Error loading resource')
@@ -303,6 +314,7 @@ const dbDataTable = (config = {}) => ({
         this.error = ''
         try {
             const { data } = await http({ url: config.loadUrl, params: this.queryState() })
+            expectJson(data)
             if (request !== this.lastRequest) return    // a newer load() took over: this answer is old
             this.rows = data.data ?? []
             this.meta = data.meta ?? {}

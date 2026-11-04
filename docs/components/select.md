@@ -33,6 +33,8 @@ JSON con una lista de `{value, label}` (también vale `{"data": [...]}`):
 [{"value": "PT-30", "label": "Madeira"}, {"value": "PT-20", "label": "Azores"}]
 ```
 
+Una respuesta que no es JSON (por ejemplo la página de login a la que redirige una sesión caducada) cuenta como error: mensaje con **Reintentar**, no una lista vacía.
+
 ## Con `depends-on`
 
 1. Al cargar y **cada vez que el otro control lanza `change`**, pide `options-url` añadiendo su valor
