@@ -143,9 +143,10 @@ const dblRepeater = withConfig({ name: '', rows: [], emptyRow: {}, min: 0, max: 
 // ── form.select with `searchable` ──────────────────────────────────────────────────────────────────────────────────────────
 
 /**
- * Evaluate an expression the CALLER wrote in a Blade prop (`on-select`, `process-results`, `on-error`), as Alpine does with
- * `x-on:click="..."`: in the scope of the caller's elements, plus the names in `scope` (`row`, `response`, `error`).
- * The expression travels as a TEXT inside the configuration (`@js($config)`), never glued into JavaScript by Blade.
+ * Evaluate the expression of `process-results`, the ONE expression of the library: it has to RETURN a value (the rows), which an
+ * event cannot do. (Everything that only announces something is an event: `dbl-select-changed`, `dbl-select-failed`.) It is evaluated as
+ * Alpine does with `x-on:click="..."`, in the scope of the caller's elements plus the names in `scope` (`response`). It travels
+ * as a TEXT inside the configuration (`@js($config)`), never glued into JavaScript by Blade.
  */
 const evaluateExpression = (element, expression, scope) => globalThis.window?.Alpine?.evaluate(element, expression, { scope })
 
@@ -153,23 +154,32 @@ const evaluateExpression = (element, expression, scope) => globalThis.window?.Al
  * The query-string params of one search: the fixed `params`, the value of the control we depend on under that control's name,
  * the typed text under `query-param`, and `limit`. Ours win over the caller's, so a `params` cannot hide the search itself.
  */
-const searchParams = (config, text, dependencyValue) => ({
+const searchParams = (config, text, dependencyValue, page = 1) => ({
     ...config.params,
     ...dependencyParams(config.dependsOn, dependencyValue),
     [config.queryParam]: text,
     limit: config.limit,
+    // The first page carries no `page`: an endpoint that knows nothing about our paging works as it always did.
+    ...(page > 1 ? { [config.pageParam]: page } : {}),
 })
+
+/**
+ * May there be a next page? If the server says so (`pagination: { more }`) it is believed; if not, it is deduced by counting: as
+ * many rows as the `limit` means there may be more, fewer (or none) means the end. A total that is an exact multiple of the limit
+ * costs one last request that comes back empty.
+ */
+const mayHaveMore = (body, rowCount, limit) => (typeof body?.pagination?.more === 'boolean' ? body.pagination.more : rowCount >= limit)
 
 // form.select with `searchable` (a text box that filters the options, flat { value: label } or grouped { group: { value: label } })
 // and with `search-url` (the same text box, but WHAT TO SHOW is asked of the server while the user types).
 // config: { name, search (the text to show at the start), chosen, options, id, messages, + the ones of `search-url`: searchUrl,
-// queryParam, params, dependsOn, limit, minChars, debounce, allowFreeText, optionLabel, processResults, onSelect, onError }.
-// Announces `dbl-select-changed` { name, value } (+ `row` with `search-url`). With `search-url` the hidden input sends the KEY under `name`
+// queryParam, pageParam, params, dependsOn, limit, minChars, debounce, allowFreeText, optionLabel, processResults }.
+// Announces `dbl-select-changed` { name, value } (+ `row` with `search-url`) and, if a search fails, `dbl-select-failed` { name, error }. With `search-url` the hidden input sends the KEY under `name`
 // and the text box sends the typed text under `{name}_text`: both travel always, with or without JavaScript.
 const dblSelectSearch = withConfig({
     name: '', search: '', chosen: '', options: {}, id: '', messages: {},
-    searchUrl: '', queryParam: 'q', params: {}, dependsOn: '', limit: 20, minChars: 2, debounce: 250,
-    allowFreeText: false, optionLabel: 'text', processResults: '', onSelect: '', onError: '',
+    searchUrl: '', queryParam: 'q', pageParam: 'page', params: {}, dependsOn: '', limit: 20, minChars: 2, debounce: 250,
+    allowFreeText: false, optionLabel: 'text', processResults: '',
 }, (config) => ({
     search: config.search,
     open: false,
@@ -252,6 +262,7 @@ const dblSelectSearch = withConfig({
         } else if (event.key === 'Enter') {
             const item = this.open ? this.flatList[this.active] : null
             if (item) { event.preventDefault(); this.choose(item) }
+            else if (this.open && this.active === this.moreIndex && this.canLoadMore) { event.preventDefault(); this.loadMore() }
         } else if (event.key === 'Escape') {
             if (!this.open) return
             event.preventDefault()
@@ -264,6 +275,7 @@ const dblSelectSearch = withConfig({
     // Moves to the next (or previous) OPTION of the list, skipping the headers of the groups, and wraps around.
     move(step) {
         const positions = this.flatList.map((item, index) => (item.type === 'option' ? index : -1)).filter(index => index >= 0)
+        if (this.canLoadMore) positions.push(this.moreIndex)    // the "more" button is the last stop
         if (!positions.length) return
         const at = positions.indexOf(this.active)
         this.active = positions[at === -1 ? (step > 0 ? 0 : positions.length - 1) : (at + step + positions.length) % positions.length]
@@ -296,7 +308,7 @@ const dblSelectSearch = withConfig({
         if (this.open && this.active >= 0) box.setAttribute('aria-activedescendant', this.optionId(this.active))
         else box.removeAttribute?.('aria-activedescendant')
         if (!config.searchUrl) return
-        box.setAttribute('aria-busy', String(this.state === 'loading'))
+        box.setAttribute('aria-busy', String(this.state === 'loading' || this.loadingMore))
         // Not `allow-free-text`: text that is no choice would pass `required` on the box, but the key field stays empty.
         const unchosen = !config.allowFreeText && this.search !== '' && String(this.chosen ?? '') === ''
         box.setCustomValidity?.(unchosen ? (config.messages.chooseFromList ?? 'Choose an option from the list') : '')
@@ -342,7 +354,6 @@ const dblSelectSearch = withConfig({
         }
         writeValue(this.$refs.value, String(item.key))
         this.$dispatch('dbl-select-changed', config.searchUrl ? { name: config.name, value: item.key, row: item.row ?? null } : { name: config.name, value: item.key })
-        if (config.searchUrl && config.onSelect) this.runExpression(config.onSelect, { row: item.row ?? null })
     },
 
     // ── With `search-url`: asking the server what to show ──
@@ -354,7 +365,11 @@ const dblSelectSearch = withConfig({
     latest: latestOnly(),   // only the newest request counts (see latestOnly in http.js)
     timer: null,            // the debounce
     controller: null,       // the AbortController of the request in flight
-    failure: false,         // true when the component paints its own error message (an `on-error` returning false silences it)
+    failure: false,         // true when the component paints its own error message (a listener of `dbl-select-failed` that cancels the event silences it)
+    page: 1,                // the last page asked (the first one carries no `page` param)
+    more: false,            // may there be a next page? (the server's `pagination.more`, else counted: see mayHaveMore)
+    loadingMore: false,     // the "more" button is waiting for its page
+    moreFailed: false,      // the next page failed: the rows already shown stay, and the button offers to try again
 
     // The field (hidden input: the KEY) and the text box (`{name}_text`) are both in the HTML from the start and both always travel.
     startSearching() {
@@ -370,6 +385,15 @@ const dblSelectSearch = withConfig({
         return ''
     },
     get hasRetry() { return this.state === 'error' && this.failure },
+
+    // ── The "more" button at the end of the list (no infinite scroll: a button is reachable with the keyboard) ──
+    get canLoadMore() { return !!config.searchUrl && this.state === 'ready' && this.more && this.results.length > 0 },
+    get moreIndex() { return this.flatList.length },    // its position for the keyboard: right after the last option
+    get moreText() {
+        const messages = config.messages
+        if (this.loadingMore) return messages.loadingMore ?? 'Loading'
+        return this.moreFailed ? (messages.moreFailed ?? 'Could not load more. Try again') : (messages.more ?? 'Show more')
+    },
 
     scheduleSearch(text) {
         clearTimeout(this.timer)
@@ -388,6 +412,7 @@ const dblSelectSearch = withConfig({
         this.controller?.abort()
         this.latest.cancel()
         this.state = 'idle'
+        this.loadingMore = false
     },
 
     // Ask the server. It never throws: every way of failing ends in `fail()`, and `state` never stays at 'loading'.
@@ -396,33 +421,62 @@ const dblSelectSearch = withConfig({
         this.controller?.abort()    // the request in flight is old (and a cancellation is not an error: see fail())
         const controller = this.controller = new AbortController()
         this.state = 'loading'
-        const outcome = await this.latest.run(async () => {
-            const params = searchParams(config, text, this.dependencyValue())
-            const { data } = await http({ url: config.searchUrl, params, signal: controller.signal })
-            return this.readAnswer(data)
-        })
+        this.loadingMore = false
+        const outcome = await this.latest.run(() => this.askPage(text, 1, controller))
         if (outcome.stale) return    // a newer search took over (or the text went below the minimum): it owns the state
         if (outcome.error) return this.fail(outcome.error)
-        this.results = outcome.value
+        this.results = outcome.value.rows
+        this.more = outcome.value.more
+        this.page = 1
+        this.moreFailed = false
         this.active = -1
         this.failure = false
         this.state = 'ready'
     },
-    // The rows of the answer: the caller's `process-results` if it wrote one (it gets the whole body), else the four forms.
+    // One request: the rows of the page and whether there may be a next one.
+    async askPage(text, page, controller) {
+        const params = searchParams(config, text, this.dependencyValue(), page)
+        const { data } = await http({ url: config.searchUrl, params, signal: controller.signal })
+        const rows = this.readAnswer(data)
+        return { rows, more: mayHaveMore(data, rows.length, config.limit) }
+    },
+    // The "more" button: the next page is ASKED AND ADDED to the rows. If it fails the rows stay and the button offers to try again.
+    async loadMore() {
+        if (!this.canLoadMore || this.loadingMore) return
+        const page = this.page + 1
+        const controller = this.controller = new AbortController()
+        this.loadingMore = true
+        this.moreFailed = false
+        const outcome = await this.latest.run(() => this.askPage(this.search, page, controller))
+        if (outcome.stale) return    // a newer search took over: it reset `loadingMore` itself
+        this.loadingMore = false
+        if (outcome.error) {
+            if (isCanceled(outcome.error)) return
+            console.error('dblSelectSearch: could not load the next page', outcome.error)
+            this.moreFailed = !this.announceFailure(outcome.error)
+            return
+        }
+        this.results = [...this.results, ...outcome.value.rows]
+        this.page = page
+        this.more = outcome.value.more
+    },
+    // The rows of the answer: the caller's `process-results` if it wrote one (it gets the whole body), else the forms of `answerShapes.searchResults`.
     readAnswer(data) {
         if (!config.processResults) return answerShapes.searchResults(data, config.searchUrl, config.optionLabel)
-        const rows = this.runExpression(config.processResults, { response: data }, true)
+        const rows = this.runExpression(config.processResults, { response: data })
         return answerShapes.searchResults(rows, config.searchUrl)    // `process-results` wins: its rows say `text`, `option-label` is not read
     },
-    // Runs an expression of the caller. `strict`: its exceptions go on (a `process-results` that fails is a failed search);
-    // otherwise they only reach the console (a callback of the caller must never break the control).
-    runExpression(expression, scope, strict = false) {
-        try {
-            return evaluateExpression(this.$root.parentElement, expression, scope)
-        } catch (error) {
-            if (strict) throw error
-            console.error('dblSelectSearch: the expression of the page failed', error)
-        }
+    // Runs the `process-results` expression. Its exceptions go on: a `process-results` that fails is a failed search.
+    runExpression(expression, scope) {
+        return evaluateExpression(this.$root.parentElement, expression, scope)
+    },
+    // Announces that a request failed: `dbl-select-failed` { name, error } (`error.response.status` and `.data`, as everywhere in the
+    // library). CANCELABLE: a listener that calls `preventDefault()` says "I paint it myself" and the component keeps quiet.
+    // Returns true when somebody canceled it.
+    announceFailure(error) {
+        const event = new CustomEvent('dbl-select-failed', { bubbles: true, cancelable: true, detail: { name: config.name, error } })
+        this.$root.dispatchEvent(event)
+        return event.defaultPrevented
     },
     // A search failed (a 500, a 404, a JSON nobody can read, a `process-results` that threw). What was chosen stays as it is.
     fail(error) {
@@ -431,8 +485,7 @@ const dblSelectSearch = withConfig({
         console.error('dblSelectSearch: could not search', error)
         this.results = []
         this.active = -1
-        // `on-error` is told, and may return false to say "I paint it myself": then the component keeps quiet.
-        this.failure = !config.onError || this.runExpression(config.onError, { error, status: error?.response?.status ?? null, data: error?.response?.data ?? null }) !== false
+        this.failure = !this.announceFailure(error)
         this.state = 'error'
     },
 
@@ -1205,5 +1258,5 @@ export {
     dblDataTable, dblAutoForm, dblWizard,
     dblSelectRemote, dblResourceDetails, dblTabsLazy, dblSpreadsheetImport,
     dblKvEditor, dblListEditor,
-    toTexts, dependencyParams, stillOffered, readStored, searchParams,
+    toTexts, dependencyParams, stillOffered, readStored, searchParams, mayHaveMore,
 }

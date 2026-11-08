@@ -5,6 +5,7 @@
     'loadUrl'        => '',
     'searchUrl'      => '',     // asks the server what to show while the user types (implies the searchable mode)
     'queryParam'     => 'q',    // the name of the typed text in that request
+    'pageParam'      => 'page', // the name of the page number, from the second page on ("more" button)
     'params'         => [],     // fixed params of every request (keys in snake_case)
     'limit'          => 20,
     'minChars'       => 2,
@@ -13,9 +14,7 @@
     'allowFreeText'  => false,  // typed text with nothing chosen is fine: the server reads it in `{name}_text`
     'textName'       => '',     // name of the field that sends the typed text (default `{name}_text`)
     'optionLabel'    => 'text', // the field of a row that holds the label
-    'processResults' => '',     // JS expression: `response` (the whole body) -> rows { id, text, ... }
-    'onSelect'       => '',     // JS expression, when an option is chosen: `row`
-    'onError'        => '',     // JS expression, when the search fails: `error`, `status`, `data`; false = the page paints it
+    'processResults' => '',     // the ONE JS expression of the library (it has to return a value): `response` (the whole body) -> rows { id, text, ... }
     'listClass'      => '',
     'dependsOn'      => '',
     'placeholder'    => '',
@@ -75,10 +74,13 @@ $searchableConfig = [
         'empty' => __('Nothing matches that'),
         'loadFailed' => __('Could not load the results'),
         'chooseFromList' => __('Choose an option from the list'),
+        'more' => __('Show more'),
+        'loadingMore' => __('Loading'),
+        'moreFailed' => __('Could not load more. Try again'),
     ],
-    'searchUrl' => $searchUrl, 'queryParam' => $queryParam, 'params' => (object) $params, 'dependsOn' => $dependsOn,
+    'searchUrl' => $searchUrl, 'queryParam' => $queryParam, 'pageParam' => $pageParam, 'params' => (object) $params, 'dependsOn' => $dependsOn,
     'limit' => (int) $limit, 'minChars' => (int) $minChars, 'debounce' => (int) $debounce, 'allowFreeText' => (bool) $allowFreeText,
-    'optionLabel' => $optionLabel, 'processResults' => $processResults, 'onSelect' => $onSelect, 'onError' => $onError,
+    'optionLabel' => $optionLabel, 'processResults' => $processResults,
 ];
 @endphp
 
@@ -201,6 +203,11 @@ $searchableConfig = [
                     @if($searching)
                         {{-- The states, said in words: never an empty box. --}}
                         <div class="px-3 py-4 text-sm text-base-content/50 text-center" role="status" aria-live="polite" x-show="statusText" x-text="statusText"></div>
+                        {{-- The "more" button: the next page is added to the rows. A button, not a scroll: the keyboard reaches it (it is the last stop of the arrows). --}}
+                        <button type="button" tabindex="-1" role="option" x-show="canLoadMore" :id="optionId(moreIndex)" :aria-selected="String(active === moreIndex)"
+                                :disabled="loadingMore" x-on:click="loadMore()" @mousemove="active = moreIndex"
+                                class="w-full px-3 py-2 text-center text-sm font-medium text-primary" :class="active === moreIndex ? 'bg-primary/10' : ''"
+                                x-text="moreText"></button>
                         <div class="px-3 pb-3 text-center" x-show="hasRetry">
                             <button type="button" class="link text-sm" x-on:click="retry()">{{ __('Retry') }}</button>
                         </div>

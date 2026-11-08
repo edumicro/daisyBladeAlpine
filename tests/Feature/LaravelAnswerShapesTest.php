@@ -137,11 +137,17 @@ it('table: a resource collection under JsonResource::withoutWrapping() is a bare
     expect($read['result']['rows'])->toHaveCount(2);
 });
 
-it('lists (select options, calendar): additional([...]) does not make a list invalid', function () {
-    $options = collect([['value' => 1, 'label' => 'One']]);
-    $body = json_encode(['data' => $options, 'success' => true]);
+it('lists (calendar): additional([...]) does not make a list invalid', function () {
+    $events = collect([['id' => 1, 'title' => 'Ev', 'start' => '2026-05-15']]);
 
-    expect(componentReads('selectOptions', $body)['result'])->toHaveCount(1);
+    expect(componentReads('calendarEvents', json_encode(['data' => $events, 'success' => true]))['result'])->toHaveCount(1);
+});
+
+it('select options: the wrapper is `results`, with or without extra keys, and `pluck()` gives the map', function () {
+    $options = collect([['value' => 1, 'label' => 'One']]);
+
+    expect(componentReads('selectOptions', json_encode(['results' => $options, 'success' => true]))['result'])->toHaveCount(1)
+        ->and(componentReads('selectOptions', laravelBodyOf(collect([['id' => 5, 'name' => 'Five'], ['id' => 6, 'name' => 'Six']])->pluck('name', 'id')))['result'])->toHaveCount(2);
 });
 
 it('table: a ResourceCollection without pagination is a table with an empty meta', function () {
@@ -155,13 +161,13 @@ it('table: a bare list is not a table answer', function () {
     expect(componentReads('tableRows', laravelBodyOf(someModels(2)))['error'])->toBe('shape');
 });
 
-it('lists (select options, calendar): a bare array, a ResourceCollection and a paginator are lists', function () {
+it('select options: a bare array is a list; a paginator or a `data` resource is not (that is what `process-results` is for)', function () {
     $options = collect([['value' => 1, 'label' => 'One'], ['value' => 2, 'label' => 'Two']]);
     $paginated = new LengthAwarePaginator($options, 2, 10, 1, ['path' => '/o']);
 
     expect(componentReads('selectOptions', laravelBodyOf($options))['result'])->toHaveCount(2)
-        ->and(componentReads('selectOptions', laravelBodyOf($paginated))['result'])->toHaveCount(2)
-        ->and(componentReads('selectOptions', json_encode(['data' => $options]))['result'])->toHaveCount(2);
+        ->and(componentReads('selectOptions', laravelBodyOf($paginated))['error'])->toBe('shape')
+        ->and(componentReads('selectOptions', json_encode(['data' => $options]))['error'])->toBe('shape');
 });
 
 it('detail: a JsonResource is unwrapped from its data', function () {

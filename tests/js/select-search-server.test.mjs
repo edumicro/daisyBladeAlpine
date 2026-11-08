@@ -1,6 +1,6 @@
 import test, { beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { dblSelectSearch, searchParams } from '../../resources/js/daisyblade.js'
+import { dblSelectSearch, searchParams, mayHaveMore } from '../../resources/js/daisyblade.js'
 import { answerShapes, isContractError } from '../../resources/js/http.js'
 
 // form.select with `search-url`: the server decides what to show while the user types. Pure parts (the query, the forms of the
@@ -22,34 +22,36 @@ test('searchParams: no dependency, no param for it; the search itself cannot be 
 
 const rows = [{ id: 1, text: 'Ibuprofen', lab: 'Acme' }, { id: 2, text: 'Ibuprofen 600', lab: 'Zeta' }]
 
-test('searchResults reads `{ results }` and a bare list, and keeps the whole row', () => {
+test('searchResults reads the vocabulary of a <select>: a map, rows, and the `results` wrapper, and keeps the whole row', () => {
     const wanted = [{ id: 1, text: 'Ibuprofen', row: rows[0] }, { id: 2, text: 'Ibuprofen 600', row: rows[1] }]
     assert.deepEqual(answerShapes.searchResults({ results: rows }, '/s'), wanted)              // select2
     assert.deepEqual(answerShapes.searchResults(rows, '/s'), wanted)                           // a bare list
     assert.deepEqual(answerShapes.searchResults([{ value: 'a', label: 'A' }], '/s'), [{ id: 'a', text: 'A', row: { value: 'a', label: 'A' } }])
+    assert.deepEqual(answerShapes.searchResults({ 12: 'Paracetamol' }, '/s'), [{ id: '12', text: 'Paracetamol', row: { id: '12', text: 'Paracetamol' } }])   // pluck('name', 'id')
+    assert.deepEqual(answerShapes.searchResults({ results: { 12: 'Paracetamol' } }, '/s').map(row => row.id), ['12'])
     assert.deepEqual(answerShapes.searchResults({ results: [] }, '/s'), [])
     assert.deepEqual(answerShapes.searchResults([], '/s'), [])
 })
 
-test('searchResults does not guess: a map, a Laravel `data` and a status body are not results', () => {
+test('searchResults does not read `data`, nested structures or a body with a non-text value', () => {
     const realError = console.error
     console.error = () => {}
     try {
-        for (const notResults of [{ ok: true, mensaje: 'Guardado' }, { a: 'A', 2: 'Two' }, { data: rows }, { items: rows }]) {
+        for (const notResults of [{ ok: true, mensaje: 'Guardado' }, { data: rows }, { items: rows }, { a: { b: 1 } }]) {
             assert.throws(() => answerShapes.searchResults(notResults, '/s'), isContractError, JSON.stringify(notResults))
         }
     } finally { console.error = realError }
 })
 
-test('the status body is shown as an error with Retry, never as rows; process-results is the way to read it', async () => {
-    page({ ok: true, mensaje: 'Guardado' })
+test('a foreign structure is an error with Retry, never rows; process-results is the way to read it', async () => {
+    page({ ok: true, lista: [{ id: 1, text: 'Uno' }] })
     const { select } = searching()
     await select.runSearch('ibu')
     assert.equal(select.state, 'error')
     assert.deepEqual(select.flatList, [])
     assert.equal(select.hasRetry, true)
 
-    page({ ok: true, mensaje: 'Guardado', lista: [{ id: 1, text: 'Uno' }] })
+    page({ ok: true, lista: [{ id: 1, text: 'Uno' }] })
     const reading = searching({ processResults: 'response.lista' })
     await reading.select.runSearch('u')
     assert.deepEqual(reading.select.flatList.map(item => item.label), ['Uno'])
@@ -75,7 +77,7 @@ test('searchResults: a wrong row or body is a contract error that names the endp
 const realConsoleError = console.error
 let errors
 beforeEach(() => { errors = []; console.error = (...args) => errors.push(args) })
-afterEach(() => { console.error = realConsoleError; delete globalThis.window; delete globalThis.location; delete globalThis.told; delete globalThis.picked })
+afterEach(() => { console.error = realConsoleError; delete globalThis.window; delete globalThis.location; delete globalThis.told })
 
 /** A page whose axios answers with what `answers` says for each call (an Error fails, a function is called with the request). */
 function page(...answers) {
@@ -97,16 +99,17 @@ function page(...answers) {
     return calls
 }
 
-function searching(config = {}) {
+function searching(config = {}, { onFailed } = {}) {
     const box = { value: '', form: null, addEventListener() {}, dispatchEvent() {}, setAttribute() {}, removeAttribute() {} }
     const events = []
+    const failures = []
     const select = Object.assign(dblSelectSearch({ name: 'medicine', searchUrl: '/medicines', debounce: 0, ...config }), {
-        $root: { parentElement: { querySelector: () => box, contains: () => true } },
+        $root: { parentElement: { querySelector: () => box, contains: () => true }, dispatchEvent: event => { failures.push(event); onFailed?.(event); return !event.defaultPrevented } },
         $refs: { value: { value: config.chosen ?? '', dispatchEvent() {} } },
         $dispatch: (name, detail) => events.push([name, detail]),
         $nextTick: async () => {}, $watch() {},
     })
-    return { select, events, box }
+    return { select, events, box, failures }
 }
 
 const httpFailure = status => Object.assign(new Error('failed'), { response: { status, data: { message: 'boom' } } })
@@ -250,22 +253,25 @@ test('the field is usable after a failure: typing again searches again, and Retr
     assert.deepEqual(select.flatList.map(item => item.label), ['Nine'])
 })
 
-test('on-error is told (status and body) and the component still shows its message', async () => {
+test('a failure announces dbl-select-failed { name, error } (status and body inside) and the component still shows its message', async () => {
     page(httpFailure(503))
-    const told = []
-    globalThis.told = told
-    const { select } = searching({ onError: 'told.push([status, data.message, error.response.status])' })
+    const { select, failures } = searching()
 
     await select.runSearch('ibu')
 
-    assert.deepEqual(told, [[503, 'boom', 503]])
+    assert.equal(failures.length, 1)
+    assert.equal(failures[0].type, 'dbl-select-failed')
+    assert.equal(failures[0].cancelable, true)
+    assert.equal(failures[0].detail.name, 'medicine')
+    assert.equal(failures[0].detail.error.response.status, 503)
+    assert.equal(failures[0].detail.error.response.data.message, 'boom')
     assert.equal(select.failure, true)
     assert.equal(select.hasRetry, true)
 })
 
-test('on-error returning false silences the message of the component', async () => {
+test('a listener that cancels dbl-select-failed silences the message of the component', async () => {
     page(httpFailure(500))
-    const { select } = searching({ onError: 'false' })
+    const { select } = searching({}, { onFailed: event => event.preventDefault() })
 
     await select.runSearch('ibu')
 
@@ -275,43 +281,27 @@ test('on-error returning false silences the message of the component', async () 
     assert.equal(select.statusText, '')
 })
 
-test('a process-results that throws is a failed search that goes through on-error, not a stuck "searching"', async () => {
+test('a process-results that throws is a failed search that is announced, not a stuck "searching"', async () => {
     page({ results: rows })
-    const told = []
-    globalThis.told = told
-    const { select } = searching({ processResults: 'response.nothing.here', onError: 'told.push(error.name)' })
+    const { select, failures } = searching({ processResults: 'response.nothing.here' })
 
     await select.runSearch('ibu')
 
     assert.equal(select.state, 'error')
-    assert.equal(told.length, 1)
+    assert.equal(failures.length, 1)
     assert.equal(select.hasRetry, true)
-})
-
-test('an on-select or an on-error that throws never breaks the component', async () => {
-    page({ results: rows }, httpFailure(500))
-    const { select, events } = searching({ onSelect: 'nonexistent.call()', onError: 'nonexistent.call()' })
-
-    await select.runSearch('ibu')
-    select.choose(select.flatList[0])
-    assert.equal(events.at(-1)[0], 'dbl-select-changed')
-
-    await select.runSearch('x')
-    assert.equal(select.state, 'error')
 })
 
 // ── Choosing ──
 
-test('choosing announces dbl-select-changed with the whole row, and on-select gets the row', async () => {
+test('choosing announces dbl-select-changed with the whole row', async () => {
     page({ results: rows })
-    globalThis.picked = []
-    const { select, events } = searching({ onSelect: 'picked.push(row.lab)' })
+    const { select, events } = searching()
 
     await select.runSearch('ibu')
     select.choose(select.flatList[1])
 
     assert.deepEqual(events.at(-1), ['dbl-select-changed', { name: 'medicine', value: 2, row: rows[1] }])
-    assert.deepEqual(globalThis.picked, ['Zeta'])
     assert.equal(select.$refs.value.value, '2')
 })
 
@@ -343,4 +333,106 @@ test('the arrows move over the options (and wrap), Enter chooses, Escape closes'
     key('Escape')
     assert.equal(select.open, false)
     assert.equal(select.active, -1)
+})
+
+// ── The "more" button ──
+
+const rowsOf = (from, count) => Array.from({ length: count }, (_, index) => ({ id: from + index, text: `Row ${from + index}` }))
+
+test('mayHaveMore: the server\'s `pagination.more` is believed; otherwise as many rows as the limit means there may be more', () => {
+    assert.equal(mayHaveMore({ pagination: { more: false } }, 20, 20), false)
+    assert.equal(mayHaveMore({ pagination: { more: true } }, 3, 20), true)
+    assert.equal(mayHaveMore([], 20, 20), true)
+    assert.equal(mayHaveMore({ results: [] }, 19, 20), false)
+    assert.equal(mayHaveMore({ results: [] }, 0, 20), false)
+})
+
+test('searchParams: the first page carries no `page`; the next ones carry it under `page-param`', () => {
+    const config = { params: {}, dependsOn: '', queryParam: 'q', limit: 20, pageParam: 'page' }
+    assert.deepEqual(searchParams(config, 'a', null), { q: 'a', limit: 20 })
+    assert.deepEqual(searchParams(config, 'a', null, 1), { q: 'a', limit: 20 })
+    assert.deepEqual(searchParams(config, 'a', null, 3), { q: 'a', limit: 20, page: 3 })
+    assert.deepEqual(searchParams({ ...config, pageParam: 'p' }, 'a', null, 2), { q: 'a', limit: 20, p: 2 })
+})
+
+test('a full page offers "more"; asking for it ADDS the next page; fewer rows than the limit ends it (an endpoint that knows no paging works)', async () => {
+    const calls = page({ results: rowsOf(1, 3) }, { results: rowsOf(4, 3) }, { results: rowsOf(7, 1) })
+    const { select } = searching({ limit: 3 })
+
+    await select.runSearch('r')
+    assert.equal(select.canLoadMore, true)
+    assert.equal(calls[0].params.page, undefined)
+
+    await select.loadMore()
+    assert.deepEqual(select.flatList.map(item => item.key), [1, 2, 3, 4, 5, 6])
+    assert.equal(calls[1].params.page, 2)
+    assert.equal(select.canLoadMore, true)
+
+    await select.loadMore()
+    assert.equal(select.flatList.length, 7)
+    assert.equal(calls[2].params.page, 3)
+    assert.equal(select.canLoadMore, false, 'one row is fewer than the limit: that was the last page')
+})
+
+test('`pagination.more` of the server wins over the count', async () => {
+    page({ results: rowsOf(1, 3), pagination: { more: false } })
+    const { select } = searching({ limit: 3 })
+    await select.runSearch('r')
+    assert.equal(select.canLoadMore, false)
+})
+
+test('the "more" button shows it is loading, and a failed next page keeps the rows and offers to try again', async () => {
+    let release
+    page({ results: rowsOf(1, 2) }, () => new Promise(resolve => { release = () => resolve(httpFailure(500)) }), { results: rowsOf(3, 1) })
+    const { select, failures } = searching({ limit: 2, messages: { more: 'More', loadingMore: 'Loading', moreFailed: 'Try again' } })
+    await select.runSearch('r')
+    assert.equal(select.moreText, 'More')
+
+    const pending = select.loadMore()
+    assert.equal(select.loadingMore, true)
+    assert.equal(select.moreText, 'Loading')
+    release()
+    await pending
+
+    assert.equal(select.loadingMore, false, 'the loading state always ends')
+    assert.deepEqual(select.flatList.map(item => item.key), [1, 2], 'the rows that were there stay')
+    assert.equal(select.moreFailed, true)
+    assert.equal(select.moreText, 'Try again')
+    assert.equal(select.state, 'ready')
+    assert.equal(failures.length, 1)
+
+    await select.loadMore()   // the same button tries again
+    assert.deepEqual(select.flatList.map(item => item.key), [1, 2, 3])
+    assert.equal(select.moreFailed, false)
+})
+
+test('typing while the next page is in flight drops it: a new search owns the list', async () => {
+    let release
+    page({ results: rowsOf(1, 2) }, () => new Promise(resolve => { release = () => resolve({ results: rowsOf(3, 2) }) }), { results: [{ id: 9, text: 'New' }] })
+    const { select } = searching({ limit: 2 })
+    await select.runSearch('r')
+    const pending = select.loadMore()
+
+    await select.runSearch('rx')
+    release()
+    await pending
+
+    assert.deepEqual(select.flatList.map(item => item.key), [9])
+    assert.equal(select.loadingMore, false)
+})
+
+test('the arrows reach the "more" button as the last stop, and Enter on it asks for the next page', async () => {
+    page({ results: rowsOf(1, 2) }, { results: rowsOf(3, 1) })
+    const { select } = searching({ limit: 2 })
+    await select.runSearch('r')
+    select.open = true
+    const key = name => select.onKeydown({ key: name, preventDefault() {}, stopPropagation() {} })
+
+    key('ArrowDown'); key('ArrowDown'); key('ArrowDown')
+    assert.equal(select.active, select.moreIndex)
+    key('Enter')
+    await new Promise(resolve => setTimeout(resolve, 5))
+
+    assert.equal(select.flatList.length, 3)
+    assert.equal(select.open, true, 'asking for more does not close the list')
 })

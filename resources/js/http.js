@@ -537,12 +537,23 @@ function searchRowOf(row, textField = 'text') {
     return undefined
 }
 
-/** The rows of a search answer (see `answerShapes.searchResults`): `{ results: [...] }` or a bare list, or undefined. */
-function searchRowsOf(data, textField) {
-    const list = Array.isArray(data) ? data : (isObject(data) ? data.results : undefined)
-    if (!Array.isArray(list)) return undefined
-    const rows = list.map(row => searchRowOf(row, textField))
-    return rows.every(Boolean) ? rows : undefined
+const OPTION_FORMS = '{ "value": "label" }, [{ "id": …, "text": … }], [{ "value": …, "label": … }] or { "results": [ … ] } (anything else: use `process-results`)'
+
+/** A `{ value: label }` map: every value a text or a number, as in a <select>. (A body such as `{ "ok": true }` is not one.) */
+const isOptionMap = data => isObject(data) && Object.values(data).every(label => ['string', 'number'].includes(typeof label))
+
+/**
+ * The options of an answer as `[{ id, text, row }]`, or undefined when it has none of the forms of `answerShapes.searchResults`.
+ * `results` is the wrapper (the only one: `data` is not read); inside it, rows or a map.
+ */
+function optionRowsOf(data, textField) {
+    const inside = isObject(data) && 'results' in data ? data.results : data
+    if (Array.isArray(inside)) {
+        const rows = inside.map(row => searchRowOf(row, textField))
+        return rows.every(Boolean) ? rows : undefined
+    }
+    if (!isOptionMap(inside)) return undefined
+    return Object.entries(inside).map(([id, text]) => ({ id, text: String(text), row: { id, text } }))
 }
 
 /**
@@ -550,26 +561,30 @@ function searchRowsOf(data, textField) {
  * only to name it in the warning), throws a ContractError if its form is wrong, and returns the part the component uses.
  */
 export const answerShapes = {
-    /** select with load-url: `[{ value, label }]` or a resource collection `{ data: [{ value, label }] }` -> the list. */
+    /**
+     * select with load-url: the options in the vocabulary of a <select> -> `[{ value, label }]`. The forms are the ones of `searchResults`
+     * (below) and the same for both ways of getting options from a URL: a `{ "value": "label" }` map, rows `{ id, text }` or
+     * `{ value, label }`, in a bare list or wrapped in `{ "results": [ … ] }`.
+     */
     selectOptions(data, url) {
-        const options = listOf(data)
-        expectShape(url, 'the remote select', '[{ "value": …, "label": … }] or { "data": [ … ] }',
-            Array.isArray(options) && options.every(option => isObject(option) && 'value' in option && 'label' in option))
-        return options
+        const rows = optionRowsOf(data)
+        expectShape(url, 'the remote select', OPTION_FORMS, rows !== undefined)
+        return rows.map(({ id, text, row }) => ({ ...row, value: id, label: text }))
     },
     /**
      * Searchable select with `search-url`: the server's answer to "what matches what was typed?" -> a list of `{ id, text, row }`.
-     * Only two forms are read, and nothing else is guessed (a body such as `{ "ok": true, "mensaje": "…" }` must never be painted as rows):
-     *   { "results": [ … ] }    select2
-     *   [ … ]                   a bare list
-     * whose rows are `{ "id", "text" }` (or `{ "value", "label" }`). `textField` is the field that holds the label when it is not
-     * `text` (`option-label`). `row` is the whole row as the server sent it (a laboratory, a photo...).
-     * Any other shape is a ContractError (the user sees the error message with Retry); `process-results` is the way to read it.
+     * The vocabulary is that of a <select>, and the same as in `selectOptions`:
+     *   { "12": "Paracetamol" }                        a map value -> label (Laravel's `pluck('name', 'id')`)
+     *   [{ "id": 12, "text": "…" }]                    rows (also `{ "value", "label" }`)
+     *   { "results": [ … ] }                           the same rows, or the same map, in the wrapper of select2
+     * `textField` is the field that holds the label when it is not `text` (`option-label`). `row` is the whole row as the server sent it
+     * (a laboratory, a photo...); a map has no more than `{ id, text }`.
+     * Nothing else is guessed: any other shape is a ContractError (the user sees the error message with Retry), and
+     * `process-results` is the way to read a structure that is really foreign (nested, with the list three levels down, with other names).
      */
     searchResults(data, url, textField = 'text') {
-        const rows = searchRowsOf(data, textField)
-        expectShape(url, 'the search of the select',
-            '{ "results": [{ "id": …, "text": … }] } or a list of { "id", "text" } (anything else: use `process-results`)', rows !== undefined)
+        const rows = optionRowsOf(data, textField)
+        expectShape(url, 'the search of the select', OPTION_FORMS, rows !== undefined)
         return rows
     },
     /**

@@ -241,7 +241,7 @@ Receive a `load-url`, `submit-url` or `upload-url` prop. Call plain Laravel cont
 | `display.data-table` | Paginated, sortable, filterable table (listens to `form.filters`) |
 | `display.resource-details` | Detail view loaded from `load-url` |
 | `form.select` | Select whose options come from `load-url`; `depends-on="other_field"` asks again when that field changes (`docs/components/select.md`) |
-| `form.select` with `search-url` | Searching select for lists that do not fit in the page: asks the server while the user types (`query-param`, `params`, `limit`, `min-chars`, `debounce`, `depends-on`, `allow-free-text`; hooks `process-results`, `on-select`, `on-error`). Sends the key in `name` and the typed text in `name_text` (`docs/components/select.md`) |
+| `form.select` with `search-url` | Searching select for lists that do not fit in the page: asks the server while the user types (`query-param`, `params`, `limit`, `min-chars`, `debounce`, `depends-on`, `allow-free-text`, `page-param` with a "Show more" button; `process-results` for foreign answers; announces `dbl-select-changed` with the row and the cancelable `dbl-select-failed`). Sends the key in `name` and the typed text in `name_text` (`docs/components/select.md`) |
 | `import.spreadsheet` | Excel/CSV import: choose the file, confirm (name and size; the browser does not read the rows), progress. The server reads the file and answers `{ imported }` |
 | `sections.auto-form` | Declarative form from schema array |
 | `sections.tabs` | Tabs with lazy-loaded content |

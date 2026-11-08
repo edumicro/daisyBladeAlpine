@@ -105,7 +105,7 @@ function realAppStart(string $client = 'fetch', bool $withMeta = true): void
             Route::get('/people-cursor', [RealAppPeopleController::class, 'cursor']);
             Route::post('/people', [RealAppPeopleController::class, 'store']);
             Route::get('/countries', fn () => response()->json([['value' => 'ES', 'label' => 'Spain'], ['value' => 'FR', 'label' => 'France']]));
-            Route::get('/regions', fn (Request $r) => JsonResource::collection(collect($r->country === 'ES' ? [['value' => 'VLC', 'label' => 'Valencia'], ['value' => 'MAD', 'label' => 'Madrid']] : [['value' => 'IDF', 'label' => 'Ile de France']])));
+            Route::get('/regions', fn (Request $r) => ['results' => $r->country === 'ES' ? [['value' => 'VLC', 'label' => 'Valencia'], ['value' => 'MAD', 'label' => 'Madrid']] : [['value' => 'IDF', 'label' => 'Ile de France']]]);   // the wrapper of the select is `results` (`data` is no longer read)
             Route::post('/files', function (Request $r) {
                 realAppParseMultipart($r);   // the in-process server of Pest does not parse multipart: do it here, then validate for real
                 $r->validate(['file' => 'required|file|max:1']);   // 1 KB

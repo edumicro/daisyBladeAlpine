@@ -168,6 +168,10 @@ function registerBrowserEndpoints(): void
         ['id' => 2, 'text' => 'Ibuprofen 600', 'lab' => 'Zeta'],
         ['id' => 3, 'text' => 'Paracetamol', 'lab' => 'Acme'],
     ])->filter(fn ($row) => str_contains(strtolower($row['text']), strtolower((string) request('q'))))->values()]));
+    // The same, paginated by `page` and `limit`, and one that depends on another field (`family`) and one that answers a map.
+    Route::get('/drugs', fn () => response()->json(['results' => collect(range(1, 5))->map(fn ($n) => ['id' => $n, 'text' => 'Drug '.$n.' '.request('family', '-')])
+        ->slice((max(1, (int) request('page', 1)) - 1) * (int) request('limit', 20), (int) request('limit', 20))->values()]));
+    Route::get('/drugs-map', fn () => response()->json([12 => 'Paracetamol', 7 => 'Aspirin']));
     Route::get('/medicines-fail', fn () => response()->json(['message' => 'boom'], 500));
     // Table rows. `/rowsA`, `/rowsB`: two tables on one page.
     Route::get('/rows{suffix?}', fn () => response()->json(['data' => [['id' => 7]], 'meta' => []]))->where('suffix', '[A-Za-z]*');

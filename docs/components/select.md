@@ -27,11 +27,16 @@ que **pide sus opciones a una URL** (`load-url`) y, opcionalmente, **las vuelve 
 
 ## Respuesta de la URL
 
-JSON con una lista de `{value, label}` (también vale `{"data": [...]}`):
+JSON con las opciones, en el vocabulario de un `<select>` (el mismo que lee `search-url`, ver abajo): un mapa `{valor: etiqueta}`, filas `{value, label}` o `{id, text}`, en una lista pelada o dentro de `{"results": [...]}`:
 
 ```json
-[{"value": "PT-30", "label": "Madeira"}, {"value": "PT-20", "label": "Azores"}]
+{"PT-30": "Madeira", "PT-20": "Azores"}
 ```
+```json
+{"results": [{"value": "PT-30", "label": "Madeira"}, {"value": "PT-20", "label": "Azores"}]}
+```
+
+`{"data": [...]}` ya **no** se lee (en la 2.x sí): el envoltorio es `results`, en los dos modos. En Laravel, `return ['results' => $query->get(['id as value', 'name as label'])];`, o `return $query->pluck('name', 'id');` (ojo: un mapa con ids numéricos lo ordena JavaScript por el número; si importa el orden, manda una lista).
 
 Una respuesta que no es JSON (por ejemplo la página de login a la que redirige una sesión caducada) cuenta como error: mensaje con **Reintentar**, no una lista vacía.
 
@@ -97,6 +102,7 @@ Por qué `search-url` y no `load-url`: `load-url` es «de dónde carga el compon
 |---|---|---|
 | `search-url` | `''` | URL que se pregunta con lo tecleado. Implica el modo buscable. |
 | `query-param` | `q` | Nombre del parámetro con el texto: `/medicines/search?q=ibu&limit=20`. |
+| `page-param` | `page` | Nombre del parámetro de la página, a partir de la segunda (botón «Mostrar más», ver abajo). |
 | `params` | `[]` | Parámetros fijos de toda petición, con las claves en snake_case: `:params="['country_code' => 'ES']"`. Valen también con `load-url`. |
 | `depends-on` | `''` | El `name` de otro control del mismo formulario (o del documento si no hay `<form>`), **igual que en el select remoto**: su valor va como parámetro con el nombre del control; cuando cambia, se vacía lo elegido y lo tecleado y las búsquedas siguientes llevan el valor nuevo. Si el otro control está vacío no se pregunta nada y el cuadro queda deshabilitado. |
 | `limit` | `20` | Se envía como `?limit=20`. |
@@ -106,9 +112,7 @@ Por qué `search-url` y no `load-url`: `load-url` es «de dónde carga el compon
 | `allow-free-text` | `false` | Vale enviar lo tecleado sin haber elegido nada de la lista («o escribe uno nuevo»). Sin él, un texto que no es ninguna opción impide enviar (el navegador dice «Elige una opción de la lista»). |
 | `text-name` | `{name}_text` | Nombre del campo que envía el texto tecleado. |
 | `option-label` | `text` | El campo de cada fila que hace de etiqueta, cuando no es `text`. |
-| `process-results` | `''` | Expresión JS: ver abajo. |
-| `on-select` | `''` | Expresión JS cuando se elige una fila: ver abajo. |
-| `on-error` | `''` | Expresión JS cuando la búsqueda falla: ver abajo. |
+| `process-results` | `''` | Expresión JS que **devuelve** las filas: ver abajo (es la única expresión de la librería). |
 | `list-class` | `''` | Clases de la lista desplegable. |
 | `name`, `label`, `hint`, `placeholder`, `required`, `disabled`, `size`, `class`, `wrapper-class` | | Igual que en los demás modos. `class` y el resto de atributos van al cuadro de texto; `x-model` es **la clave elegida**. |
 
@@ -129,57 +133,73 @@ $data = $request->validate(['medicine_id' => ['nullable', 'exists:medicines,id']
 
 ### La respuesta del servidor
 
-Solo se lee **una de estas dos formas** (la de select2, y un array pelado), con filas `{id, text}` (también `{value, label}`):
+El vocabulario de un `<select>` y nada más (el mismo que lee `load-url`):
 
-```json
-{"results": [{"id": 1, "text": "Ibuprofeno 600 mg", "laboratorio": "Acme"}]}
-```
+| Forma | Ejemplo |
+|---|---|
+| un mapa `{valor: etiqueta}` | `{"12": "Paracetamol"}` (en Laravel, `pluck('name', 'id')`) |
+| filas `{id, text}` | `[{"id": 12, "text": "Paracetamol"}]` |
+| filas `{value, label}` | `[{"value": 12, "label": "Paracetamol"}]` |
+| cualquiera de las anteriores dentro de `{"results": [...]}` | la de select2: `{"results": [{"id": 12, "text": "Paracetamol"}]}` |
 
-Las filas pueden traer más campos (un laboratorio, una foto): se conserva la **fila entera** y llega a `on-select` y al evento. Cualquier otra forma (por ejemplo `{"ok": true, "mensaje": "…"}`, un `{valor: etiqueta}` o un `{data: [...]}`) **no se pinta como filas**: es una respuesta que no se entiende, sale el mensaje de error con **Reintentar**. Para una forma ajena, `process-results`.
+Las filas pueden traer más campos (un laboratorio, una foto): se conserva la **fila entera** y llega al evento (`row`). `{"data": [...]}` **no** se lee. Cualquier otra cosa (anidada, con la lista tres niveles abajo, con los campos renombrados) **no se pinta como filas**: es una respuesta que no se entiende y sale el mensaje de error con **Reintentar**; para eso está `process-results`. Un límite honesto de adivinar un mapa: un cuerpo de error con un 200 como `{"mensaje": "caducada"}` es indistinguible de un mapa y se pintaría como una fila inservible (no se guarda nada malo: el id va en el hidden y tu servidor lo valida contra su tabla). Los valores que no son texto ni número (`{"ok": true}`) sí se rechazan.
 
 ```php
 Route::get('/medicines/search', function (Request $request) {
     $rows = Medicine::query()
         ->where('name', 'like', '%'.$request->query('q').'%')
-        ->limit($request->integer('limit', 20))
+        ->forPage($request->integer('page', 1), $request->integer('limit', 20))
         ->get(['id', 'name as text', 'laboratory']);
 
     return ['results' => $rows];
 });
 ```
 
-### Los tres puntos de engarce
+### Paginación: un botón «Mostrar más»
 
-Son expresiones JavaScript que escribes en la etiqueta, como un `x-on:click`: se evalúan con Alpine **en el ámbito de tu página** (ven tus datos y funciones) más unos nombres propios. Viajan como texto dentro de la configuración (`@js($config)`), nunca pegadas en JavaScript por Blade.
+Al final de la lista hay un botón (no un scroll infinito: un botón se alcanza con el teclado, es la última parada de ↓) que pide la página siguiente con `?page=2` (el nombre lo da `page-param`) y **añade** las filas. La primera petición no lleva `page`: un endpoint que no sabe nada de nuestra paginación funciona igual.
 
-**`process-results`**: recibe `response`, el **cuerpo entero** tal como llegó, y devuelve las filas `{id, text, ...}` que se pintan. Para componer la etiqueta, filtrar, ordenar o leer una forma que no es ninguna de las dos. Si lanza una excepción, la búsqueda cuenta como fallida (va por `on-error`). Con `process-results`, `option-label` no se lee.
+- **El «puede haber más» se deduce contando**: si llegan tantas filas como el `limit`, puede haber más; si llegan menos o ninguna, se acabó. El precio, a propósito: cuando el total es un múltiplo exacto del `limit`, hay una última petición que vuelve vacía.
+- Si el servidor manda `"pagination": {"more": true|false}` (como select2), se le cree a él antes que a la cuenta.
+- Mientras carga, el botón lo dice («Cargando»). Si la página siguiente falla **no se borran las filas que ya estaban**: el botón pasa a «No se han podido cargar más. Reintenta» y vuelve a pedir la misma página, y se anuncia `dbl-select-failed`.
+- Teclear otra vez descarta la página en vuelo: manda la búsqueda nueva.
+
+### Un aviso se anuncia, una transformación se pasa
+
+La regla de la librería: lo que **ha pasado** es un evento (`$dispatch`, sube por el DOM); solo lo que tiene que **devolver un valor** es una expresión. Por eso hay dos eventos y una sola expresión.
+
+**Elegir una fila** → `dbl-select-changed` con `detail: { name, value, row }` (ver abajo):
+
+```blade
+<div x-on:dbl-select-changed="if ($event.detail.row) form.price = $event.detail.row.price">
+    <x-dbl::form.select name="medicine_id" search-url="/medicines/search" />
+</div>
+```
+
+**Fallar la petición** → `dbl-select-failed` con `detail: { name, error }` (`error.response.status` y `error.response.data`, como en los demás componentes). Es **cancelable**: sin hacer nada, sale el mensaje del componente («No se han podido cargar los resultados» con **Reintentar**, el detalle a la consola); si un oyente llama a `preventDefault()`, el componente se calla y pintas tú lo que quieras. Un fallo (500, 404, JSON ilegible, un `process-results` que lanza) nunca sale como excepción, y lo ya elegido no se pierde.
+
+```blade
+<div x-on:dbl-select-failed="if ($event.detail.error.response?.status === 401) { $event.preventDefault(); location = '/login' }">
+    <x-dbl::form.select name="medicine_id" search-url="/medicines/search" />
+</div>
+```
+
+**`process-results`** es la **excepción**, la única expresión en un atributo de toda la librería, y por una razón: es el único punto que tiene que **devolver** algo (las filas) y un evento no puede devolver nada. Recibe `response`, el **cuerpo entero** tal como llegó, y devuelve las filas `{id, text, ...}` que se pintan. Se evalúa con Alpine en el ámbito de tu página (como un `x-on:click`) y viaja como texto dentro de la configuración, nunca pegada en JavaScript por Blade. Si lanza una excepción, la búsqueda cuenta como fallida (`dbl-select-failed`). Con `process-results`, `option-label` no se lee.
 
 ```blade
 <x-dbl::form.select name="drug_id" search-url="/api/cima"
     process-results="response.resultados.map(r => ({ id: r.nregistro, text: r.nombre + ' (' + r.labtitular + ')', ...r }))" />
 ```
 
-**`option-label`**: el caso trivial, sin función.
+**`option-label`** es el caso trivial, sin función: el campo de cada fila que hace de etiqueta.
 
 ```blade
 <x-dbl::form.select name="client_id" search-url="/clients/search" option-label="nombre" />
 ```
 
-**`on-select`**: cuando se elige una fila; `row` es la fila entera.
-
-```blade
-<x-dbl::form.select name="medicine_id" search-url="/medicines/search" on-select="form.price = row.price" />
-```
-
-**`on-error`**: cuando la búsqueda falla; recibe `error`, `status` y `data` (`error.response.status` y `error.response.data`, como en los demás componentes). Es **además** del mensaje del componente («No se han podido cargar los resultados» con **Reintentar**), no en su lugar; **si devuelve `false`, el componente se calla** y tú pintas lo que quieras.
-
-```blade
-<x-dbl::form.select name="medicine_id" search-url="/medicines/search" on-error="status === 401 ? (location = '/login', false) : notify(data.message)" />
-```
-
 ### Evento
 
-El mismo `dbl-select-changed` de los demás modos, con la fila entera: `detail: { name, value, row }` (`value` es el id; `row` es `null` al vaciar la elección). En los modos sin `search-url` el `detail` sigue siendo `{ name, value }`.
+El mismo `dbl-select-changed` de los demás modos, con la fila entera: `detail: { name, value, row }` (`value` es el id; `row` es `null` al vaciar la elección). En los modos sin `search-url` el `detail` sigue siendo `{ name, value }`. Más el cancelable `dbl-select-failed` `{ name, error }` de arriba.
 
 ### Estados y fallos
 

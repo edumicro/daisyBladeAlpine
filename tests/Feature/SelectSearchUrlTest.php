@@ -87,21 +87,21 @@ it('without `text` shows the value rather than an empty box over a hidden value'
 it('gives the JavaScript the configuration in one object, with the defaults', function () {
     $config = selectSearchConfig(Blade::render('<x-dbl::form.select name="m" search-url="/medicines" />'));
 
-    expect($config)->toMatchArray(['searchUrl' => '/medicines', 'queryParam' => 'q', 'limit' => 20, 'minChars' => 2, 'debounce' => 250, 'allowFreeText' => false, 'optionLabel' => 'text', 'dependsOn' => '']);
-    expect($config['messages'])->toHaveKeys(['minChars', 'searching', 'empty', 'loadFailed', 'chooseFromList']);
+    expect($config)->toMatchArray(['searchUrl' => '/medicines', 'queryParam' => 'q', 'pageParam' => 'page', 'limit' => 20, 'minChars' => 2, 'debounce' => 250, 'allowFreeText' => false, 'optionLabel' => 'text', 'dependsOn' => '']);
+    expect($config['messages'])->toHaveKeys(['minChars', 'searching', 'empty', 'loadFailed', 'chooseFromList', 'more', 'loadingMore', 'moreFailed']);
     expect($config['messages']['minChars'])->toContain('2');
 });
 
 it('passes every prop of the search through', function () {
     $config = selectSearchConfig(Blade::render(<<<'BLADE'
-        <x-dbl::form.select name="m" search-url="/medicines" query-param="term" :params="['country_code' => 'ES']" depends-on="country"
+        <x-dbl::form.select name="m" search-url="/medicines" query-param="term" page-param="p" :params="['country_code' => 'ES']" depends-on="country"
             :limit="10" :min-chars="3" :debounce="400" allow-free-text option-label="nombre"
-            process-results="response.items" on-select="picked(row)" on-error="failed(status)" />
+            process-results="response.items" />
         BLADE));
 
     expect($config)->toMatchArray([
-        'queryParam' => 'term', 'params' => ['country_code' => 'ES'], 'dependsOn' => 'country', 'limit' => 10, 'minChars' => 3, 'debounce' => 400,
-        'allowFreeText' => true, 'optionLabel' => 'nombre', 'processResults' => 'response.items', 'onSelect' => 'picked(row)', 'onError' => 'failed(status)',
+        'queryParam' => 'term', 'pageParam' => 'p', 'params' => ['country_code' => 'ES'], 'dependsOn' => 'country', 'limit' => 10, 'minChars' => 3, 'debounce' => 400,
+        'allowFreeText' => true, 'optionLabel' => 'nombre', 'processResults' => 'response.items',
     ]);
 });
 
@@ -149,4 +149,12 @@ it('gives the fixed params to the remote select too', function () {
     $html = Blade::render('<x-dbl::form.select name="r" load-url="/regions" :params="[\'country_code\' => \'ES\']" />');
 
     expect(xDataConfig($html, 'dblSelectRemote')['params'])->toBe(['country_code' => 'ES']);
+});
+
+it('has the "more" button (a button, not a scroll) as a stop of the keyboard, and no expression props for events', function () {
+    $html = Blade::render('<x-dbl::form.select name="m" search-url="/m" />');
+
+    expect($html)->toContain('x-on:click="loadMore()"')->toContain('x-text="moreText"')->toContain(':id="optionId(moreIndex)"');
+    // A notice is announced (dbl-select-changed, dbl-select-failed), it is not an expression in an attribute.
+    expect(selectSearchConfig($html))->not->toHaveKeys(['onSelect', 'onError']);
 });
