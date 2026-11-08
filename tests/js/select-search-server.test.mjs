@@ -22,15 +22,24 @@ test('searchParams: no dependency, no param for it; the search itself cannot be 
 
 const rows = [{ id: 1, text: 'Ibuprofen', lab: 'Acme' }, { id: 2, text: 'Ibuprofen 600', lab: 'Zeta' }]
 
-test('searchResults reads the vocabulary of a <select>: a map, rows, and the `results` wrapper, and keeps the whole row', () => {
+test('searchResults reads the vocabulary of a <select>, with NO wrapper: a map and a list of rows (what process-results returns), keeping the whole row', () => {
     const wanted = [{ id: 1, text: 'Ibuprofen', row: rows[0] }, { id: 2, text: 'Ibuprofen 600', row: rows[1] }]
-    assert.deepEqual(answerShapes.searchResults({ results: rows }, '/s'), wanted)              // select2
-    assert.deepEqual(answerShapes.searchResults(rows, '/s'), wanted)                           // a bare list
+    assert.deepEqual(answerShapes.searchResults(rows, '/s'), wanted)                           // a list of rows
     assert.deepEqual(answerShapes.searchResults([{ value: 'a', label: 'A' }], '/s'), [{ id: 'a', text: 'A', row: { value: 'a', label: 'A' } }])
     assert.deepEqual(answerShapes.searchResults({ 12: 'Paracetamol' }, '/s'), [{ id: '12', text: 'Paracetamol', row: { id: '12', text: 'Paracetamol' } }])   // pluck('name', 'id')
-    assert.deepEqual(answerShapes.searchResults({ results: { 12: 'Paracetamol' } }, '/s').map(row => row.id), ['12'])
-    assert.deepEqual(answerShapes.searchResults({ results: [] }, '/s'), [])
     assert.deepEqual(answerShapes.searchResults([], '/s'), [])
+})
+
+test('a wrapper is NOT an empty list: `{ results: [...] }` and `{ data: [...] }` are answers that are not understood, and say so', () => {
+    const realError = console.error
+    const messages = []
+    console.error = message => messages.push(message)
+    try {
+        for (const wrapped of [{ results: rows }, { results: [] }, { data: rows }, { data: [] }, { results: rows, pagination: { more: true } }]) {
+            assert.throws(() => answerShapes.searchResults(wrapped, '/s'), isContractError, JSON.stringify(wrapped))
+        }
+    } finally { console.error = realError }
+    assert.match(messages[0], /process-results/)
 })
 
 test('searchResults does not read `data`, nested structures or a body with a non-text value', () => {
@@ -66,7 +75,7 @@ test('searchResults: a wrong row or body is a contract error that names the endp
     const realError = console.error
     console.error = () => {}
     try {
-        for (const bad of [{ results: 'x' }, [{ id: 1 }], [1, 2], { a: { b: 1 } }, null]) {
+        for (const bad of [{ results: [] }, [{ id: 1 }], [1, 2], { a: { b: 1 } }, null]) {
             assert.throws(() => answerShapes.searchResults(bad, '/s'), isContractError, JSON.stringify(bad))
         }
     } finally { console.error = realError }
@@ -115,7 +124,7 @@ function searching(config = {}, { onFailed } = {}) {
 const httpFailure = status => Object.assign(new Error('failed'), { response: { status, data: { message: 'boom' } } })
 
 test('asks the server with the typed text, the limit and the params', async () => {
-    const calls = page({ results: rows })
+    const calls = page(rows)
     const { select } = searching({ params: { country_code: 'ES' }, limit: 15 })
 
     await select.runSearch('ibu')
@@ -128,7 +137,7 @@ test('asks the server with the typed text, the limit and the params', async () =
 
 test('two searches that cross: only the last one counts', async () => {
     let releaseFirst
-    page(() => new Promise(resolve => { releaseFirst = () => resolve({ results: [{ id: 1, text: 'OLD' }] }) }), { results: [{ id: 2, text: 'NEW' }] })
+    page(() => new Promise(resolve => { releaseFirst = () => resolve([{ id: 1, text: 'OLD' }]) }), [{ id: 2, text: 'NEW' }])
     const { select } = searching()
 
     const first = select.runSearch('ib')
@@ -146,7 +155,7 @@ test('the request in flight is aborted when a newer one starts, and that is NOT 
     page(options => new Promise((resolve, reject) => {
         seen.push(options.signal)
         options.signal.addEventListener('abort', () => reject(canceled))
-    }), { results: rows })
+    }), rows)
     const { select } = searching()
 
     const first = select.runSearch('ib')
@@ -183,7 +192,7 @@ test('typing below `min-chars` asks nothing and says so in words', () => {
 })
 
 test('the debounce: one request for a burst of keys', async () => {
-    const calls = page({ results: rows })
+    const calls = page(rows)
     const { select } = searching({ debounce: 20 })
 
     select.typed('ib'); select.typed('ibu'); select.typed('ibup')
@@ -238,7 +247,7 @@ for (const [name, answer] of [['a 500', httpFailure(500)], ['a 404', httpFailure
 }
 
 test('the field is usable after a failure: typing again searches again, and Retry too', async () => {
-    const calls = page(httpFailure(500), { results: rows }, { results: [{ id: 9, text: 'Nine' }] })
+    const calls = page(httpFailure(500), rows, [{ id: 9, text: 'Nine' }])
     const { select } = searching()
 
     await select.runSearch('ibu')
@@ -282,7 +291,7 @@ test('a listener that cancels dbl-select-failed silences the message of the comp
 })
 
 test('a process-results that throws is a failed search that is announced, not a stuck "searching"', async () => {
-    page({ results: rows })
+    page(rows)
     const { select, failures } = searching({ processResults: 'response.nothing.here' })
 
     await select.runSearch('ibu')
@@ -295,7 +304,7 @@ test('a process-results that throws is a failed search that is announced, not a 
 // ── Choosing ──
 
 test('choosing announces dbl-select-changed with the whole row', async () => {
-    page({ results: rows })
+    page(rows)
     const { select, events } = searching()
 
     await select.runSearch('ibu')
@@ -315,7 +324,7 @@ test('the local mode announces exactly what it did before: { name, value }', () 
 // ── The keyboard ──
 
 test('the arrows move over the options (and wrap), Enter chooses, Escape closes', async () => {
-    page({ results: rows })
+    page(rows)
     const { select, events } = searching()
     await select.runSearch('ibu')
     select.open = true
@@ -343,8 +352,8 @@ test('mayHaveMore: the server\'s `pagination.more` is believed; otherwise as man
     assert.equal(mayHaveMore({ pagination: { more: false } }, 20, 20), false)
     assert.equal(mayHaveMore({ pagination: { more: true } }, 3, 20), true)
     assert.equal(mayHaveMore([], 20, 20), true)
-    assert.equal(mayHaveMore({ results: [] }, 19, 20), false)
-    assert.equal(mayHaveMore({ results: [] }, 0, 20), false)
+    assert.equal(mayHaveMore([], 19, 20), false)
+    assert.equal(mayHaveMore([], 0, 20), false)
 })
 
 test('searchParams: the first page carries no `page`; the next ones carry it under `page-param`', () => {
@@ -356,7 +365,7 @@ test('searchParams: the first page carries no `page`; the next ones carry it und
 })
 
 test('a full page offers "more"; asking for it ADDS the next page; fewer rows than the limit ends it (an endpoint that knows no paging works)', async () => {
-    const calls = page({ results: rowsOf(1, 3) }, { results: rowsOf(4, 3) }, { results: rowsOf(7, 1) })
+    const calls = page(rowsOf(1, 3), rowsOf(4, 3), rowsOf(7, 1))
     const { select } = searching({ limit: 3 })
 
     await select.runSearch('r')
@@ -376,14 +385,14 @@ test('a full page offers "more"; asking for it ADDS the next page; fewer rows th
 
 test('`pagination.more` of the server wins over the count', async () => {
     page({ results: rowsOf(1, 3), pagination: { more: false } })
-    const { select } = searching({ limit: 3 })
+    const { select } = searching({ limit: 3, processResults: 'response.results' })
     await select.runSearch('r')
     assert.equal(select.canLoadMore, false)
 })
 
 test('the "more" button shows it is loading, and a failed next page keeps the rows and offers to try again', async () => {
     let release
-    page({ results: rowsOf(1, 2) }, () => new Promise(resolve => { release = () => resolve(httpFailure(500)) }), { results: rowsOf(3, 1) })
+    page(rowsOf(1, 2), () => new Promise(resolve => { release = () => resolve(httpFailure(500)) }), rowsOf(3, 1))
     const { select, failures } = searching({ limit: 2, messages: { more: 'More', loadingMore: 'Loading', moreFailed: 'Try again' } })
     await select.runSearch('r')
     assert.equal(select.moreText, 'More')
@@ -408,7 +417,7 @@ test('the "more" button shows it is loading, and a failed next page keeps the ro
 
 test('typing while the next page is in flight drops it: a new search owns the list', async () => {
     let release
-    page({ results: rowsOf(1, 2) }, () => new Promise(resolve => { release = () => resolve({ results: rowsOf(3, 2) }) }), { results: [{ id: 9, text: 'New' }] })
+    page(rowsOf(1, 2), () => new Promise(resolve => { release = () => resolve(rowsOf(3, 2)) }), [{ id: 9, text: 'New' }])
     const { select } = searching({ limit: 2 })
     await select.runSearch('r')
     const pending = select.loadMore()
@@ -422,7 +431,7 @@ test('typing while the next page is in flight drops it: a new search owns the li
 })
 
 test('the arrows reach the "more" button as the last stop, and Enter on it asks for the next page', async () => {
-    page({ results: rowsOf(1, 2) }, { results: rowsOf(3, 1) })
+    page(rowsOf(1, 2), rowsOf(3, 1))
     const { select } = searching({ limit: 2 })
     await select.runSearch('r')
     select.open = true
@@ -435,4 +444,40 @@ test('the arrows reach the "more" button as the last stop, and Enter on it asks 
 
     assert.equal(select.flatList.length, 3)
     assert.equal(select.open, true, 'asking for more does not close the list')
+})
+
+test('a wrapped answer without process-results says so to the face: error with Retry, not "nothing matches"', async () => {
+    page({ results: rowsOf(1, 2) })
+    const { select, failures } = searching()
+
+    await select.runSearch('r')
+
+    assert.equal(select.state, 'error')
+    assert.notEqual(select.statusText, 'Nothing matches that')
+    assert.equal(select.hasRetry, true)
+    assert.equal(failures.length, 1)
+    assert.ok(errors.some(args => String(args[0]).includes('process-results')), 'the console tells the programmer what to do')
+})
+
+test('process-results unwraps it in one line, and what it returns is held to the same two forms', async () => {
+    page({ results: rowsOf(1, 2) }, { results: rowsOf(1, 2) }, { total: 3 })
+    const unwrapped = searching({ processResults: 'response.results' })
+    await unwrapped.select.runSearch('r')
+    assert.equal(unwrapped.select.state, 'ready')
+    assert.equal(unwrapped.select.flatList.length, 2)
+
+    const wrong = searching({ processResults: 'response' })    // still wrapped
+    await wrong.select.runSearch('r')
+    assert.equal(wrong.select.state, 'error')
+
+    const nothing = searching({ processResults: 'response.nothing' })    // returns undefined
+    await nothing.select.runSearch('r')
+    assert.equal(nothing.select.state, 'error')
+})
+
+test('process-results may return a map', async () => {
+    page({ items: { 5: 'Five' } })
+    const { select } = searching({ processResults: 'response.items' })
+    await select.runSearch('f')
+    assert.deepEqual(select.flatList.map(item => [item.key, item.label]), [['5', 'Five']])
 })

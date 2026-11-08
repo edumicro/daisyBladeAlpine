@@ -537,23 +537,23 @@ function searchRowOf(row, textField = 'text') {
     return undefined
 }
 
-const OPTION_FORMS = '{ "value": "label" }, [{ "id": …, "text": … }], [{ "value": …, "label": … }] or { "results": [ … ] } (anything else: use `process-results`)'
+const OPTION_FORMS = 'a { "value": "label" } map or a list of { "id": …, "text": … } / { "value": …, "label": … } rows (anything wrapped or foreign: use `process-results`, e.g. process-results="response.results")'
 
 /** A `{ value: label }` map: every value a text or a number, as in a <select>. (A body such as `{ "ok": true }` is not one.) */
 const isOptionMap = data => isObject(data) && Object.values(data).every(label => ['string', 'number'].includes(typeof label))
 
 /**
- * The options of an answer as `[{ id, text, row }]`, or undefined when it has none of the forms of `answerShapes.searchResults`.
- * `results` is the wrapper (the only one: `data` is not read); inside it, rows or a map.
+ * The options of an answer as `[{ id, text, row }]`, or undefined when it has none of the forms of `answerShapes.searchResults`:
+ * a list of rows, or a map. There is no wrapper (`results`, `data`): an object with a list inside has values that are not text, so it is
+ * not a map, and it comes out as undefined (an answer that is not understood), never as an empty list.
  */
 function optionRowsOf(data, textField) {
-    const inside = isObject(data) && 'results' in data ? data.results : data
-    if (Array.isArray(inside)) {
-        const rows = inside.map(row => searchRowOf(row, textField))
+    if (Array.isArray(data)) {
+        const rows = data.map(row => searchRowOf(row, textField))
         return rows.every(Boolean) ? rows : undefined
     }
-    if (!isOptionMap(inside)) return undefined
-    return Object.entries(inside).map(([id, text]) => ({ id, text: String(text), row: { id, text } }))
+    if (!isOptionMap(data)) return undefined
+    return Object.entries(data).map(([id, text]) => ({ id, text: String(text), row: { id, text } }))
 }
 
 /**
@@ -563,8 +563,8 @@ function optionRowsOf(data, textField) {
 export const answerShapes = {
     /**
      * select with load-url: the options in the vocabulary of a <select> -> `[{ value, label }]`. The forms are the ones of `searchResults`
-     * (below) and the same for both ways of getting options from a URL: a `{ "value": "label" }` map, rows `{ id, text }` or
-     * `{ value, label }`, in a bare list or wrapped in `{ "results": [ … ] }`.
+     * (below) and the same for both ways of getting options from a URL: a `{ "value": "label" }` map, or a list of rows `{ id, text }`
+     * or `{ value, label }`. No wrapper.
      */
     selectOptions(data, url) {
         const rows = optionRowsOf(data)
@@ -573,14 +573,14 @@ export const answerShapes = {
     },
     /**
      * Searchable select with `search-url`: the server's answer to "what matches what was typed?" -> a list of `{ id, text, row }`.
-     * The vocabulary is that of a <select>, and the same as in `selectOptions`:
+     * The vocabulary is that of a <select>, and the same as in `selectOptions`, in two forms and NO wrapper:
      *   { "12": "Paracetamol" }                        a map value -> label (Laravel's `pluck('name', 'id')`)
-     *   [{ "id": 12, "text": "…" }]                    rows (also `{ "value", "label" }`)
-     *   { "results": [ … ] }                           the same rows, or the same map, in the wrapper of select2
+     *   [{ "id": 12, "text": "…" }]                    a list of rows (also `{ "value", "label" }`): what `process-results` returns
      * `textField` is the field that holds the label when it is not `text` (`option-label`). `row` is the whole row as the server sent it
      * (a laboratory, a photo...); a map has no more than `{ id, text }`.
      * Nothing else is guessed: any other shape is a ContractError (the user sees the error message with Retry), and
-     * `process-results` is the way to read a structure that is really foreign (nested, with the list three levels down, with other names).
+     * `process-results` is the way to read anything wrapped or foreign (`process-results="response.results"`, `"response.data"`...).
+     * An object whose values are not all text or numbers is NOT a map: it is an answer that is not understood, never "zero results".
      */
     searchResults(data, url, textField = 'text') {
         const rows = optionRowsOf(data, textField)

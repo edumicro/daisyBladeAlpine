@@ -162,15 +162,15 @@ function registerBrowserEndpoints(): void
 
     // Select options: `{data: [...]}` is not needed here, the select accepts a plain list too.
     Route::get('/options', fn () => response()->json([['value' => '1', 'label' => 'One'], ['value' => '2', 'label' => 'Two']]));
-    // Server search of the select (`search-url`): the shape of select2, filtered by `q`; and one that fails.
-    Route::get('/medicines', fn () => response()->json(['results' => collect([
+    // Server search of the select (`search-url`): a bare list of rows, filtered by `q`; and one that fails.
+    Route::get('/medicines', fn () => response()->json(collect([
         ['id' => 1, 'text' => 'Ibuprofen', 'lab' => 'Acme'],
         ['id' => 2, 'text' => 'Ibuprofen 600', 'lab' => 'Zeta'],
         ['id' => 3, 'text' => 'Paracetamol', 'lab' => 'Acme'],
-    ])->filter(fn ($row) => str_contains(strtolower($row['text']), strtolower((string) request('q'))))->values()]));
+    ])->filter(fn ($row) => str_contains(strtolower($row['text']), strtolower((string) request('q'))))->values()));
     // The same, paginated by `page` and `limit`, and one that depends on another field (`family`) and one that answers a map.
-    Route::get('/drugs', fn () => response()->json(['results' => collect(range(1, 5))->map(fn ($n) => ['id' => $n, 'text' => 'Drug '.$n.' '.request('family', '-')])
-        ->slice((max(1, (int) request('page', 1)) - 1) * (int) request('limit', 20), (int) request('limit', 20))->values()]));
+    Route::get('/drugs', fn () => response()->json(collect(range(1, 5))->map(fn ($n) => ['id' => $n, 'text' => 'Drug '.$n.' '.request('family', '-')])
+        ->slice((max(1, (int) request('page', 1)) - 1) * (int) request('limit', 20), (int) request('limit', 20))->values()));
     Route::get('/drugs-map', fn () => response()->json([12 => 'Paracetamol', 7 => 'Aspirin']));
     Route::get('/medicines-fail', fn () => response()->json(['message' => 'boom'], 500));
     // Table rows. `/rowsA`, `/rowsB`: two tables on one page.

@@ -27,16 +27,22 @@ que **pide sus opciones a una URL** (`load-url`) y, opcionalmente, **las vuelve 
 
 ## Respuesta de la URL
 
-JSON con las opciones, en el vocabulario de un `<select>` (el mismo que lee `search-url`, ver abajo): un mapa `{valor: etiqueta}`, filas `{value, label}` o `{id, text}`, en una lista pelada o dentro de `{"results": [...]}`:
+El componente lee **un mapa clave→valor o una lista de filas; cualquier otra forma se convierte en `process-results`**. Sin envoltorio, en `load-url` y en `search-url`:
 
 ```json
 {"PT-30": "Madeira", "PT-20": "Azores"}
 ```
 ```json
-{"results": [{"value": "PT-30", "label": "Madeira"}, {"value": "PT-20", "label": "Azores"}]}
+[{"value": "PT-30", "label": "Madeira"}, {"value": "PT-20", "label": "Azores"}]
 ```
 
-`{"data": [...]}` ya **no** se lee (en la 2.x sí): el envoltorio es `results`, en los dos modos. En Laravel, `return ['results' => $query->get(['id as value', 'name as label'])];`, o `return $query->pluck('name', 'id');` (ojo: un mapa con ids numéricos lo ordena JavaScript por el número; si importa el orden, manda una lista).
+(Las filas también pueden ser `{"id", "text"}`.) En Laravel: `return $query->pluck('name', 'id');`, o una lista `return $query->get(['id', 'name as text']);`. Un mapa con ids numéricos lo ordena JavaScript por el número; si importa el orden, manda una lista.
+
+Un `{"results": […]}` o un `{"data": […]}` **no se leen** (en la 2.x `load-url` leía `data`). No se tratan como «cero resultados»: es una respuesta que no se entiende, y sale el mensaje de error con **Reintentar** y un aviso en la consola que nombra `process-results`. Lo que da `JsonResource::collection` o un paginador de Laravel va envuelto en `data`; se desenvuelve en una línea:
+
+```blade
+<x-dbl::form.select name="region" load-url="/regions" process-results="response.data" />
+```
 
 Una respuesta que no es JSON (por ejemplo la página de login a la que redirige una sesión caducada) cuenta como error: mensaje con **Reintentar**, no una lista vacía.
 
@@ -133,25 +139,39 @@ $data = $request->validate(['medicine_id' => ['nullable', 'exists:medicines,id']
 
 ### La respuesta del servidor
 
-El vocabulario de un `<select>` y nada más (el mismo que lee `load-url`):
+La regla cabe en una frase: **el componente lee un mapa clave→valor o una lista de filas; cualquier otra forma se convierte en `process-results`.**
 
 | Forma | Ejemplo |
 |---|---|
-| un mapa `{valor: etiqueta}` | `{"12": "Paracetamol"}` (en Laravel, `pluck('name', 'id')`) |
-| filas `{id, text}` | `[{"id": 12, "text": "Paracetamol"}]` |
-| filas `{value, label}` | `[{"value": 12, "label": "Paracetamol"}]` |
-| cualquiera de las anteriores dentro de `{"results": [...]}` | la de select2: `{"results": [{"id": 12, "text": "Paracetamol"}]}` |
+| un mapa `{valor: etiqueta}` (solo cuentan los valores texto o número) | `{"12": "Paracetamol"}` (en Laravel, `pluck('name', 'id')`) |
+| una lista de filas `{id, text}` | `[{"id": 12, "text": "Paracetamol"}]` |
+| una lista de filas `{value, label}` | `[{"value": 12, "label": "Paracetamol"}]` |
 
-Las filas pueden traer más campos (un laboratorio, una foto): se conserva la **fila entera** y llega al evento (`row`). `{"data": [...]}` **no** se lee. Cualquier otra cosa (anidada, con la lista tres niveles abajo, con los campos renombrados) **no se pinta como filas**: es una respuesta que no se entiende y sale el mensaje de error con **Reintentar**; para eso está `process-results`. Un límite honesto de adivinar un mapa: un cuerpo de error con un 200 como `{"mensaje": "caducada"}` es indistinguible de un mapa y se pintaría como una fila inservible (no se guarda nada malo: el id va en el hidden y tu servidor lo valida contra su tabla). Los valores que no son texto ni número (`{"ok": true}`) sí se rechazan.
+No hay envoltorio: ni `results` ni `data`. La lista de filas es también lo que **devuelve `process-results`**. Las filas pueden traer más campos (un laboratorio, una foto): se conserva la **fila entera** y llega al evento (`row`).
+
+Un objeto cuyos valores no son todos texto o número **no es un mapa**: es una respuesta que no se entiende (mensaje de error con **Reintentar** y aviso en la consola), nunca «no hay nada con eso». Los dos casos que te vas a encontrar:
+
+```php
+// JsonResource::collection(...) devuelve {"data": [...], "links": ..., "meta": ...}
+return MedicineResource::collection($query->limit(20)->get());
+```
+```php
+// un paginador devuelve {"data": [...], "current_page": 1, ...}
+return $query->paginate(20);
+```
+```blade
+{{-- En los dos casos, una línea --}}
+<x-dbl::form.select name="medicine_id" search-url="/medicines/search" process-results="response.data" />
+```
+
+Un límite honesto de adivinar un mapa: un cuerpo de error con un 200 como `{"mensaje": "caducada"}` es indistinguible de un mapa y se pintaría como una fila inservible (no se guarda nada malo: el id va en el hidden y tu servidor lo valida contra su tabla). Los valores que no son texto ni número (`{"ok": true}`) sí se rechazan.
 
 ```php
 Route::get('/medicines/search', function (Request $request) {
-    $rows = Medicine::query()
+    return Medicine::query()
         ->where('name', 'like', '%'.$request->query('q').'%')
         ->forPage($request->integer('page', 1), $request->integer('limit', 20))
         ->get(['id', 'name as text', 'laboratory']);
-
-    return ['results' => $rows];
 });
 ```
 
@@ -160,7 +180,7 @@ Route::get('/medicines/search', function (Request $request) {
 Al final de la lista hay un botón (no un scroll infinito: un botón se alcanza con el teclado, es la última parada de ↓) que pide la página siguiente con `?page=2` (el nombre lo da `page-param`) y **añade** las filas. La primera petición no lleva `page`: un endpoint que no sabe nada de nuestra paginación funciona igual.
 
 - **El «puede haber más» se deduce contando**: si llegan tantas filas como el `limit`, puede haber más; si llegan menos o ninguna, se acabó. El precio, a propósito: cuando el total es un múltiplo exacto del `limit`, hay una última petición que vuelve vacía.
-- Si el servidor manda `"pagination": {"more": true|false}` (como select2), se le cree a él antes que a la cuenta.
+- Si el cuerpo trae `"pagination": {"more": true|false}` (como select2; con envoltorio, y por tanto con `process-results="response.results"`), se le cree a él antes que a la cuenta.
 - Mientras carga, el botón lo dice («Cargando»). Si la página siguiente falla **no se borran las filas que ya estaban**: el botón pasa a «No se han podido cargar más. Reintenta» y vuelve a pedir la misma página, y se anuncia `dbl-select-failed`.
 - Teclear otra vez descarta la página en vuelo: manda la búsqueda nueva.
 
@@ -184,7 +204,7 @@ La regla de la librería: lo que **ha pasado** es un evento (`$dispatch`, sube p
 </div>
 ```
 
-**`process-results`** es la **excepción**, la única expresión en un atributo de toda la librería, y por una razón: es el único punto que tiene que **devolver** algo (las filas) y un evento no puede devolver nada. Recibe `response`, el **cuerpo entero** tal como llegó, y devuelve las filas `{id, text, ...}` que se pintan. Se evalúa con Alpine en el ámbito de tu página (como un `x-on:click`) y viaja como texto dentro de la configuración, nunca pegada en JavaScript por Blade. Si lanza una excepción, la búsqueda cuenta como fallida (`dbl-select-failed`). Con `process-results`, `option-label` no se lee.
+**`process-results`** es la **excepción**, la única expresión en un atributo de toda la librería, y por una razón: es el único punto que tiene que **devolver** algo (las filas) y un evento no puede devolver nada. Recibe `response`, el **cuerpo entero** tal como llegó, y devuelve **lo mismo que el componente sabe leer**: un mapa o una lista de filas `{id, text, ...}`; si devuelve otra cosa, es una respuesta que no se entiende, igual que arriba. Se evalúa con Alpine en el ámbito de tu página (como un `x-on:click`) y viaja como texto dentro de la configuración, nunca pegada en JavaScript por Blade. Si lanza una excepción, la búsqueda cuenta como fallida (`dbl-select-failed`). Con `process-results`, `option-label` no se lee.
 
 ```blade
 <x-dbl::form.select name="drug_id" search-url="/api/cima"

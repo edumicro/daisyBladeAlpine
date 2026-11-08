@@ -32,8 +32,8 @@ en el preflight de CORS).
 
 | Componente | Petición | Respuesta que espera | ¿Vale un `204`? |
 |---|---|---|---|
-| `form.select` con `load-url` | `GET load-url` (+ `?<depends-on>=valor`) | el vocabulario de un `<select>`: un mapa `{ "valor": "etiqueta" }`, filas `{ id, text }` o `{ value, label }`, en una lista o dentro de `{ "results": [ … ] }` (`answerShapes.selectOptions`). `data` ya no se lee | No |
-| `form.select` con `search-url` | `GET search-url?q=texto&limit=20` (+ `params`, + `&page=2` desde la segunda página, + `?<depends-on>=valor`) | las mismas formas que `load-url` (`searchResults`); **nada más se adivina**, `process-results` lee cualquier otra. Opcional: `"pagination": { "more": true }` | No |
+| `form.select` con `load-url` | `GET load-url` (+ `?<depends-on>=valor`) | un mapa `{ "valor": "etiqueta" }` o una lista de filas `{ id, text }` / `{ value, label }`, **sin envoltorio** (`answerShapes.selectOptions`). `data` y `results` no se leen: `process-results="response.data"` | No |
+| `form.select` con `search-url` | `GET search-url?q=texto&limit=20` (+ `params`, + `&page=2` desde la segunda página, + `?<depends-on>=valor`) | las mismas dos formas que `load-url` (`searchResults`); **nada más se adivina**, `process-results` lee cualquier otra. Opcional, en el cuerpo: `"pagination": { "more": true }` | No |
 | `display.data-table` | `GET load-url?page&search&sort&direction&…` | `{ "data": [fila, …], "meta": { … } }`, lo que da un `paginate()` de Laravel como recurso (`tableRows`) | No |
 | `display.resource-details` | `GET load-url` | el recurso `{ … }` o `{ "data": { … } }` (`resource`) | No |
 | `sections.tabs` con `load-url` | `GET load-url` pidiendo `text/html` | **un fragmento HTML** (`Content-Type: text/html`). Es la única respuesta que no es JSON; una página completa (`<!doctype>`, `<html>`) es un error | No |

@@ -118,7 +118,7 @@ it('search select: the two fields are in the page without JavaScript having to d
     expect(readPage($page, "new URLSearchParams(new FormData(document.querySelector('#f'))).toString()"))->toBe('drug_text=Drug+3&drug=3');
 });
 
-it('remote select: reads a map and the `results` wrapper, the same vocabulary as the searching one', function () {
+it('remote select: reads a map and a list of rows, the same vocabulary as the searching one', function () {
     $page = visit(browserPage('select-remote-vocabulary', <<<'BLADE'
         <form id="f">
             <x-dbl::form.select name="a" load-url="/drugs-map" />

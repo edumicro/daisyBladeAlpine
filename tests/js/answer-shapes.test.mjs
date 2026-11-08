@@ -11,19 +11,21 @@ afterEach(() => { console.error = realConsoleError })
 
 const isShapeError = error => isContractError(error) && error.reason === 'shape'
 
-test('selectOptions: the vocabulary of a <select>: a map, rows { id, text } or { value, label }, bare or in `results`', () => {
+test('selectOptions: the vocabulary of a <select>, with no wrapper: a map, or a list of rows { id, text } / { value, label }', () => {
     const options = [{ value: 1, label: 'One' }]
     assert.deepEqual(answerShapes.selectOptions(options, '/o'), options)
-    assert.deepEqual(answerShapes.selectOptions({ results: options }, '/o'), options)
     assert.deepEqual(answerShapes.selectOptions([{ id: 1, text: 'One' }], '/o').map(({ value, label }) => [value, label]), [[1, 'One']])
     assert.deepEqual(answerShapes.selectOptions({ 12: 'Paracetamol', 7: 'Aspirin' }, '/o').map(({ value, label }) => [value, label]), [['7', 'Aspirin'], ['12', 'Paracetamol']])
-    assert.throws(() => answerShapes.selectOptions({ results: [{ foo: 1 }] }, '/o'), isShapeError)
+    assert.throws(() => answerShapes.selectOptions([{ foo: 1 }], '/o'), isShapeError)
     assert.throws(() => answerShapes.selectOptions({ message: { x: 1 } }, '/o'), isShapeError)
     assert.match(warnings[0], /\/o/)
 })
 
-test('selectOptions: `data` is no longer a wrapper (the 3.x one is `results`)', () => {
-    assert.throws(() => answerShapes.selectOptions({ data: [{ value: 1, label: 'One' }] }, '/o'), isShapeError)
+test('selectOptions: a wrapper (`results`, `data`) is an answer that is not understood, never an empty list; process-results unwraps it', () => {
+    for (const wrapped of [{ results: [{ value: 1, label: 'One' }] }, { data: [{ value: 1, label: 'One' }] }, { data: [] }]) {
+        assert.throws(() => answerShapes.selectOptions(wrapped, '/o'), isShapeError, JSON.stringify(wrapped))
+    }
+    assert.match(warnings.at(-1), /process-results/)
 })
 
 test('tableRows: { data: [...], meta? }', () => {
