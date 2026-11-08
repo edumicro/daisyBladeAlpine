@@ -19,8 +19,8 @@ test('searchParams: el texto tecleado y el límite mandan sobre un params fijo c
     assert.deepEqual(searchParams({ query: 'a', limit: 5, params: { q: 'viejo', limit: 99 } }), { q: 'a', limit: 5 })
 })
 
-test('toRows: la forma de select2 {results: [...]}', () => {
-    const rows = toRows({ results: [{ id: 1, text: 'Ibuprofeno', lab: 'Cinfa' }] })
+test('toRows: una lista de {id, text} conserva la fila entera con sus campos extra', () => {
+    const rows = toRows([{ id: 1, text: 'Ibuprofeno', lab: 'Cinfa' }])
     assert.deepEqual(rows, [{ id: '1', text: 'Ibuprofeno', row: { id: 1, text: 'Ibuprofeno', lab: 'Cinfa' } }])
 })
 
@@ -36,16 +36,24 @@ test('toRows: el mapa {valor: etiqueta} (lo que da pluck) se lee como las opcion
 
 test('toRows: una lista vacía es «sin resultados», no un error', () => {
     assert.deepEqual(toRows([]), [])
-    assert.deepEqual(toRows({ results: [] }), [])
+    assert.deepEqual(toRows({}), [])   // un mapa sin entradas
 })
 
-test('toRows: un cuerpo que no es ni objeto ni array no es una respuesta y lanza', () => {
-    for (const body of [null, undefined, '', 5, true]) assert.throws(() => toRows(body), /not a list of results/, String(body))
+test('toRows: lo que no es un mapa ni una lista NO es «cero resultados», es una respuesta que no se entiende', () => {
+    for (const body of [{ results: [{ id: 1, text: 'x' }] }, { results: [] }, { data: [{ id: 1, text: 'x' }] }, { ok: true }, { ok: true, mensaje: 'caducada' }, { a: { b: 1 } }, { a: null }, null, undefined, '', 5, true]) {
+        assert.throws(() => toRows(body), /neither a key-value map nor a list of rows/, JSON.stringify(body))
+    }
 })
 
-test('toRows: un cuerpo de estado con un 200 no revienta: solo salen las entradas de texto o número', () => {
-    // Es el precio de aceptar el mapa: dos filas inservibles, no una excepción. El id va al servidor, que lo valida.
-    assert.deepEqual(toRows({ ok: true, mensaje: 'caducada', datos: { a: 1 } }).map(r => r.id), ['mensaje'])
+test('toRows: el mensaje del error dice cómo arreglarlo (process-results)', () => {
+    assert.throws(() => toRows({ results: [] }), /process-results="response\.results"/)
+})
+
+test('readResults: process-results="response.results" desenvuelve la forma de select2 y devuelve filas', () => {
+    const rows = readResults({ results: [{ id: 1, text: 'Ana' }] }, { processResults: response => response.results })
+    assert.deepEqual(rows.map(r => r.text), ['Ana'])
+    // y si la función devuelve otra forma, el mismo trato
+    assert.throws(() => readResults({ results: [] }, { processResults: response => response }), /neither a key-value map/)
 })
 
 test('toRows: las filas sin id o que no son objetos se descartan', () => {
@@ -60,8 +68,8 @@ test('toRows: las filas conservan sus campos extra y option-label nombra el camp
 
 test('readResults: process-results convierte una respuesta de forma rara en filas pintables', () => {
     const body = { payload: { hits: [{ code: 'A1', name: 'Ana', surname: 'López' }, { code: 'B2', name: 'Pau', surname: 'Ferrer' }] } }
-    // Con esa forma, sin función, no sale ninguna fila útil.
-    assert.deepEqual(readResults(body), [])
+    // Con esa forma, sin función, no se entiende.
+    assert.throws(() => readResults(body))
     const rows = readResults(body, {
         processResults: data => data.payload.hits.map(h => ({ id: h.code, text: `${h.name} ${h.surname}`, hit: h })),
     })
@@ -126,14 +134,27 @@ function mount(config) {
     })
 }
 
-test('un cuerpo {ok: true} con un 200 no revienta ni deja «buscando» encendido, y lo elegido sigue', async () => {
-    globalThis.fetch = async () => answer(200, { ok: true })
-    const combo = mount({ value: '42', text: 'Paracetamol' })
+test('un cuerpo {ok: true} o un {results: [...]} sin process-results es un fallo que se dice: mensaje, «buscando» apagado, lo elegido intacto', async () => {
+    for (const body of [{ ok: true }, { results: [{ id: 1, text: 'x' }] }]) {
+        globalThis.fetch = async () => answer(200, body)
+        const combo = mount({ value: '42', text: 'Paracetamol' })
+        combo.query = 'ibu'
+        await combo.search()
+        assert.notEqual(combo.error, '', JSON.stringify(body))
+        assert.deepEqual(combo.rows, [])
+        assert.equal(combo.loading, false)
+        assert.equal(combo.value, '42')
+        assert.equal(combo.committed.text, 'Paracetamol')
+    }
+})
+
+test('process-results="response.results" hace que un endpoint con envoltorio funcione', async () => {
+    globalThis.fetch = async () => answer(200, { results: [{ id: 1, text: 'Ibuprofeno' }] })
+    const combo = mount({ processResults: 'response.results' })
     combo.query = 'ibu'
     await combo.search()
-    assert.equal(combo.loading, false)
-    assert.equal(combo.value, '42')
-    assert.equal(combo.committed.text, 'Paracetamol')
+    assert.equal(combo.error, '')
+    assert.deepEqual(combo.rows.map(r => r.text), ['Ibuprofeno'])
 })
 
 test('un cuerpo vacío o que no es JSON de objeto SÍ es un fallo, con mensaje', async () => {
@@ -174,8 +195,8 @@ test('sin allow-free-text, lo tecleado sin elegir vuelve a lo último elegido al
     assert.equal(combo.field.value, 'Paracetamol')
 })
 
-test('una búsqueda que devuelve results pinta las filas y apaga «buscando»', async () => {
-    globalThis.fetch = async () => answer(200, { results: [{ id: 1, text: 'Ibuprofeno' }] })
+test('una búsqueda que devuelve una lista pinta las filas y apaga «buscando»', async () => {
+    globalThis.fetch = async () => answer(200, [{ id: 1, text: 'Ibuprofeno' }])
     const combo = mount({})
     combo.query = 'ibu'
     await combo.search()
@@ -313,7 +334,7 @@ test('un endpoint que no sabe de páginas funciona: una página llena enseña «
     const asked = []
     globalThis.fetch = async url => {
         asked.push(url)
-        return answer(200, url.includes('page=2') ? { results: rowsOf(3, 3) } : { results: rowsOf(1, 2) })
+        return answer(200, url.includes('page=2') ? rowsOf(3, 3) : rowsOf(1, 2))
     }
     const combo = mount({ limit: 2 })
     combo.query = 'fi'
@@ -326,16 +347,16 @@ test('un endpoint que no sabe de páginas funciona: una página llena enseña «
     assert.deepEqual(asked, ['/s?q=fi&limit=2', '/s?q=fi&limit=2&page=2'])
 })
 
-test('si el servidor manda pagination.more se le cree antes que a la cuenta', async () => {
+test('si el servidor manda pagination.more (y process-results desenvuelve) se le cree antes que a la cuenta', async () => {
     globalThis.fetch = async () => answer(200, { results: rowsOf(1, 2), pagination: { more: false } })
-    const combo = mount({ limit: 2 })
+    const combo = mount({ limit: 2, processResults: 'response.results' })
     combo.query = 'fi'
     await combo.search()
     assert.equal(combo.more, false)
 })
 
 test('si la página siguiente falla, las filas que había se quedan y «más» sigue ahí; Reintentar pide esa página', async () => {
-    globalThis.fetch = async () => answer(200, { results: rowsOf(1, 2) })
+    globalThis.fetch = async () => answer(200, rowsOf(1, 2))
     const combo = mount({ limit: 2, value: '9', text: 'Elegido' })
     combo.query = 'fi'
     await combo.search()
@@ -346,7 +367,7 @@ test('si la página siguiente falla, las filas que había se quedan y «más» s
     assert.equal(combo.more, true)
     assert.equal(combo.loadingMore, false)
     assert.equal(combo.value, '9')
-    globalThis.fetch = async () => answer(200, { results: rowsOf(3, 3) })
+    globalThis.fetch = async () => answer(200, rowsOf(3, 3))
     await combo.retry()
     assert.deepEqual(combo.rows.map(r => r.id), ['1', '2', '3'])
     assert.equal(combo.error, '')
@@ -355,8 +376,8 @@ test('si la página siguiente falla, las filas que había se quedan y «más» s
 test('teclear mientras llega la página siguiente la descarta: no se añade a la búsqueda nueva', async () => {
     let release
     globalThis.fetch = async url => url.includes('page=2')
-        ? new Promise(resolve => { release = () => resolve(answer(200, { results: rowsOf(3, 4) })) })
-        : answer(200, { results: rowsOf(1, 2) })
+        ? new Promise(resolve => { release = () => resolve(answer(200, rowsOf(3, 4))) })
+        : answer(200, rowsOf(1, 2))
     const combo = mount({ limit: 2 })
     combo.query = 'fi'
     await combo.search()
@@ -371,7 +392,7 @@ test('teclear mientras llega la página siguiente la descarta: no se añade a la
 })
 
 test('con el teclado se llega al botón «más»: ↓ pasa de la última fila a él, y Enter pide la página', async () => {
-    globalThis.fetch = async url => answer(200, { results: url.includes('page=2') ? rowsOf(3, 3) : rowsOf(1, 2) })
+    globalThis.fetch = async url => answer(200, url.includes('page=2') ? rowsOf(3, 3) : rowsOf(1, 2))
     const combo = mount({ limit: 2 })
     combo.query = 'fi'
     combo.open = true

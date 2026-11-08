@@ -103,21 +103,38 @@ Es el mismo widget que `searchable` (un input, un hidden con el id y una lista) 
 
 ### La respuesta
 
-El vocabulario de un `<select>`, nada más. Valen cuatro formas:
+**El componente lee un mapa clave→valor o una lista de filas; cualquier otra forma se convierte en `process-results`.** Ninguna de las dos lleva envoltorio.
 
 ```json
 {"12": "Paracetamol", "7": "Ibuprofeno"}
 ```
-El mapa `valor → etiqueta`: lo que da `pluck('name', 'id')` en Laravel, sin escribir ninguna función. (Un objeto de JavaScript ordena las claves numéricas de menor a mayor; si el orden importa, devuelve un array.)
+El mapa `valor → etiqueta`: lo que da `pluck('name', 'id')` en Laravel, sin escribir ninguna función. Todos los valores deben ser texto o número. (Un objeto de JavaScript ordena las claves numéricas de menor a mayor; si el orden importa, devuelve una lista.)
 
 ```json
-{"results": [{"id": 1, "text": "Ibuprofeno 600 mg", "lab": "Cinfa"}]}
+[{"id": 1, "text": "Ibuprofeno 600 mg", "lab": "Cinfa"}, {"id": 2, "text": "Ibuprofeno 400 mg", "lab": "Normon"}]
 ```
-El envoltorio de select2 (el estándar de hecho), y también un array pelado de filas `{id, text}` o de `{value, label}`. Las filas pueden traer más campos (`lab`, una foto): se conserva la fila entera y llega al evento `select-change`. Una lista vacía es «No hay nada con eso».
+La lista de filas `{id, text}` o `{value, label}` (también es lo que devuelve `process-results`). Las filas pueden traer más campos (`lab`, una foto): se conserva la fila entera y llega al evento `select-change`. Una lista o un mapa vacíos son «No hay nada con eso».
 
-Lo que de verdad hay que aplanar (estructuras anidadas, la lista tres niveles abajo, campos con otro nombre) va por `process-results`, no por esto.
+**Cualquier otra cosa es una respuesta que no se entiende**, y se dice: mensaje de error con «Reintentar» y, en la consola, qué faltaba. En particular un objeto cuyos valores no son todos texto o número **no es un mapa**: `{"results": [...]}`, `{"data": [...]}`, `{"ok": true}`. No se trata como «cero resultados», para que no te pases media hora buscando por qué tu endpoint «no devuelve nada».
 
-**Un cuerpo de estado con un 200.** Si el servidor contesta `{"ok": true, "mensaje": "caducada"}` con un 200, se lee como mapa y sale una fila inservible (`mensaje`) en el desplegable: no revienta ni se guarda nada malo, porque el id va en el hidden y tu servidor lo valida contra su tabla. Con un 4xx o un 5xx no se leen filas: es un fallo de búsqueda. Contesta los errores con su código de estado. Un cuerpo que no es ni objeto ni array (vacío, un número) es una respuesta que no se entiende: mensaje de error con «Reintentar».
+Las dos respuestas más habituales de Laravel llevan envoltorio, y se desenvuelven en una línea con `process-results`:
+
+```blade
+{{-- return LaboratoryResource::collection($labs);  ->  {"data": [{"id": 1, "text": "Cinfa"}]} --}}
+<x-dbl::form.select name="lab_id" search-url="/labs/search" process-results="response.data" />
+
+{{-- return Lab::paginate(20);  ->  {"data": [...], "current_page": 1, "last_page": 40, ...} --}}
+<x-dbl::form.select name="lab_id" search-url="/labs/search" process-results="response.data" />
+
+{{-- select2: {"results": [...], "pagination": {"more": true}} --}}
+<x-dbl::form.select name="lab_id" search-url="/labs/search" process-results="response.results" />
+```
+
+(`pagination.more` se sigue leyendo del cuerpo original aunque `process-results` lo desenvuelva.) Lo que de verdad hay que aplanar (estructuras anidadas, la lista tres niveles abajo, campos con otro nombre) también va por `process-results`.
+
+**`options-url` no sigue esta regla**: lee lo que leía (una lista y `{"data": [...]}`), porque ahí no existe `process-results` con el que arreglarlo y romperlo sería gratuito. La asimetría es a propósito: el modo que tiene válvula de escape puede ser estricto; el que no la tiene, no.
+
+Con un 4xx o un 5xx no se leen filas: es un fallo de búsqueda; contesta los errores con su código de estado.
 
 Un endpoint en Laravel:
 
@@ -125,12 +142,11 @@ Un endpoint en Laravel:
 Route::get('/medicines/search', function (Request $request) {
     $request->validate(['q' => 'required|string|min:2', 'limit' => 'integer|min:1|max:50']);
 
-    return response()->json(['results' => Medicine::query()
+    return Medicine::query()
         ->where('name', 'like', $request->q.'%')
         ->orderBy('name')
         ->limit($request->integer('limit', 20))
-        ->get(['id', 'name as text', 'laboratory']),
-    ]);
+        ->pluck('name', 'id');   // {"12": "Paracetamol", ...}; con ->get(['id', 'name as text', 'laboratory']) sería una lista de filas
 });
 ```
 
@@ -172,11 +188,11 @@ Un oyente que lance no rompe el componente.
 <x-dbl::form.select name="client_id" search-url="https://crm.example/api/clients" option-label="nombre" />
 ```
 
-**`process-results`**: una expresión JavaScript que se evalúa con lo que ha devuelto el servidor, **antes de pintarlo**, y lo que devuelva es lo que se pinta. Recibe la respuesta tal cual vino en `data` y devuelve filas (`{id, text, ...}`) en cualquiera de las formas de arriba. Si lanza, es un fallo de búsqueda (`select-error`, mensaje, «Reintentar»). Si hay `process-results`, manda sobre `option-label`. El `pagination` se lee del cuerpo original.
+**`process-results`**: una expresión JavaScript que se evalúa con lo que ha devuelto el servidor, **antes de pintarlo**, y lo que devuelva es lo que se pinta. Recibe la respuesta tal cual vino en `response` (y también en `data`, el nombre que tuvo en la 2.5) y devuelve **un mapa o una lista de filas** y nada más; si devuelve otra forma, mismo trato: una respuesta que no se entiende. Si lanza, es un fallo de búsqueda (`select-error`, mensaje, «Reintentar»). Si hay `process-results`, manda sobre `option-label`. El `pagination` se lee del cuerpo original.
 
 ```blade
 <x-dbl::form.select name="person_id" search-url="https://rrhh.example/find"
-    process-results="data.payload.hits.map(h => ({ id: h.code, text: h.name + ' ' + h.surname, hit: h }))" />
+    process-results="response.payload.hits.map(h => ({ id: h.code, text: h.name + ' ' + h.surname, hit: h }))" />
 ```
 
 ### Qué pasa cuando algo sale mal

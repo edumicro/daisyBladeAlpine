@@ -533,25 +533,25 @@ const searchParams = ({ queryParam = 'q', query = '', limit = null, params = {},
 
 /**
  * What the server answered -> list of `{ id, text, row }` (`row` is the whole row, with its extra fields).
- * The vocabulary of a <select>: a map `{"12": "Paracetamol"}` (what `pluck('name', 'id')` gives), rows `{id, text}`,
- * rows `{value, label}`, and the select2 wrapper `{"results": [...]}`. A map keeps only the entries whose value is
- * a text or a number. A body that is not an object or an array (empty, a number) is not an answer: it throws.
- * Anything that really needs flattening goes through `process-results`.
+ * Two native shapes, neither wrapped: a map `{"12": "Paracetamol"}` (what `pluck('name', 'id')` gives; every value must be
+ * a text or a number) and a list of rows `{id, text}` or `{value, label}` (what `process-results` returns).
+ * Anything else is an answer that is not understood and throws: an object with a non-scalar value is not a map
+ * (`{"results": [...]}`, `{"data": [...]}`, `{"ok": true}`), and a silent empty list would hide it. Any other shape
+ * is turned into one of the two with `process-results`.
  */
 const toRows = (data, { optionLabel = '' } = {}) => {
-    if (data === null || typeof data !== 'object') throw new Error('The answer is not a list of results')
-    const list = Array.isArray(data) ? data : (Array.isArray(data.results) ? data.results : null)
-    if (!list) {
-        return Object.entries(data)
-            .filter(([, text]) => typeof text === 'string' || typeof text === 'number')
-            .map(([id, text]) => ({ id, text: String(text), row: { id, text } }))
+    if (Array.isArray(data)) {
+        return data.flatMap(row => {
+            if (row === null || typeof row !== 'object') return []
+            const id = row.id ?? row.value
+            if (id === null || id === undefined) return []
+            return [{ id: String(id), text: String((optionLabel ? row[optionLabel] : undefined) ?? row.text ?? row.label ?? row.name ?? id), row }]
+        })
     }
-    return list.flatMap(row => {
-        if (row === null || typeof row !== 'object') return []
-        const id = row.id ?? row.value
-        if (id === null || id === undefined) return []
-        return [{ id: String(id), text: String((optionLabel ? row[optionLabel] : undefined) ?? row.text ?? row.label ?? row.name ?? id), row }]
-    })
+    if (data !== null && typeof data === 'object' && Object.values(data).every(text => typeof text === 'string' || typeof text === 'number')) {
+        return Object.entries(data).map(([id, text]) => ({ id, text: String(text), row: { id, text } }))
+    }
+    throw new Error('The answer is neither a key-value map nor a list of rows; turn it into one with process-results (e.g. process-results="response.results")')
 }
 
 /**
@@ -886,7 +886,7 @@ const dbCombobox = (config = {}) => {
                 expectJson(data)
                 if (!tracker.isCurrent(number)) return   // a newer search took over
                 const process = config.processResults
-                    ? body => window.Alpine.evaluate(this.$root, config.processResults, { scope: { data: body } })
+                    ? body => window.Alpine.evaluate(this.$root, config.processResults, { scope: { response: body, data: body } })
                     : null
                 const rows = readResults(data, { processResults: process, optionLabel: config.optionLabel })
                 if (append) {
