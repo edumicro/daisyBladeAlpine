@@ -93,7 +93,8 @@ Es el mismo widget que `searchable` (un input, un hidden con el id y una lista) 
 | `value` y `text` | | **Lo ya elegido**, el id y lo que se ve. Cuando el formulario vuelve con un error de validación, pásalos (`old()`) o la persona pierde lo que había elegido. |
 | `allow-free-text` | `false` | Vale dejar lo tecleado sin elegir nada de la lista («o escribe uno nuevo»): al cerrar, el texto se queda en el campo en vez de volver a lo último elegido. El id sigue vacío y el texto viaja en `{name}_text`: no hace falta nada más para distinguir un texto libre de una elección. |
 | `text-name` | `{name}_text` | Nombre del campo que envía el texto tecleado. |
-| `on-select`, `process-results`, `option-label`, `on-error` | | Los puntos de engarce, más abajo. |
+| `page-param` | `page` | Nombre del parámetro de la página siguiente (`?page=2`). Ver [Paginación](#paginación-con-botón). |
+| `process-results`, `option-label` | | Transforman la respuesta, más abajo. |
 | `name`, `label`, `hint`, `placeholder`, `required`, `disabled`, `size`, `class`, `container-class` | | Como los demás controles. `hint` es un texto de ayuda bajo el campo. |
 
 ### La petición
@@ -102,15 +103,21 @@ Es el mismo widget que `searchable` (un input, un hidden con el id y una lista) 
 
 ### La respuesta
 
-Con `search-url` valen **solo dos formas**: la de select2 (el estándar de hecho) o un array pelado de filas.
+El vocabulario de un `<select>`, nada más. Valen cuatro formas:
+
+```json
+{"12": "Paracetamol", "7": "Ibuprofeno"}
+```
+El mapa `valor → etiqueta`: lo que da `pluck('name', 'id')` en Laravel, sin escribir ninguna función. (Un objeto de JavaScript ordena las claves numéricas de menor a mayor; si el orden importa, devuelve un array.)
 
 ```json
 {"results": [{"id": 1, "text": "Ibuprofeno 600 mg", "lab": "Cinfa"}]}
 ```
+El envoltorio de select2 (el estándar de hecho), y también un array pelado de filas `{id, text}` o de `{value, label}`. Las filas pueden traer más campos (`lab`, una foto): se conserva la fila entera y llega al evento `select-change`. Una lista vacía es «No hay nada con eso».
 
-Una fila es `{id, text}` o `{value, label}`, y puede traer más campos (`lab`, una foto): se conserva la fila entera y llega a `on-select` y al evento. Una lista vacía (`{"results": []}`) es «No hay nada con eso».
+Lo que de verdad hay que aplanar (estructuras anidadas, la lista tres niveles abajo, campos con otro nombre) va por `process-results`, no por esto.
 
-**Cualquier otra cosa no es un resultado**: `{"ok": true, "mensaje": "..."}`, un mapa `{"valor": "etiqueta"}`, `{"data": [...]}`, un cuerpo vacío. No se pinta nada: es una respuesta que no se entiende y sale el mensaje de error con «Reintentar» (el detalle va a la consola), igual que un 500. Para una forma distinta usa `process-results`. (El mapa `{valor: etiqueta}` es cosa de `options-url`, no de `search-url`.)
+**Un cuerpo de estado con un 200.** Si el servidor contesta `{"ok": true, "mensaje": "caducada"}` con un 200, se lee como mapa y sale una fila inservible (`mensaje`) en el desplegable: no revienta ni se guarda nada malo, porque el id va en el hidden y tu servidor lo valida contra su tabla. Con un 4xx o un 5xx no se leen filas: es un fallo de búsqueda. Contesta los errores con su código de estado. Un cuerpo que no es ni objeto ni array (vacío, un número) es una respuesta que no se entiende: mensaje de error con «Reintentar».
 
 Un endpoint en Laravel:
 
@@ -127,9 +134,37 @@ Route::get('/medicines/search', function (Request $request) {
 });
 ```
 
-### Puntos de engarce
+### Paginación con botón
 
-Las cuatro son expresiones JavaScript (como un `x-on:click` de Alpine) y se evalúan en el ámbito del componente.
+Cuando puede haber más filas, al final de la lista va un botón **Ver más** que pide la página siguiente y **añade** sus filas a las que ya hay. No hay scroll infinito; el botón es una parada más del teclado (↓ pasa de la última fila a él, Enter pide la página y el resaltado sigue desde la primera fila nueva) y también se pulsa con el ratón. Mientras carga, el botón se deshabilita y dice «Buscando…».
+
+- La página siguiente se pide con `?page=2`, `?page=3`… (`page-param` cambia el nombre); la primera no lleva `page`. `q`, `limit` y los demás parámetros van igual en todas.
+- **El «puede haber más» se deduce contando**, no se le exige al servidor: si ha venido una página tan larga como `limit`, puede haber más; si vino más corta, o vacía, se acabó. Un endpoint que no sabe nada de nuestra paginación funciona igual (ignora `page`, y entonces repite filas que el componente descarta por su id).
+- Si el servidor **sí** manda `"pagination": {"more": true}` (o `false`), se le cree a él antes que a la cuenta.
+- El precio de deducirlo contando: cuando el total es un múltiplo exacto de `limit`, la última página llega llena y «Ver más» pide una página vacía. Es una petición barata y es a propósito.
+- Si la página siguiente falla, el error no borra las filas que ya estaban: sale el mensaje con «Reintentar», que pide esa misma página. Teclear otra cosa mientras llega descarta esa página.
+
+### Eventos
+
+Un aviso se anuncia con un evento; solo `process-results` es una expresión, porque tiene que devolver un valor. Los eventos suben por el documento (`@select-change.window`, `x-on:select-error`…).
+
+**`select-change`**, al elegir una opción, con `detail = { name, value, row }` (`row` es la fila entera, con sus campos extra). Es el mismo nombre que usa `searchable`.
+
+```blade
+<x-dbl::form.select name="medicine_id" search-url="/medicines/search"
+    x-on:select-change="document.getElementById('laboratory').value = $event.detail.row.laboratory" />
+```
+
+**`select-error`**, cuando la búsqueda falla (también la página siguiente), con `detail = { name, error: { status, data, message } }`: el `status` y el cuerpo de la respuesta, como `error.response.status` y `error.response.data` de axios. Es **cancelable**. Si nadie lo cancela, sale el mensaje traducido con «Reintentar» (el detalle va a la consola); si un oyente llama a `event.preventDefault()`, el componente se calla y deja que pintes tú lo que quieras.
+
+```blade
+<x-dbl::form.select name="medicine_id" search-url="/medicines/search"
+    x-on:select-error="if ($event.detail.error.status === 401) { $event.preventDefault(); location.href = '/login' }" />
+```
+
+Un oyente que lance no rompe el componente.
+
+### Transformar la respuesta
 
 **`option-label`**: el nombre del campo que hace de etiqueta cuando no es `text`. El caso trivial, sin escribir una función.
 
@@ -137,32 +172,16 @@ Las cuatro son expresiones JavaScript (como un `x-on:click` de Alpine) y se eval
 <x-dbl::form.select name="client_id" search-url="https://crm.example/api/clients" option-label="nombre" />
 ```
 
-**`process-results`**: se evalúa con lo que ha devuelto el servidor, **antes de pintarlo**, y lo que devuelva es lo que se pinta. Recibe la respuesta tal cual vino en `data` (no el array ya normalizado, porque si la forma es rara estaría vacío) y devuelve filas (`{id, text, ...}`) en un array, o en `{results: [...]}`; si devuelve otra cosa, es una respuesta que no se entiende. Sirve para componer la etiqueta con varios campos, quedarse con unas filas, ordenarlas o leer un cuerpo que no se parece a nada. Si hay `process-results`, manda sobre `option-label`.
+**`process-results`**: una expresión JavaScript que se evalúa con lo que ha devuelto el servidor, **antes de pintarlo**, y lo que devuelva es lo que se pinta. Recibe la respuesta tal cual vino en `data` y devuelve filas (`{id, text, ...}`) en cualquiera de las formas de arriba. Si lanza, es un fallo de búsqueda (`select-error`, mensaje, «Reintentar»). Si hay `process-results`, manda sobre `option-label`. El `pagination` se lee del cuerpo original.
 
 ```blade
 <x-dbl::form.select name="person_id" search-url="https://rrhh.example/find"
     process-results="data.payload.hits.map(h => ({ id: h.code, text: h.name + ' ' + h.surname, hit: h }))" />
 ```
 
-**`on-select`**: se evalúa cuando se elige una opción, con `row` (la fila entera), `value` y `name`.
-
-```blade
-<x-dbl::form.select name="medicine_id" search-url="/medicines/search"
-    on-select="document.getElementById('laboratory').value = row.laboratory" />
-```
-
-Además, al elegir se lanza el evento `select-change` (el mismo nombre que usa `searchable`) con `{ name, value, row }`; sube por el documento: `@select-change.window="..."`. Un `change` sobre el hidden avisa a un select que dependa de este.
-
-**`on-error`**: se evalúa cuando la búsqueda falla, con `status` y `data` (el cuerpo de la respuesta, como `error.response.status` y `error.response.data` de axios) y `error`. **Es además del mensaje del componente, no en su lugar**: sigue saliendo el texto «No se ha podido buscar» con el botón «Reintentar» (el detalle va a la consola). Si `on-error` devuelve `false`, el componente se calla y deja que pintes tú lo que quieras.
-
-```blade
-<x-dbl::form.select name="medicine_id" search-url="/medicines/search"
-    on-error="status === 401 ? (location.href = '/login', false) : true" />
-```
-
 ### Qué pasa cuando algo sale mal
 
-- Un 500, un 404, un JSON ilegible, un fallo de red, una respuesta que es una página HTML (sesión caducada) o un `process-results` que lanza **no salen como excepción**: son un fallo de búsqueda (mensaje, `on-error`, «Reintentar»), y «buscando…» se apaga siempre.
+- Un 500, un 404, un JSON ilegible, un fallo de red, una respuesta que es una página HTML (sesión caducada) o un `process-results` que lanza **no salen como excepción**: son un fallo de búsqueda (mensaje, `select-error`, «Reintentar»), y «buscando…» se apaga siempre.
 - **Lo ya elegido no se pierde**: `value` y el texto siguen ahí y el formulario sigue enviándolos. El campo sigue usable: se puede teclear otra vez o pulsar «Reintentar» sin recargar.
 - Una petición cancelada (cada tecla cancela la anterior) **no es un error**, y una respuesta vieja que llega tarde se descarta en silencio.
 - Los estados se dicen con palabras: «Escribe 2 o más caracteres», «Buscando…», «No hay nada con eso» (traducidos: es, ca, en).
@@ -191,4 +210,4 @@ Sin JavaScript sigue siendo un campo: lo tecleado se envía en `{name}_text` y `
 
 ### JavaScript
 
-La factoría `dbCombobox` está en `resources/js/daisyblade.js` y se registra sola. Su parte pura (`searchParams`, `toRows`, `readResults`, `filterRows`, `latestRequest`, `errorInfo`) se prueba con `node --test tests/js/combobox.test.mjs`.
+La factoría `dbCombobox` está en `resources/js/daisyblade.js` y se registra sola. Su parte pura (`searchParams`, `toRows`, `readResults`, `hasMore`, `filterRows`, `latestRequest`, `errorInfo`) se prueba con `node --test tests/js/combobox.test.mjs`.

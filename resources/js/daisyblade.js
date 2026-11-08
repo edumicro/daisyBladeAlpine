@@ -523,23 +523,29 @@ const dbListEditor = (config = {}) => ({
 // Pure helpers (tested with `node --test tests/js/combobox.test.mjs`).
 
 /** Query-string params of one search: the fixed ones, the control we depend on, the text typed and the limit. */
-const searchParams = ({ queryParam = 'q', query = '', limit = null, params = {}, dependsOn = '', dependencyValue = null } = {}) => ({
+const searchParams = ({ queryParam = 'q', query = '', limit = null, params = {}, dependsOn = '', dependencyValue = null, page = 1, pageParam = 'page' } = {}) => ({
     ...params,
     ...dependencyParams(dependsOn, dependencyValue),
     [queryParam || 'q']: query,
     ...(limit ? { limit } : {}),
+    ...(page > 1 ? { [pageParam || 'page']: page } : {}),   // the first page carries no `page`
 })
 
 /**
  * What the server answered -> list of `{ id, text, row }` (`row` is the whole row, with its extra fields).
- * Only two shapes are results: `{results: [...]}` (select2) and a bare array. Rows are `{id, text}` or `{value, label}`.
- * Anything else (`{ok: true, message: "..."}`, a map, an empty body) is NOT a result: it throws, and the component treats
- * it as an answer it does not understand. `process-results` is the way to read any other shape.
- * (Guessing is what made `{ok: true}` look like a list with one row.)
+ * The vocabulary of a <select>: a map `{"12": "Paracetamol"}` (what `pluck('name', 'id')` gives), rows `{id, text}`,
+ * rows `{value, label}`, and the select2 wrapper `{"results": [...]}`. A map keeps only the entries whose value is
+ * a text or a number. A body that is not an object or an array (empty, a number) is not an answer: it throws.
+ * Anything that really needs flattening goes through `process-results`.
  */
 const toRows = (data, { optionLabel = '' } = {}) => {
-    const list = Array.isArray(data) ? data : data?.results
-    if (!Array.isArray(list)) throw new Error('The answer is not a list of results: expected {"results": [...]} or an array')
+    if (data === null || typeof data !== 'object') throw new Error('The answer is not a list of results')
+    const list = Array.isArray(data) ? data : (Array.isArray(data.results) ? data.results : null)
+    if (!list) {
+        return Object.entries(data)
+            .filter(([, text]) => typeof text === 'string' || typeof text === 'number')
+            .map(([id, text]) => ({ id, text: String(text), row: { id, text } }))
+    }
     return list.flatMap(row => {
         if (row === null || typeof row !== 'object') return []
         const id = row.id ?? row.value
@@ -549,8 +555,19 @@ const toRows = (data, { optionLabel = '' } = {}) => {
 }
 
 /**
+ * Can there be more rows after this page? The server's word first (`pagination: { more: true|false }`); if it says
+ * nothing, by counting: a page as long as `limit` may have a next one, a shorter (or empty) one is the last.
+ * The price of counting is one empty request when the total is an exact multiple of `limit`.
+ */
+const hasMore = (body, count, limit) => {
+    const said = body?.pagination?.more
+    if (typeof said === 'boolean') return said
+    return !!limit && count >= limit
+}
+
+/**
  * From the body of the answer to the rows to paint. `processResults(body)` (the `process-results` prop) gets the body
- * exactly as it came and returns the rows (`{id, text, ...}`, or any of the shapes `toRows` reads); when there is one,
+ * exactly as it came and returns the rows (`{id, text, ...}`, or any shape `toRows` reads); when there is one,
  * it decides and `optionLabel` is not used. `optionLabel` (the `option-label` prop) names the field that is the text.
  */
 const readResults = (body, { processResults = null, optionLabel = '' } = {}) =>
@@ -619,6 +636,10 @@ const dbCombobox = (config = {}) => {
         active: -1,                       // index of the highlighted option (-1: none)
         results: [],                      // remote: what the server answered
         searched: false,                  // remote: `results` answers the current query
+        page: 1,                          // remote: the last page that arrived
+        more: false,                      // remote: there may be a next page (shows the "more" button)
+        loadingMore: false,
+        failedMore: false,                // the last failure was the next page (Retry asks for that page again)
         loading: false,
         error: '',
         waiting: false,                   // remote: the control we depend on is empty
@@ -670,8 +691,20 @@ const dbCombobox = (config = {}) => {
             }
             this.field.setAttribute('aria-expanded', String(this.listOpen))
             this.field.setAttribute('aria-busy', String(this.loading))
-            if (this.listOpen && this.active >= 0 && this.rows[this.active]) this.field.setAttribute('aria-activedescendant', this.optionId(this.active))
+            if (this.listOpen && this.active >= 0 && (this.rows[this.active] || (this.more && this.active === this.rows.length))) this.field.setAttribute('aria-activedescendant', this.optionId(this.active))
             else this.field.removeAttribute('aria-activedescendant')
+        },
+
+        // Forget the results (and the pagination): another query, a short one, or another value of the control we depend on.
+        resetResults() {
+            this.results = []
+            this.searched = false
+            this.page = 1
+            this.more = false
+            this.error = ''
+            this.failedMore = false
+            this.loading = false
+            this.loadingMore = false
         },
 
         syncHidden() { this.$refs.hidden.value = this.value },
@@ -698,10 +731,7 @@ const dbCombobox = (config = {}) => {
             this.value = ''
             this.query = ''
             this.field.value = ''
-            this.results = []
-            this.searched = false
-            this.error = ''
-            this.loading = false
+            this.resetResults()
             this.syncHidden()
             this.announce()
             if (this.open && !this.waiting && minChars === 0) this.search()
@@ -727,11 +757,10 @@ const dbCombobox = (config = {}) => {
             if (!remote) return
             clearTimeout(timer)
             this.searched = false
+            if (this.loadingMore) { tracker.cancel(); this.loadingMore = false }   // the next page of the OLD text is of no use now
             if (this.query.trim().length < minChars) {
                 tracker.cancel()
-                this.results = []
-                this.error = ''
-                this.loading = false
+                this.resetResults()
                 return
             }
             timer = setTimeout(() => this.search(), config.debounce ?? 250)
@@ -739,7 +768,8 @@ const dbCombobox = (config = {}) => {
 
         onKeydown(event) {
             if (event.target !== this.field) return
-            const count = this.rows.length
+            // The "more" button is one more stop after the last row.
+            const count = this.rows.length + (this.more ? 1 : 0)
             switch (event.key) {
                 case 'ArrowDown':
                 case 'ArrowUp':
@@ -759,6 +789,9 @@ const dbCombobox = (config = {}) => {
                     if (this.open && this.rows[this.active]) {
                         event.preventDefault()
                         this.choose(this.rows[this.active])
+                    } else if (this.open && this.more && this.active === this.rows.length) {
+                        event.preventDefault()
+                        this.loadMore()
                     }
                     break
                 case 'Escape':
@@ -793,10 +826,6 @@ const dbCombobox = (config = {}) => {
             this.announce()
             const detail = { name: config.name ?? '', value: row.id, row: row.row }
             this.$root.dispatchEvent(new CustomEvent('select-change', { detail, bubbles: true, composed: true }))
-            if (config.onSelect) {
-                try { window.Alpine.evaluate(this.$root, config.onSelect, { scope: { row: row.row, value: row.id, name: detail.name } }) }
-                catch (error) { console.error('dbCombobox: the on-select expression failed', error) }
-            }
         },
 
         // Close the list. What was typed but not chosen goes back to the last choice (or to nothing), unless free text is allowed.
@@ -820,30 +849,38 @@ const dbCombobox = (config = {}) => {
 
         // ── The server ──
 
-        retry() { return this.search() },
+        retry() { return this.failedMore ? this.loadMore() : this.search() },
 
-        // The search failed. `on-error` (an expression with `error`, `status` and `data`) runs first; if it returns
-        // `false` the component stays quiet and the consumer paints what they want. It never throws out of here.
+        // The search failed. Announce it with the cancelable `select-error` event ({ name, error: { status, data, message } }):
+        // if a listener cancels it (preventDefault) the component stays quiet and the consumer paints what they want;
+        // otherwise the translated message with "Retry" shows. Nothing here can throw.
         failed(error) {
-            let answer
-            if (config.onError) {
-                try { answer = window.Alpine.evaluate(this.$root, config.onError, { scope: { ...errorInfo(error), error } }) }
-                catch (failure) { console.error('dbCombobox: the on-error expression failed', failure) }
-            }
-            if (answer !== false) this.error = messageOf(config, 'searchFailed', 'Could not search')
+            let quiet = false
+            try {
+                const detail = { name: config.name ?? '', error: errorInfo(error) }
+                quiet = !this.$root.dispatchEvent(new CustomEvent('select-error', { detail, bubbles: true, composed: true, cancelable: true }))
+            } catch (failure) { console.error('dbCombobox: a select-error listener failed', failure) }
+            if (!quiet) this.error = messageOf(config, 'searchFailed', 'Could not search')
         },
 
-        async search() {
+        // The first page of a search, or the next one (`loadMore`, the "more" button), which is added to the rows already there.
+        search() { return this.fetchPage(1) },
+        loadMore() { return this.more && !this.loading && !this.loadingMore ? this.fetchPage(this.page + 1) : undefined },
+
+        async fetchPage(page) {
             clearTimeout(timer)
             const query = this.query.trim()
             if (!remote || this.waiting || query.length < minChars) return
+            const append = page > 1
             const { number, signal } = tracker.begin()
-            this.loading = true
             this.error = ''
+            this.failedMore = false
+            if (append) this.loadingMore = true
+            else { this.loading = true; this.loadingMore = false; this.more = false }
             try {
                 const params = searchParams({
                     queryParam: config.queryParam, query, limit: config.limit, params: config.params ?? {},
-                    dependsOn: config.dependsOn, dependencyValue: this.dependencyValue(),
+                    dependsOn: config.dependsOn, dependencyValue: this.dependencyValue(), page, pageParam: config.pageParam,
                 })
                 const { data } = await http({ url: config.searchUrl, params, signal })
                 expectJson(data)
@@ -851,20 +888,30 @@ const dbCombobox = (config = {}) => {
                 const process = config.processResults
                     ? body => window.Alpine.evaluate(this.$root, config.processResults, { scope: { data: body } })
                     : null
-                this.results = readResults(data, { processResults: process, optionLabel: config.optionLabel })
+                const rows = readResults(data, { processResults: process, optionLabel: config.optionLabel })
+                if (append) {
+                    const known = new Set(this.results.map(row => row.id))
+                    this.active = this.results.length   // the keyboard goes on from the first new row
+                    this.results = [...this.results, ...rows.filter(row => !known.has(row.id))]
+                } else {
+                    this.results = rows
+                    this.active = -1
+                }
+                this.page = page
+                this.more = hasMore(data, rows.length, config.limit)
                 this.searched = true
-                this.active = -1
             } catch (error) {
                 // A canceled request is not a failure (every keystroke cancels the one in flight), and an old answer
                 // that fails late says nothing about the current search: both are dropped in silence.
                 if (!tracker.isCurrent(number) || isCanceled(error, injectedDeps.axios ?? globalThis.window?.axios)) return
-                // Only the list of results is cleared: `value`, `query` and `committed` (what is already chosen) stay as they are.
-                this.results = []
-                this.searched = false
+                // `value`, `query` and `committed` (what is already chosen) are never touched. A failed first page leaves no
+                // results; a failed next page keeps the rows already there and the "more" button.
+                if (append) this.failedMore = true
+                else { this.results = []; this.searched = false; this.page = 1 }
                 console.error('dbCombobox: could not search', error)
                 this.failed(error)
-                        } finally {
-                if (tracker.isCurrent(number)) this.loading = false
+            } finally {
+                if (tracker.isCurrent(number)) { this.loading = false; this.loadingMore = false }
             }
         },
     }
@@ -911,5 +958,5 @@ export {
     dbSelectRemote, dbResourceDetails, dbTabsLazy, dbSpreadsheetImport,
     dbKvEditor, dbListEditor,
     toTexts, dependencyParams, stillOffered,
-    dbCombobox, searchParams, toRows, localRows, filterRows, latestRequest, readResults, errorInfo,
+    dbCombobox, searchParams, toRows, localRows, filterRows, latestRequest, readResults, errorInfo, hasMore,
 }

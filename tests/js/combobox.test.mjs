@@ -1,6 +1,6 @@
 import test, { beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { searchParams, toRows, readResults, filterRows, localRows, latestRequest, errorInfo, dbCombobox } from '../../resources/js/daisyblade.js'
+import { searchParams, toRows, readResults, filterRows, localRows, latestRequest, errorInfo, hasMore, dbCombobox } from '../../resources/js/daisyblade.js'
 
 // ── Lo puro ─────────────────────────────────────────────────────────────────
 
@@ -29,15 +29,23 @@ test('toRows: un array pelado de {id, text} y de {value, label}', () => {
     assert.deepEqual(toRows([{ value: 'a', label: 'Ana' }]).map(r => [r.id, r.text]), [['a', 'Ana']])
 })
 
+test('toRows: el mapa {valor: etiqueta} (lo que da pluck) se lee como las opciones de un select', () => {
+    assert.deepEqual(toRows({ 12: 'Paracetamol', 7: 'Ibuprofeno' }).map(r => [r.id, r.text]), [['7', 'Ibuprofeno'], ['12', 'Paracetamol']])
+    assert.deepEqual(toRows({ es: 'España', pt: 'Portugal' }).map(r => [r.id, r.text]), [['es', 'España'], ['pt', 'Portugal']])
+})
+
 test('toRows: una lista vacía es «sin resultados», no un error', () => {
     assert.deepEqual(toRows([]), [])
     assert.deepEqual(toRows({ results: [] }), [])
 })
 
-test('toRows: lo que no es {results: [...]} ni un array NO es un resultado y lanza (nada de adivinar mapas)', () => {
-    for (const body of [{ ok: true, mensaje: 'hecho' }, { es: 'España', pt: 'Portugal' }, { data: [{ id: 1, text: 'x' }] }, { results: 'no' }, null, undefined, '', 5, true]) {
-        assert.throws(() => toRows(body), /not a list of results/, JSON.stringify(body))
-    }
+test('toRows: un cuerpo que no es ni objeto ni array no es una respuesta y lanza', () => {
+    for (const body of [null, undefined, '', 5, true]) assert.throws(() => toRows(body), /not a list of results/, String(body))
+})
+
+test('toRows: un cuerpo de estado con un 200 no revienta: solo salen las entradas de texto o número', () => {
+    // Es el precio de aceptar el mapa: dos filas inservibles, no una excepción. El id va al servidor, que lo valida.
+    assert.deepEqual(toRows({ ok: true, mensaje: 'caducada', datos: { a: 1 } }).map(r => r.id), ['mensaje'])
 })
 
 test('toRows: las filas sin id o que no son objetos se descartan', () => {
@@ -52,8 +60,8 @@ test('toRows: las filas conservan sus campos extra y option-label nombra el camp
 
 test('readResults: process-results convierte una respuesta de forma rara en filas pintables', () => {
     const body = { payload: { hits: [{ code: 'A1', name: 'Ana', surname: 'López' }, { code: 'B2', name: 'Pau', surname: 'Ferrer' }] } }
-    // Con esa forma, sin función, no es un resultado.
-    assert.throws(() => readResults(body))
+    // Con esa forma, sin función, no sale ninguna fila útil.
+    assert.deepEqual(readResults(body), [])
     const rows = readResults(body, {
         processResults: data => data.payload.hits.map(h => ({ id: h.code, text: `${h.name} ${h.surname}`, hit: h })),
     })
@@ -114,19 +122,27 @@ function mount(config) {
     const field = { value: '', disabled: false, form: null, setAttribute() {}, removeAttribute() {} }
     const hidden = { value: '', disabled: false, setAttribute() {}, dispatchEvent() {} }
     return Object.assign(dbCombobox({ id: 'c', searchUrl: '/s', minChars: 2, ...config }), {
-        $refs: { field, hidden }, $root: { dispatchEvent() {} }, $nextTick: async () => {},
+        $refs: { field, hidden }, $root: { dispatchEvent: () => true }, $nextTick: async () => {},
     })
 }
 
-test('un cuerpo que no es ninguna de las dos formas es un fallo, no filas basura: mensaje y lo elegido intacto', async () => {
-    globalThis.fetch = async () => answer(200, { ok: true, mensaje: 'hecho' })
+test('un cuerpo {ok: true} con un 200 no revienta ni deja «buscando» encendido, y lo elegido sigue', async () => {
+    globalThis.fetch = async () => answer(200, { ok: true })
     const combo = mount({ value: '42', text: 'Paracetamol' })
     combo.query = 'ibu'
     await combo.search()
-    assert.deepEqual(combo.rows, [])
-    assert.notEqual(combo.error, '')
     assert.equal(combo.loading, false)
     assert.equal(combo.value, '42')
+    assert.equal(combo.committed.text, 'Paracetamol')
+})
+
+test('un cuerpo vacío o que no es JSON de objeto SÍ es un fallo, con mensaje', async () => {
+    globalThis.fetch = async () => answer(200, 5)
+    const combo = mount({})
+    combo.query = 'ibu'
+    await combo.search()
+    assert.notEqual(combo.error, '')
+    assert.equal(combo.loading, false)
 })
 
 test('un process-results devuelve filas de un cuerpo raro y no hay error', async () => {
@@ -201,20 +217,36 @@ test('un process-results que lanza es un error más: mensaje, sin colgar «busca
     assert.equal(combo.loading, false)
 })
 
-test('on-error recibe status y cuerpo, y si devuelve false el componente se calla', async () => {
+test('un fallo lanza select-error con {name, error: {status, data}}; si nadie lo cancela sale el mensaje', async () => {
     globalThis.fetch = async () => answer(503, { message: 'mantenimiento' })
-    globalThis.seen = null
-    const combo = mount({ onError: '(globalThis.seen = [status, data.message], false)' })
+    const combo = mount({ name: 'medicine_id' })
+    const events = []
+    combo.$root.dispatchEvent = event => { events.push(event); return !event.defaultPrevented }
     combo.query = 'ibu'
     await combo.search()
-    assert.deepEqual(globalThis.seen, [503, 'mantenimiento'])
-    assert.equal(combo.error, '')
-    delete globalThis.seen
+    assert.equal(events.length, 1)
+    assert.equal(events[0].type, 'select-error')
+    assert.equal(events[0].cancelable, true)
+    assert.equal(events[0].detail.name, 'medicine_id')
+    assert.equal(events[0].detail.error.status, 503)
+    assert.deepEqual(events[0].detail.error.data, { message: 'mantenimiento' })
+    assert.notEqual(combo.error, '')
 })
 
-test('on-error que no devuelve false: sale además el mensaje propio; y si on-error lanza, no revienta', async () => {
+test('preventDefault() sobre select-error: el componente se calla y deja pintar al consumidor', async () => {
     globalThis.fetch = async () => answer(500, {})
-    const combo = mount({ onError: 'lanza.ahora()' })
+    const combo = mount({})
+    combo.$root.dispatchEvent = event => { event.preventDefault(); return !event.defaultPrevented }
+    combo.query = 'ibu'
+    await combo.search()
+    assert.equal(combo.error, '')
+    assert.equal(combo.loading, false)
+})
+
+test('un oyente de select-error que lanza no revienta el componente', async () => {
+    globalThis.fetch = async () => answer(500, {})
+    const combo = mount({})
+    combo.$root.dispatchEvent = () => { throw new Error('mi oyente') }
     combo.query = 'ibu'
     await combo.search()
     assert.notEqual(combo.error, '')
@@ -256,4 +288,99 @@ test('la petición lleva el texto, el límite, los params fijos y el query-param
     combo.query = ' ibu '
     await combo.search()
     assert.equal(asked, '/s?country_code=ES&term=ibu&limit=20')
+})
+
+// ── Paginación con botón ────────────────────────────────────────────────────
+
+const rowsOf = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => ({ id: from + i, text: `Fila ${from + i}` }))
+
+test('hasMore: la palabra del servidor manda; si no, se cuenta contra el límite', () => {
+    assert.equal(hasMore({ results: [], pagination: { more: true } }, 0, 20), true)
+    assert.equal(hasMore({ results: [], pagination: { more: false } }, 20, 20), false)
+    assert.equal(hasMore([], 20, 20), true)    // tantas como el límite: puede haber más
+    assert.equal(hasMore([], 19, 20), false)   // menos: se acabó
+    assert.equal(hasMore([], 0, 20), false)
+    assert.equal(hasMore([], 5, 0), false)     // sin límite no se puede contar
+})
+
+test('searchParams: la primera página no lleva page, las siguientes sí, con el nombre de page-param', () => {
+    assert.deepEqual(searchParams({ query: 'a', limit: 20, page: 1 }), { q: 'a', limit: 20 })
+    assert.deepEqual(searchParams({ query: 'a', limit: 20, page: 3 }), { q: 'a', limit: 20, page: 3 })
+    assert.deepEqual(searchParams({ query: 'a', limit: 20, page: 2, pageParam: 'p' }), { q: 'a', limit: 20, p: 2 })
+})
+
+test('un endpoint que no sabe de páginas funciona: una página llena enseña «más», y «más» AÑADE las filas', async () => {
+    const asked = []
+    globalThis.fetch = async url => {
+        asked.push(url)
+        return answer(200, url.includes('page=2') ? { results: rowsOf(3, 3) } : { results: rowsOf(1, 2) })
+    }
+    const combo = mount({ limit: 2 })
+    combo.query = 'fi'
+    await combo.search()
+    assert.equal(combo.more, true)
+    await combo.loadMore()
+    assert.deepEqual(combo.rows.map(r => r.id), ['1', '2', '3'])   // se añaden, no se sustituyen
+    assert.equal(combo.more, false)                                // llegó una página corta
+    assert.equal(combo.loadingMore, false)
+    assert.deepEqual(asked, ['/s?q=fi&limit=2', '/s?q=fi&limit=2&page=2'])
+})
+
+test('si el servidor manda pagination.more se le cree antes que a la cuenta', async () => {
+    globalThis.fetch = async () => answer(200, { results: rowsOf(1, 2), pagination: { more: false } })
+    const combo = mount({ limit: 2 })
+    combo.query = 'fi'
+    await combo.search()
+    assert.equal(combo.more, false)
+})
+
+test('si la página siguiente falla, las filas que había se quedan y «más» sigue ahí; Reintentar pide esa página', async () => {
+    globalThis.fetch = async () => answer(200, { results: rowsOf(1, 2) })
+    const combo = mount({ limit: 2, value: '9', text: 'Elegido' })
+    combo.query = 'fi'
+    await combo.search()
+    globalThis.fetch = async () => answer(500, {})
+    await combo.loadMore()
+    assert.deepEqual(combo.rows.map(r => r.id), ['1', '2'])
+    assert.notEqual(combo.error, '')
+    assert.equal(combo.more, true)
+    assert.equal(combo.loadingMore, false)
+    assert.equal(combo.value, '9')
+    globalThis.fetch = async () => answer(200, { results: rowsOf(3, 3) })
+    await combo.retry()
+    assert.deepEqual(combo.rows.map(r => r.id), ['1', '2', '3'])
+    assert.equal(combo.error, '')
+})
+
+test('teclear mientras llega la página siguiente la descarta: no se añade a la búsqueda nueva', async () => {
+    let release
+    globalThis.fetch = async url => url.includes('page=2')
+        ? new Promise(resolve => { release = () => resolve(answer(200, { results: rowsOf(3, 4) })) })
+        : answer(200, { results: rowsOf(1, 2) })
+    const combo = mount({ limit: 2 })
+    combo.query = 'fi'
+    await combo.search()
+    const pending = combo.loadMore()
+    assert.equal(combo.loadingMore, true)
+    combo.field.value = 'fil'
+    combo.onInput({ target: combo.field })
+    assert.equal(combo.loadingMore, false)
+    release()
+    await pending
+    assert.deepEqual(combo.rows.map(r => r.id), ['1', '2'])
+})
+
+test('con el teclado se llega al botón «más»: ↓ pasa de la última fila a él, y Enter pide la página', async () => {
+    globalThis.fetch = async url => answer(200, { results: url.includes('page=2') ? rowsOf(3, 3) : rowsOf(1, 2) })
+    const combo = mount({ limit: 2 })
+    combo.query = 'fi'
+    combo.open = true
+    await combo.search()
+    const key = name => combo.onKeydown({ target: combo.field, key: name, preventDefault() {}, stopPropagation() {} })
+    key('ArrowDown'); key('ArrowDown'); key('ArrowDown')
+    assert.equal(combo.active, 2)   // rows.length: el botón
+    key('Enter')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    assert.deepEqual(combo.rows.map(r => r.id), ['1', '2', '3'])
+    assert.equal(combo.active, 2)   // sigue desde la primera fila nueva
 })

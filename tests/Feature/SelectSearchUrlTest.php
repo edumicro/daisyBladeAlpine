@@ -57,19 +57,18 @@ it('con allow-free-text un texto libre vuelve en `name_text` y el id queda vací
 });
 
 it('lleva la configuración al JS: url, parámetro, límite, mínimo, debounce y los engarces', function () {
-    $html = Blade::render('<x-dbl::form.select name="m" search-url="/s" query-param="term" :params="[\'country_code\' => \'ES\']" :limit="10" :min-chars="3" :debounce="400" depends-on="lab" option-label="nombre" on-select="alert(row.id)" process-results="data.hits" on-error="status === 401" />');
+    $html = Blade::render('<x-dbl::form.select name="m" search-url="/s" query-param="term" :params="[\'country_code\' => \'ES\']" :limit="10" :min-chars="3" :debounce="400" page-param="p" depends-on="lab" option-label="nombre" process-results="data.hits" />');
 
     expect(comboConfig($html))->toMatchArray([
         'searchUrl' => '/s', 'queryParam' => 'term', 'params' => ['country_code' => 'ES'], 'limit' => 10, 'minChars' => 3,
-        'debounce' => 400, 'dependsOn' => 'lab', 'optionLabel' => 'nombre', 'onSelect' => 'alert(row.id)',
-        'processResults' => 'data.hits', 'onError' => 'status === 401',
-    ]);
+        'debounce' => 400, 'dependsOn' => 'lab', 'optionLabel' => 'nombre', 'pageParam' => 'p', 'processResults' => 'data.hits',
+    ])->not->toHaveKeys(['onSelect', 'onError']);
     expect($html)->toContain('onDependencyChange($event)');
 });
 
 it('por defecto pregunta con q, límite 20, mínimo de 2 caracteres y 250 ms', function () {
     expect(comboConfig(Blade::render('<x-dbl::form.select name="m" search-url="/s" />')))
-        ->toMatchArray(['queryParam' => 'q', 'limit' => 20, 'minChars' => 2, 'debounce' => 250]);
+        ->toMatchArray(['queryParam' => 'q', 'limit' => 20, 'minChars' => 2, 'debounce' => 250, 'pageParam' => 'page']);
 });
 
 it('search-url junto a options-url es un error del programador, con mensaje claro', function () {
@@ -94,7 +93,7 @@ it('los textos de los estados salen traducidos', function () {
 
     expect(comboConfig($html)['messages'])->toBe([
         'minChars' => 'Escribe 3 o más caracteres', 'searching' => 'Buscando…', 'noResults' => 'No hay nada con eso',
-        'searchFailed' => 'No se ha podido buscar',
+        'searchFailed' => 'No se ha podido buscar', 'more' => 'Ver más',
     ])->and($html)->toContain('Reintentar');
 });
 
@@ -107,4 +106,12 @@ it('el modo searchable de siempre sigue filtrando en el navegador y ahora es un 
         ->and($input[0])->toContain('value="Pau"')->not->toContain('name=')
         ->and($hidden[0])->toContain('name="person"')->toContain('value="b2"');
     expect(comboConfig($html))->toMatchArray(['searchUrl' => '', 'options' => ['a1' => 'Ana', 'b2' => 'Pau']]);
+});
+
+it('pinta el botón «más» dentro de la lista, como una opción más para el teclado', function () {
+    $html = Blade::render('<x-dbl::form.select name="m" search-url="/s" />');
+
+    expect($html)->toContain('x-on:click="loadMore()"')->toContain('x-show="more"');
+    preg_match('/<button type="button" role="option"[^>]*x-show="more"/s', $html, $found);
+    expect($found)->not->toBeEmpty();
 });

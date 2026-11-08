@@ -7,15 +7,14 @@
     'queryParam'     => 'q',
     'params'         => [],
     'limit'          => 20,
+    'pageParam'      => 'page',
     'minChars'       => 2,
     'debounce'       => 250,
     'text'           => '',
     'textName'       => '',
     'allowFreeText'  => false,
-    'onSelect'       => '',
     'processResults' => '',
     'optionLabel'    => '',
-    'onError'        => '',
     'hint'           => '',
     'dependsOn'      => '',
     'placeholder'    => '',
@@ -114,6 +113,7 @@ foreach ($options as $optVal => $optLabel) {
                 'queryParam' => $queryParam,
                 'params' => $params,
                 'limit' => (int) $limit,
+                'pageParam' => $pageParam,
                 'minChars' => (int) $minChars,
                 'debounce' => (int) $debounce,
                 'value' => $searchUrl ? ($value ?? '') : ($selected[0] ?? ''),
@@ -121,15 +121,14 @@ foreach ($options as $optVal => $optLabel) {
                 'allowFreeText' => (bool) $allowFreeText,
                 'dependsOn' => $dependsOn,
                 'disabled' => (bool) $disabled,
-                'onSelect' => $onSelect,
                 'processResults' => $processResults,
                 'optionLabel' => $optionLabel,
-                'onError' => $onError,
                 'messages' => [
                     'minChars' => __('Type :min or more characters', ['min' => (int) $minChars]),
                     'searching' => __('Searching…'),
                     'noResults' => $searchUrl ? __('Nothing matches that') : __('No results'),
                     'searchFailed' => __('Could not search'),
+                    'more' => __('Show more'),
                 ],
             ]))"
             class="relative"
@@ -183,6 +182,20 @@ foreach ($options as $optVal => $optLabel) {
                                  x-text="item.row ? item.row.text : ''"></div>
                         </div>
                     </template>
+                    {{-- Next page: one more stop of the list for the keyboard (↓ reaches it, Enter asks), and a button for the mouse.
+                         It adds the rows to those already there; there is no infinite scroll. --}}
+                    <button type="button" role="option" x-show="more" style="display: none"
+                            :id="optionId(rows.length)"
+                            :aria-selected="String(active === rows.length)"
+                            :aria-busy="String(loadingMore)"
+                            :disabled="loadingMore"
+                            x-on:click="loadMore()"
+                            x-on:mousemove="hover(rows.length)"
+                            :class="{ 'bg-primary/10': active === rows.length }"
+                            class="flex w-full items-center justify-center gap-2 px-3 py-2 text-sm text-primary">
+                        <span class="loading loading-spinner loading-xs" style="display: none" x-show="loadingMore"></span>
+                        <span x-text="loadingMore ? @js(__('Searching…')) : @js(__('Show more'))"></span>
+                    </button>
                 </div>
                 {{-- The state in words, never an empty box. If the search failed: retry (the detail is in the console). --}}
                 <div role="status" aria-live="polite" x-show="statusText" style="display: none"
