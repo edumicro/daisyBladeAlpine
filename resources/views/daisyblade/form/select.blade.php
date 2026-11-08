@@ -10,6 +10,7 @@
     'minChars'       => 2,
     'debounce'       => 250,
     'text'           => '',
+    'textName'       => '',
     'allowFreeText'  => false,
     'onSelect'       => '',
     'processResults' => '',
@@ -39,6 +40,7 @@ if ($searchUrl && $multiple) {
 $sizeClass = match($size) { 'xs'=>'select-xs','sm'=>'select-sm','lg'=>'select-lg', default=>'' };
 $inputSizeClass = match($size) { 'xs'=>'input-xs','sm'=>'input-sm','lg'=>'input-lg', default=>'' };
 $hasError = $name && isset($errors) && $errors->has($name);
+$textField = $textName ?: ($name ? $name.'_text' : '');
 $comboId = ($name ?: 'combobox').'-'.\Illuminate\Support\Str::random(5);
 // Valor(es) seleccionados como texto, para comparar con las claves de `options` sea cual sea su tipo.
 $selected = $value === null ? [] : array_map('strval', (array) $value);
@@ -102,8 +104,8 @@ foreach ($options as $optVal => $optLabel) {
     @elseif($searchable || $searchUrl)
         {{-- Combobox (dbCombobox): the same input + hidden + list for the browser-side filter (`searchable`) and for the
              server search (`search-url`). Its listeners go on this container and not on the input, so the attributes
-             the user passes to the input never hide ours. With `search-url` and without JS the input keeps the `name`
-             (what is typed is sent); with JS the hidden takes it and carries the id. --}}
+             the user passes to the input never hide ours. With `search-url` the server always gets two fields, with or
+             without JS: the hidden `{name}` (the id, empty if nothing was chosen) and the input `{name}_text` (what was typed). --}}
         <div x-data="dbCombobox(@js([
                 'id' => $comboId,
                 'name' => $name,
@@ -148,8 +150,8 @@ foreach ($options as $optVal => $optLabel) {
                     aria-controls="{{ $comboId }}-list"
                     autocomplete="off"
                     @if($name) id="{{ $name }}" @endif
-                    @if($searchUrl && $name) name="{{ $name }}" @endif
-                    value="{{ $searchUrl ? ($text !== '' ? $text : ($allowFreeText ? ($value ?? '') : '')) : $selectedLabel }}"
+                    @if($searchUrl && $textField) name="{{ $textField }}" @endif
+                    value="{{ $searchUrl ? $text : $selectedLabel }}"
                     placeholder="{{ $placeholder ?: __('Search...') }}"
                     @if($disabled) disabled @endif
                     @if($required) required @endif
@@ -192,8 +194,8 @@ foreach ($options as $optVal => $optLabel) {
             </div>
 
             <input type="hidden" x-ref="hidden"
-                   @if(! $searchUrl && $name) name="{{ $name }}" @endif
-                   value="{{ $searchUrl ? ($value ?? ($allowFreeText ? $text : '')) : ($selected[0] ?? '') }}"
+                   @if($name) name="{{ $name }}" @endif
+                   value="{{ $searchUrl ? ($value ?? '') : ($selected[0] ?? '') }}"
                    @if($disabled) disabled @endif
                    {{ $attributes->only(['x-model']) }} />
         </div>

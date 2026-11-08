@@ -91,7 +91,8 @@ Es el mismo widget que `searchable` (un input, un hidden con el id y una lista) 
 | `min-chars` | `2` | Por debajo no pregunta nada; dice «Escribe 2 o más caracteres». |
 | `debounce` | `250` | Milisegundos desde la última tecla hasta preguntar. |
 | `value` y `text` | | **Lo ya elegido**, el id y lo que se ve. Cuando el formulario vuelve con un error de validación, pásalos (`old()`) o la persona pierde lo que había elegido. |
-| `allow-free-text` | `false` | Vale enviar lo tecleado sin elegir nada de la lista («o escribe uno nuevo»): el campo envía el texto en vez del id. |
+| `allow-free-text` | `false` | Vale dejar lo tecleado sin elegir nada de la lista («o escribe uno nuevo»): al cerrar, el texto se queda en el campo en vez de volver a lo último elegido. El id sigue vacío y el texto viaja en `{name}_text`: no hace falta nada más para distinguir un texto libre de una elección. |
+| `text-name` | `{name}_text` | Nombre del campo que envía el texto tecleado. |
 | `on-select`, `process-results`, `option-label`, `on-error` | | Los puntos de engarce, más abajo. |
 | `name`, `label`, `hint`, `placeholder`, `required`, `disabled`, `size`, `class`, `container-class` | | Como los demás controles. `hint` es un texto de ayuda bajo el campo. |
 
@@ -101,13 +102,15 @@ Es el mismo widget que `searchable` (un input, un hidden con el id y una lista) 
 
 ### La respuesta
 
-La de select2 (el estándar de hecho):
+Con `search-url` valen **solo dos formas**: la de select2 (el estándar de hecho) o un array pelado de filas.
 
 ```json
 {"results": [{"id": 1, "text": "Ibuprofeno 600 mg", "lab": "Cinfa"}]}
 ```
 
-También se leen las formas de `options-url`: un array pelado de `{id, text}` o de `{value, label}`, un mapa `{"valor": "etiqueta"}` y `{"data": [...]}`. Las filas pueden traer más campos (`lab`, una foto): se conserva la fila entera y llega a `on-select` y al evento. Un mapa pierde el orden si sus claves son números (JavaScript los ordena); si importa el orden, devuelve un array.
+Una fila es `{id, text}` o `{value, label}`, y puede traer más campos (`lab`, una foto): se conserva la fila entera y llega a `on-select` y al evento. Una lista vacía (`{"results": []}`) es «No hay nada con eso».
+
+**Cualquier otra cosa no es un resultado**: `{"ok": true, "mensaje": "..."}`, un mapa `{"valor": "etiqueta"}`, `{"data": [...]}`, un cuerpo vacío. No se pinta nada: es una respuesta que no se entiende y sale el mensaje de error con «Reintentar» (el detalle va a la consola), igual que un 500. Para una forma distinta usa `process-results`. (El mapa `{valor: etiqueta}` es cosa de `options-url`, no de `search-url`.)
 
 Un endpoint en Laravel:
 
@@ -134,7 +137,7 @@ Las cuatro son expresiones JavaScript (como un `x-on:click` de Alpine) y se eval
 <x-dbl::form.select name="client_id" search-url="https://crm.example/api/clients" option-label="nombre" />
 ```
 
-**`process-results`**: se evalúa con lo que ha devuelto el servidor, **antes de pintarlo**, y lo que devuelva es lo que se pinta. Recibe la respuesta tal cual vino en `data` (no el array ya normalizado, porque si la forma es rara estaría vacío) y devuelve filas (`{id, text, ...}`, o cualquiera de las formas de arriba). Sirve para componer la etiqueta con varios campos, quedarse con unas filas, ordenarlas o leer un cuerpo que no se parece a nada. Si hay `process-results`, manda sobre `option-label`.
+**`process-results`**: se evalúa con lo que ha devuelto el servidor, **antes de pintarlo**, y lo que devuelva es lo que se pinta. Recibe la respuesta tal cual vino en `data` (no el array ya normalizado, porque si la forma es rara estaría vacío) y devuelve filas (`{id, text, ...}`) en un array, o en `{results: [...]}`; si devuelve otra cosa, es una respuesta que no se entiende. Sirve para componer la etiqueta con varios campos, quedarse con unas filas, ordenarlas o leer un cuerpo que no se parece a nada. Si hay `process-results`, manda sobre `option-label`.
 
 ```blade
 <x-dbl::form.select name="person_id" search-url="https://rrhh.example/find"
@@ -169,9 +172,16 @@ Además, al elegir se lanza el evento `select-change` (el mismo nombre que usa `
 El input es un `role="combobox"` con `aria-expanded`, `aria-controls` y `aria-activedescendant`; la lista es un `role="listbox"` y cada opción un `role="option"`. **↓ y ↑** mueven (↓ abre la lista), **Enter** elige la resaltada (sin ninguna resaltada, Enter envía el formulario como siempre), **Esc** cierra, **Tab** sale. El ratón por encima resalta sin quitarle el foco al teclado, clic en una opción la elige y clic fuera cierra. Si lo tecleado no se eligió (y no hay `allow-free-text`), al cerrar el campo vuelve a lo último que se eligió, o se vacía.
 Todo esto lo tiene también el modo `searchable`, porque comparten widget.
 
-### Sin JavaScript
+### Qué recibe el servidor
 
-El input lleva el `name` y lo tecleado se envía; el hidden no lleva `name` hasta que el JS arranca y se lo pasa (entonces se envía el id). Por eso el servidor debe esperar un id con JS y un texto sin él, o validarlo en las dos formas.
+**Siempre lo mismo, haya JavaScript o no**: `{name}` es el id elegido, o vacío si no se eligió nada (y vacío siempre que el JS no corrió), y `{name}_text` es lo que la persona escribió. Son dos campos del HTML desde que se pinta la página, así que el servidor nunca adivina si un valor es un id o un texto:
+
+```php
+$request->validate(['medicine_id' => 'nullable|exists:medicines,id', 'medicine_id_text' => 'nullable|string']);
+// medicine_id vacío y medicine_id_text con algo: con allow-free-text es un texto libre; sin él, no se eligió nada.
+```
+
+Sin JavaScript sigue siendo un campo: lo tecleado se envía en `{name}_text` y `{name}` va vacío.
 
 ### Cuándo usar cada modo
 

@@ -15,7 +15,7 @@ function comboConfig(string $html): array
  * `form.select` con `search-url`: el desplegable pregunta al servidor mientras se teclea, para listas que no caben
  * en la página. Comparte widget (input + hidden + lista) con el modo `searchable`.
  */
-it('pinta un campo con el name, y el hidden sin name (el JS se lo pasa) para que sin JS se envíe lo tecleado', function () {
+it('el servidor recibe siempre dos campos: el hidden `name` con el id (vacío si no se eligió) y el input `name_text` con lo tecleado, haya JS o no', function () {
     $html = Blade::render('<x-dbl::form.select name="medicine_id" search-url="/medicines/search" label="Medicamento" />');
 
     expect($html)->toContain('Medicamento')
@@ -27,8 +27,15 @@ it('pinta un campo con el name, y el hidden sin name (el JS se lo pasa) para que
 
     preg_match('/<input\b[^>]*role="combobox"[^>]*>/s', $html, $input);
     preg_match('/<input type="hidden"[^>]*>/s', $html, $hidden);
-    expect($input[0])->toContain('name="medicine_id"')
-        ->and($hidden[0])->not->toContain('name=');
+    expect($input[0])->toContain('name="medicine_id_text"')->not->toMatch('/\sname="medicine_id"/')
+        ->and($hidden[0])->toContain('name="medicine_id"')->toContain('value=""');
+});
+
+it('text-name cambia el nombre del campo del texto', function () {
+    $html = Blade::render('<x-dbl::form.select name="medicine_id" search-url="/s" text-name="medicine_label" />');
+
+    preg_match('/<input\b[^>]*role="combobox"[^>]*>/s', $html, $input);
+    expect($input[0])->toContain('name="medicine_label"');
 });
 
 it('vuelve a pintar lo ya elegido (value y text) cuando el formulario regresa con un error', function () {
@@ -37,14 +44,16 @@ it('vuelve a pintar lo ya elegido (value y text) cuando el formulario regresa co
     preg_match('/<input\b[^>]*role="combobox"[^>]*>/s', $html, $input);
     preg_match('/<input type="hidden"[^>]*>/s', $html, $hidden);
     expect($input[0])->toContain('value="Paracetamol 1 g"')
-        ->and($hidden[0])->toContain('value="42"');
+        ->and($hidden[0])->toContain('name="medicine_id"')->toContain('value="42"');
 });
 
-it('con allow-free-text y sin text, lo guardado se enseña tal cual', function () {
-    $html = Blade::render('<x-dbl::form.select name="brand" search-url="/s" value="Genérico" allow-free-text />');
+it('con allow-free-text un texto libre vuelve en `name_text` y el id queda vacío', function () {
+    $html = Blade::render('<x-dbl::form.select name="brand" search-url="/s" text="Genérico" allow-free-text />');
 
     preg_match('/<input\b[^>]*role="combobox"[^>]*>/s', $html, $input);
-    expect($input[0])->toContain('value="Genérico"');
+    preg_match('/<input type="hidden"[^>]*>/s', $html, $hidden);
+    expect($input[0])->toContain('name="brand_text"')->toContain('value="Genérico"')
+        ->and($hidden[0])->toContain('value=""');
 });
 
 it('lleva la configuración al JS: url, parámetro, límite, mínimo, debounce y los engarces', function () {

@@ -24,15 +24,24 @@ test('toRows: la forma de select2 {results: [...]}', () => {
     assert.deepEqual(rows, [{ id: '1', text: 'Ibuprofeno', row: { id: 1, text: 'Ibuprofeno', lab: 'Cinfa' } }])
 })
 
-test('toRows: un array pelado de {id, text}, de {value, label}, y un mapa {valor: etiqueta}', () => {
+test('toRows: un array pelado de {id, text} y de {value, label}', () => {
     assert.deepEqual(toRows([{ id: 0, text: 'Cero' }]).map(r => [r.id, r.text]), [['0', 'Cero']])
     assert.deepEqual(toRows([{ value: 'a', label: 'Ana' }]).map(r => [r.id, r.text]), [['a', 'Ana']])
-    assert.deepEqual(toRows({ es: 'España', pt: 'Portugal' }).map(r => [r.id, r.text]), [['es', 'España'], ['pt', 'Portugal']])
 })
 
-test('toRows: nada, un 204 o una forma que no es ninguna dan lista vacía, sin lanzar', () => {
-    for (const body of [null, undefined, '', 5, true]) assert.deepEqual(toRows(body), [])
-    assert.deepEqual(toRows([null, { text: 'sin id' }]), [])
+test('toRows: una lista vacía es «sin resultados», no un error', () => {
+    assert.deepEqual(toRows([]), [])
+    assert.deepEqual(toRows({ results: [] }), [])
+})
+
+test('toRows: lo que no es {results: [...]} ni un array NO es un resultado y lanza (nada de adivinar mapas)', () => {
+    for (const body of [{ ok: true, mensaje: 'hecho' }, { es: 'España', pt: 'Portugal' }, { data: [{ id: 1, text: 'x' }] }, { results: 'no' }, null, undefined, '', 5, true]) {
+        assert.throws(() => toRows(body), /not a list of results/, JSON.stringify(body))
+    }
+})
+
+test('toRows: las filas sin id o que no son objetos se descartan', () => {
+    assert.deepEqual(toRows([null, 'x', { text: 'sin id' }, { id: 1, text: 'ok' }]).map(r => r.id), ['1'])
 })
 
 test('toRows: las filas conservan sus campos extra y option-label nombra el campo del texto', () => {
@@ -43,8 +52,8 @@ test('toRows: las filas conservan sus campos extra y option-label nombra el camp
 
 test('readResults: process-results convierte una respuesta de forma rara en filas pintables', () => {
     const body = { payload: { hits: [{ code: 'A1', name: 'Ana', surname: 'López' }, { code: 'B2', name: 'Pau', surname: 'Ferrer' }] } }
-    // Con esa forma, sin función, no hay nada que pintar.
-    assert.deepEqual(readResults(body), [])
+    // Con esa forma, sin función, no es un resultado.
+    assert.throws(() => readResults(body))
     const rows = readResults(body, {
         processResults: data => data.payload.hits.map(h => ({ id: h.code, text: `${h.name} ${h.surname}`, hit: h })),
     })
@@ -108,6 +117,46 @@ function mount(config) {
         $refs: { field, hidden }, $root: { dispatchEvent() {} }, $nextTick: async () => {},
     })
 }
+
+test('un cuerpo que no es ninguna de las dos formas es un fallo, no filas basura: mensaje y lo elegido intacto', async () => {
+    globalThis.fetch = async () => answer(200, { ok: true, mensaje: 'hecho' })
+    const combo = mount({ value: '42', text: 'Paracetamol' })
+    combo.query = 'ibu'
+    await combo.search()
+    assert.deepEqual(combo.rows, [])
+    assert.notEqual(combo.error, '')
+    assert.equal(combo.loading, false)
+    assert.equal(combo.value, '42')
+})
+
+test('un process-results devuelve filas de un cuerpo raro y no hay error', async () => {
+    globalThis.fetch = async () => answer(200, { ok: true, hits: [{ code: 'A', nombre: 'Ana' }] })
+    const combo = mount({ processResults: 'data.hits.map(h => ({ id: h.code, text: h.nombre }))' })
+    combo.query = 'an'
+    await combo.search()
+    assert.equal(combo.error, '')
+    assert.deepEqual(combo.rows.map(r => r.text), ['Ana'])
+})
+
+test('con allow-free-text lo tecleado no se convierte en id: value queda vacío y el texto se queda en el input', () => {
+    const combo = mount({ allowFreeText: true, value: '42', text: 'Paracetamol' })
+    combo.field.value = 'Algo nuevo'
+    combo.onInput({ target: combo.field })
+    assert.equal(combo.value, '')
+    combo.close()
+    assert.equal(combo.value, '')
+    assert.equal(combo.query, 'Algo nuevo')
+    assert.equal(combo.field.value, 'Algo nuevo')
+})
+
+test('sin allow-free-text, lo tecleado sin elegir vuelve a lo último elegido al cerrar', () => {
+    const combo = mount({ value: '42', text: 'Paracetamol' })
+    combo.field.value = 'basura'
+    combo.onInput({ target: combo.field })
+    combo.close()
+    assert.equal(combo.value, '42')
+    assert.equal(combo.field.value, 'Paracetamol')
+})
 
 test('una búsqueda que devuelve results pinta las filas y apaga «buscando»', async () => {
     globalThis.fetch = async () => answer(200, { results: [{ id: 1, text: 'Ibuprofeno' }] })

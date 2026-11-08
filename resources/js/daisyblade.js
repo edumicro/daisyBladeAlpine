@@ -532,25 +532,16 @@ const searchParams = ({ queryParam = 'q', query = '', limit = null, params = {},
 
 /**
  * What the server answered -> list of `{ id, text, row }` (`row` is the whole row, with its extra fields).
- * Four shapes: `{results: [{id, text}]}` (select2), a bare array of `{id, text}` or of `{value, label}`, and a map
- * `{"value": "label"}`. `{data: [...]}` is accepted too, as `options-url` does. Rows without an id are dropped.
+ * Only two shapes are results: `{results: [...]}` (select2) and a bare array. Rows are `{id, text}` or `{value, label}`.
+ * Anything else (`{ok: true, message: "..."}`, a map, an empty body) is NOT a result: it throws, and the component treats
+ * it as an answer it does not understand. `process-results` is the way to read any other shape.
+ * (Guessing is what made `{ok: true}` look like a list with one row.)
  */
 const toRows = (data, { optionLabel = '' } = {}) => {
-    if (data === null || data === undefined || data === '') return []
-    let list = data
-    if (!Array.isArray(data)) {
-        if (typeof data !== 'object') return []
-        if (Array.isArray(data.results)) list = data.results
-        else if (Array.isArray(data.data)) list = data.data
-        else {
-            return Object.entries(data)
-                .filter(([, text]) => text !== null && typeof text !== 'object')
-                .map(([id, text]) => ({ id, text: String(text), row: { id, text } }))
-        }
-    }
+    const list = Array.isArray(data) ? data : data?.results
+    if (!Array.isArray(list)) throw new Error('The answer is not a list of results: expected {"results": [...]} or an array')
     return list.flatMap(row => {
-        if (row === null || row === undefined) return []
-        if (typeof row !== 'object') return [{ id: String(row), text: String(row), row: { id: row, text: row } }]
+        if (row === null || typeof row !== 'object') return []
         const id = row.id ?? row.value
         if (id === null || id === undefined) return []
         return [{ id: String(id), text: String((optionLabel ? row[optionLabel] : undefined) ?? row.text ?? row.label ?? row.name ?? id), row }]
@@ -636,12 +627,6 @@ const dbCombobox = (config = {}) => {
 
         init() {
             this.waiting = !!config.dependsOn && this.dependencyValue() === ''
-            // Without JS the text input carries the name (what is typed is sent); with JS the hidden carries it (the id).
-            if (remote && config.name) {
-                this.$refs.field.removeAttribute('name')
-                this.$refs.hidden.setAttribute('name', config.name)
-            }
-            if (remote && startValue === '' && config.allowFreeText && startText !== '') this.value = startText
             this.syncHidden()
         },
 
@@ -735,7 +720,7 @@ const dbCombobox = (config = {}) => {
             if (event.target !== this.field) return
             this.touched = true
             this.query = this.field.value
-            this.value = config.allowFreeText ? this.query : ''
+            this.value = ''   // typing un-chooses: the id travels only for a real choice (free text travels in the `_text` field)
             this.syncHidden()
             this.open = true
             this.active = -1
@@ -818,7 +803,12 @@ const dbCombobox = (config = {}) => {
         close() {
             this.open = false
             this.active = -1
-            if (!this.touched || config.allowFreeText) { this.announce(); return }
+            if (!this.touched) { this.announce(); return }
+            if (config.allowFreeText) {   // what was typed stays as it is: the id is empty and the text travels in `{name}_text`
+                this.committed = null
+                this.announce()
+                return
+            }
             if (this.query.trim() === '') this.committed = null
             this.query = this.committed?.text ?? ''
             this.value = this.committed?.id ?? ''
