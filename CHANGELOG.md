@@ -3,7 +3,7 @@
 Formato: lo que está sin publicar arriba. Al sacar versión, esa sección pasa a llevar su número
 y su fecha, y se etiqueta.
 
-## [3.0.0] — sin publicar
+## [3.0.0] — 2026-11-08
 
 La 3.0 **cambia nombres** para que todo el paquete siga una sola convención. No arrastra los nombres viejos: **no hay alias ni avisos de obsoleto**. Quien no quiera migrar se queda en la línea `2.x`, que se sigue manteniendo. Las secciones `[2.4.1]` y `[2.4.0]` de más abajo son las de la 2.x y también están en esta línea (la 3.0 parte de ella).
 
