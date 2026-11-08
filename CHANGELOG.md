@@ -3,7 +3,7 @@
 Formato: lo que está sin publicar arriba. Al sacar versión, esa sección pasa a llevar su número
 y su fecha, y se etiqueta.
 
-## [2.6.0] — sin publicar
+## [2.6.0] — 2026-11-08
 
 ### Cambiado
 - `form.select` con `search-url` ya no lee el envoltorio `{"results": [...]}` (select2) ni ningún otro: la regla es una sola, **un mapa clave→valor (`pluck('name', 'id')`) o una lista de filas `{id, text}` / `{value, label}`**, sin envoltorio. Quien devolvía `{"results": [...]}` lo desenvuelve en una línea en la vista: `process-results="response.results"` (y `response.data` para `JsonResource::collection` y los paginadores de Laravel, que también envuelven). La 2.5.0 aceptaba el envoltorio; es el único cambio de lo que se lee. `options-url` no se toca: lee lo mismo que antes (una lista y `{data: [...]}`), porque no tiene `process-results` con el que arreglarlo.
