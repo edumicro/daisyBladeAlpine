@@ -3,6 +3,25 @@
 Formato: lo que está sin publicar arriba. Al sacar versión, esa sección pasa a llevar su número
 y su fecha, y se etiqueta.
 
+## [2.5.0] — sin publicar
+
+### Añadido
+- `form.select`: prop `search-url`, un modo más para las listas que no caben en la página (20.000 medicamentos, un fichero de clientes, un callejero). El desplegable pregunta al servidor según lo que se teclea, en vez de filtrar lo que ya está en el HTML: espera `debounce` ms (250) desde la última tecla, no pregunta con menos de `min-chars` caracteres (2) y pide `?q=…&limit=20`. Si dos peticiones se cruzan solo vale la de la última, y la que va en vuelo se cancela. No cambia ningún otro modo: `searchable` sigue filtrando en el navegador, `options-url` sigue cargando la lista entera y el select normal queda igual.
+  - Props: `query-param` (`q`), `params` (array fijo en toda petición), `depends-on` (como en `options-url`: su valor va con el nombre del control y, al cambiar, se vacía lo elegido y se vuelve a preguntar), `limit`, `min-chars`, `debounce`, `value` y `text` (lo ya elegido, para el formulario que vuelve con un error de validación), `allow-free-text` (envía lo tecleado si no se eligió nada) y `hint`.
+  - Respuesta: la de select2 (`{"results": [{"id", "text"}]}`) y, como `options-url`, un array de `{id, text}` o de `{value, label}`, un mapa `{valor: etiqueta}` y `{"data": [...]}`. La fila entera, con sus campos extra, llega a `on-select` y al evento.
+  - Puntos de engarce (expresiones JavaScript): `option-label` (el campo que hace de etiqueta si no es `text`), `process-results` (recibe la respuesta tal cual en `data`, antes de pintarla, y devuelve las filas; manda sobre `option-label`), `on-select` (con `row`, `value` y `name`) y `on-error` (con `status`, `data` y `error`; además del mensaje del componente, y si devuelve `false` el componente se calla).
+  - Evento `select-change` con `{ name, value, row }` al elegir (el nombre que ya usaba `searchable`).
+  - Fallos: un 500, un 404, un JSON ilegible, una página HTML de sesión caducada o un `process-results` que lanza son un fallo de búsqueda, no una excepción: mensaje traducido con «Reintentar» (el detalle va a la consola, como en `data-table`, `tabs` y `options-url`), «buscando…» se apaga siempre, **lo ya elegido no se pierde** y el campo sigue usable. Una petición cancelada no es un error y una respuesta vieja que llega tarde se descarta en silencio.
+  - Estados con palabras: «Escribe N o más caracteres», «Buscando…», «No hay nada con eso». Textos nuevos en es, ca y en.
+  - Sin JavaScript sigue siendo un campo: el input lleva el `name` y lo tecleado se envía; con JavaScript el `name` pasa al hidden y se envía el id.
+  - `search-url` junto a `options-url` lanza `InvalidArgumentException` con un mensaje claro (no se elige uno en silencio); `search-url` con `multiple` también.
+  - Lógica pura (`searchParams`, `toRows`, `readResults`, `filterRows`, `latestRequest`, `errorInfo`) y la factoría `dbCombobox` en `daisyblade.js`, con tests `node --test` (`tests/js/combobox.test.mjs`) y de Blade (`tests/Feature/SelectSearchUrlTest.php`). Doc: `docs/components/select.md`.
+- `form.select` acepta `hint` (texto de ayuda bajo el campo) en todos los modos.
+
+### Cambiado
+- `form.select searchable` comparte widget con `search-url` y gana lo que no tenía: teclado (↓ y ↑ mueven, Enter elige, Esc cierra, Tab sale), `role="combobox"` con `aria-expanded`, `aria-controls` y `aria-activedescendant`, opciones con `role="option"`, y el ratón por encima resalta sin quitarle el foco al teclado. El input pinta lo elegido desde el servidor (antes salía vacío hasta que cargaba el JS) y recibe `id`, `class` y el resto de atributos. Se mantienen el filtro en el navegador (por texto o por clave), los grupos, el hidden con el `name` y el `x-model`, y `select-change`, que ahora trae también `row`. Lo que se ve distinto: lo tecleado que no se elige ya no deja el valor anterior con otro texto, sino que al cerrar el campo vuelve a lo último elegido (o se vacía si se borró); y el hidden lanza `input` y `change` al elegir, así que un `x-model` y un `depends-on` sí se enteran.
+- `dbSelectRemote` y `dbCombobox` leen el control del que dependen con la misma función (`controlValue`), sin cambiar lo que `options-url` hacía.
+
 ## [2.4.1] — 2026-11-04
 
 Solo arreglos, sin cambiar ningún nombre de propiedad, evento ni clase.

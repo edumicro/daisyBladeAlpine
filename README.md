@@ -209,7 +209,7 @@ Receive a `load-url` or `action` prop. Call plain Laravel controllers returning 
 | `display.data-table` | Paginated, sortable, filterable table (listens to `display.filters` and to `form.filter`) |
 | `display.resource-details` | Detail view loaded from `load-url` |
 | `form.filter` | Filter bar for data-table |
-| `form.select` | Select whose options come from `options-url`; `depends-on="other_field"` asks again when that field changes (`docs/components/select.md`) |
+| `form.select` | Select whose options come from `options-url`; `depends-on="other_field"` asks again when that field changes. For lists too big for the page, `search-url` asks the server while the person types (`docs/components/select.md`) |
 | `import.spreadsheet` | Excel/CSV chunked import |
 | `sections.auto-form` | Declarative form from schema array |
 | `sections.tabs` | Tabs with lazy-loaded content |
@@ -604,7 +604,7 @@ vendor/bin/pest
 node --test tests/js/*.test.mjs
 ```
 
-`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 392 Pest tests (1589 assertions) and 154 JavaScript tests, all green.
+`composer test` runs both: the Pest tests (components, translations, install command) and the `node --test` tests of the JavaScript (HTTP client, error handling, dates, map, flowchart). Currently 402 Pest tests (1650 assertions) and 177 JavaScript tests, all green.
 
 ---
 

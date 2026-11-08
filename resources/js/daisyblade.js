@@ -1,6 +1,6 @@
 'use strict'
 
-import { request, joinUrl } from './http.js'
+import { request, joinUrl, isCanceled } from './http.js'
 
 // Every server call of this file goes through request() (see http.js): the client injected with
 // registerDaisyBlade(), else window.axios, else fetch.
@@ -88,6 +88,18 @@ const dependencyParams = (name, value) => (name ? { [name]: value } : {})
 const stillOffered = (selected, options) => selected.filter(text => options.some(option => String(option.value) === text))
 
 /**
+ * The value a form would SEND for the control called `name`, looked up in `scope` (a <form>, or the whole document).
+ * A group of radios counts only through the checked one ('' if none is), and an unchecked checkbox sends nothing.
+ * `form.checkbox` and `form.toggle` write a hidden `0` before the checkbox, so when it is unchecked the value is that 0.
+ * When several controls send the name (hidden 0 + checked checkbox), the last one wins, as in a submitted form.
+ */
+const controlValue = (name, scope) => {
+    const controls = [...(scope ?? document).querySelectorAll(`[name="${name}"]`)]
+    const sent = controls.filter(control => !['radio', 'checkbox'].includes(control.type) || control.checked)
+    return sent[sent.length - 1]?.value ?? ''
+}
+
+/**
  * Select whose options come from a URL (`<x-dbl::form.select options-url="...">`).
  * With `dependsOn` (the `name` of another control) it asks again each time that control changes,
  * sending its value as a param named like the control: `?country_code=ES`.
@@ -127,11 +139,7 @@ const dbSelectRemote = (config = {}) => ({
     // ('' if none is), and an unchecked checkbox sends nothing. `form.checkbox` and `form.toggle` write a hidden
     // `0` before the checkbox, so when the checkbox is unchecked the value is that 0.
     dependencyValue() {
-        if (!config.dependsOn) return null
-        const controls = [...(this.field.form ?? document).querySelectorAll(`[name="${config.dependsOn}"]`)]
-        const sent = controls.filter(control => !['radio', 'checkbox'].includes(control.type) || control.checked)
-        // When several controls send the name (hidden 0 + checked checkbox), the last one wins, as in a submitted form.
-        return sent[sent.length - 1]?.value ?? ''
+        return config.dependsOn ? controlValue(config.dependsOn, this.field.form) : null
     },
 
     // Every control of the page fires `change`: reload only for the one we depend on.
@@ -509,13 +517,376 @@ const dbListEditor = (config = {}) => ({
     toJson() { return JSON.stringify(this.items) },
 })
 
+
+// ── Combobox: the widget of `form.select` with `searchable` and with `search-url` ──────────────────────────────
+
+// Pure helpers (tested with `node --test tests/js/combobox.test.mjs`).
+
+/** Query-string params of one search: the fixed ones, the control we depend on, the text typed and the limit. */
+const searchParams = ({ queryParam = 'q', query = '', limit = null, params = {}, dependsOn = '', dependencyValue = null } = {}) => ({
+    ...params,
+    ...dependencyParams(dependsOn, dependencyValue),
+    [queryParam || 'q']: query,
+    ...(limit ? { limit } : {}),
+})
+
+/**
+ * What the server answered -> list of `{ id, text, row }` (`row` is the whole row, with its extra fields).
+ * Four shapes: `{results: [{id, text}]}` (select2), a bare array of `{id, text}` or of `{value, label}`, and a map
+ * `{"value": "label"}`. `{data: [...]}` is accepted too, as `options-url` does. Rows without an id are dropped.
+ */
+const toRows = (data, { optionLabel = '' } = {}) => {
+    if (data === null || data === undefined || data === '') return []
+    let list = data
+    if (!Array.isArray(data)) {
+        if (typeof data !== 'object') return []
+        if (Array.isArray(data.results)) list = data.results
+        else if (Array.isArray(data.data)) list = data.data
+        else {
+            return Object.entries(data)
+                .filter(([, text]) => text !== null && typeof text !== 'object')
+                .map(([id, text]) => ({ id, text: String(text), row: { id, text } }))
+        }
+    }
+    return list.flatMap(row => {
+        if (row === null || row === undefined) return []
+        if (typeof row !== 'object') return [{ id: String(row), text: String(row), row: { id: row, text: row } }]
+        const id = row.id ?? row.value
+        if (id === null || id === undefined) return []
+        return [{ id: String(id), text: String((optionLabel ? row[optionLabel] : undefined) ?? row.text ?? row.label ?? row.name ?? id), row }]
+    })
+}
+
+/**
+ * From the body of the answer to the rows to paint. `processResults(body)` (the `process-results` prop) gets the body
+ * exactly as it came and returns the rows (`{id, text, ...}`, or any of the shapes `toRows` reads); when there is one,
+ * it decides and `optionLabel` is not used. `optionLabel` (the `option-label` prop) names the field that is the text.
+ */
+const readResults = (body, { processResults = null, optionLabel = '' } = {}) =>
+    processResults ? toRows(processResults(body)) : toRows(body, { optionLabel })
+
+/** What `on-error` gets to know about a failure: the status and the body of the answer, as in axios (`error.response`). */
+const errorInfo = error => ({ status: error?.response?.status ?? null, data: error?.response?.data ?? null, message: error?.message ?? '' })
+
+/** The `options` of the searchable select (`{k: v}` or `{group: {k: v}}`) -> list of `{ id, text, row, group }`. */
+const localRows = options => Object.entries(options ?? {}).flatMap(([key, value]) => {
+    if (value !== null && typeof value === 'object') {
+        return Object.entries(value).map(([id, text]) => ({ id, text: String(text), row: { id, text: String(text) }, group: key }))
+    }
+    return [{ id: key, text: String(value), row: { id: key, text: String(value) }, group: '' }]
+})
+
+/** The rows whose text or id contain what was typed (browser-side filter of the local mode). */
+const filterRows = (rows, query) => {
+    const q = String(query ?? '').trim().toLowerCase()
+    return q ? rows.filter(row => row.text.toLowerCase().includes(q) || row.id.toLowerCase().includes(q)) : rows
+}
+
+/**
+ * Tells which request is the newest, so an old answer is thrown away. `begin()` starts a request (and aborts the one
+ * in flight); `isCurrent(number)` says whether it is still the newest; `cancel()` makes every one of them old.
+ */
+const latestRequest = () => {
+    let count = 0
+    let controller = null
+    return {
+        begin() {
+            controller?.abort()
+            controller = new AbortController()
+            return { number: ++count, signal: controller.signal }
+        },
+        isCurrent: number => number === count,
+        cancel() {
+            controller?.abort()
+            controller = null
+            count++
+        },
+    }
+}
+
+/**
+ * The input + hidden + list of `<x-dbl::form.select searchable>` and `<x-dbl::form.select search-url="...">`.
+ * Local mode filters `config.options` in the browser; remote mode asks `config.searchUrl` what to show while the
+ * person types (debounced, one request at a time). Same keyboard, same ARIA, same look.
+ */
+const dbCombobox = (config = {}) => {
+    const remote = !!config.searchUrl
+    const minChars = remote ? (config.minChars ?? 2) : 0
+    const tracker = latestRequest()   // outside the reactive object: an AbortController must not be wrapped in a Proxy
+    let timer = null
+    const startValue = String(config.value ?? '')
+    const startText = config.text ?? ''
+    const allRows = remote ? [] : localRows(config.options)
+
+    return {
+        query: startText,
+        value: startValue,                // what the hidden sends
+        committed: startValue !== '' ? { id: startValue, text: startText } : null,   // the last real choice
+        announced: startValue,            // the value the others (x-model, a dependent select) know about
+        touched: false,                   // the person has typed
+        open: false,
+        active: -1,                       // index of the highlighted option (-1: none)
+        results: [],                      // remote: what the server answered
+        searched: false,                  // remote: `results` answers the current query
+        loading: false,
+        error: '',
+        waiting: false,                   // remote: the control we depend on is empty
+        disabled: config.disabled ?? false,
+        disabledByUs: false,
+
+        init() {
+            this.waiting = !!config.dependsOn && this.dependencyValue() === ''
+            // Without JS the text input carries the name (what is typed is sent); with JS the hidden carries it (the id).
+            if (remote && config.name) {
+                this.$refs.field.removeAttribute('name')
+                this.$refs.hidden.setAttribute('name', config.name)
+            }
+            if (remote && startValue === '' && config.allowFreeText && startText !== '') this.value = startText
+            this.syncHidden()
+        },
+
+        get field() { return this.$refs.field },
+        get rows() { return remote ? this.results : filterRows(allRows, this.query) },
+        // What the list shows: the options, and for grouped options a header before each group.
+        get items() {
+            const items = []
+            let group = ''
+            this.rows.forEach((row, index) => {
+                if (row.group && row.group !== group) items.push({ key: `g:${row.group}`, header: true, text: row.group })
+                group = row.group ?? ''
+                items.push({ key: `o:${row.id}`, header: false, row, index })
+            })
+            return items
+        },
+        get statusText() {
+            const messages = config.messages ?? {}
+            if (!remote) return this.rows.length ? '' : (messages.noResults ?? 'No results')
+            if (this.query.trim().length < minChars) return messages.minChars ?? `Type ${minChars} or more characters`
+            if (this.loading && !this.rows.length) return messages.searching ?? 'Searching…'
+            if (this.error) return this.error
+            if (this.searched && !this.rows.length) return messages.noResults ?? 'Nothing matches that'
+            return ''
+        },
+        get listOpen() { return this.open && !this.waiting && !this.disabled && (this.rows.length > 0 || this.statusText !== '') },
+        optionId(index) { return `${config.id}-opt-${index}` },
+
+        // Keep the input and the hidden in step with our state (the container runs this from its `x-effect`).
+        // Same care as dbSelectRemote: disable only when WE need it, and enable only what WE disabled.
+        syncField() {
+            const mustBeDisabled = this.waiting || this.disabled
+            if (mustBeDisabled) {
+                this.field.disabled = true
+                this.$refs.hidden.disabled = true
+                this.disabledByUs = true
+            } else if (this.disabledByUs) {
+                this.field.disabled = false
+                this.$refs.hidden.disabled = false
+                this.disabledByUs = false
+            }
+            this.field.setAttribute('aria-expanded', String(this.listOpen))
+            this.field.setAttribute('aria-busy', String(this.loading))
+            if (this.listOpen && this.active >= 0 && this.rows[this.active]) this.field.setAttribute('aria-activedescendant', this.optionId(this.active))
+            else this.field.removeAttribute('aria-activedescendant')
+        },
+
+        syncHidden() { this.$refs.hidden.value = this.value },
+
+        // Tell the others the value changed: x-model and a select that depends on this one listen to these.
+        announce() {
+            if (this.value === this.announced) return
+            this.announced = this.value
+            this.$refs.hidden.dispatchEvent(new Event('input', { bubbles: true }))
+            this.$refs.hidden.dispatchEvent(new Event('change', { bubbles: true }))
+        },
+
+        dependencyValue() {
+            return config.dependsOn ? controlValue(config.dependsOn, this.field.form) : null
+        },
+
+        // Every control of the page fires `change`: react only to the one we depend on.
+        onDependencyChange(event) {
+            if (event.target.name !== config.dependsOn || event.target.form !== this.field.form) return
+            tracker.cancel()
+            clearTimeout(timer)
+            this.waiting = this.dependencyValue() === ''
+            this.committed = null
+            this.value = ''
+            this.query = ''
+            this.field.value = ''
+            this.results = []
+            this.searched = false
+            this.error = ''
+            this.loading = false
+            this.syncHidden()
+            this.announce()
+            if (this.open && !this.waiting && minChars === 0) this.search()
+        },
+
+        // ── The person ──
+
+        onFocus(event) {
+            if (event.target !== this.field || this.disabled || this.waiting) return
+            if (remote && this.value !== '') return   // something is chosen: wait until they type or press ↓
+            this.open = true
+            if (remote && minChars === 0 && !this.searched) this.search()
+        },
+
+        onInput(event) {
+            if (event.target !== this.field) return
+            this.touched = true
+            this.query = this.field.value
+            this.value = config.allowFreeText ? this.query : ''
+            this.syncHidden()
+            this.open = true
+            this.active = -1
+            if (!remote) return
+            clearTimeout(timer)
+            this.searched = false
+            if (this.query.trim().length < minChars) {
+                tracker.cancel()
+                this.results = []
+                this.error = ''
+                this.loading = false
+                return
+            }
+            timer = setTimeout(() => this.search(), config.debounce ?? 250)
+        },
+
+        onKeydown(event) {
+            if (event.target !== this.field) return
+            const count = this.rows.length
+            switch (event.key) {
+                case 'ArrowDown':
+                case 'ArrowUp':
+                    event.preventDefault()
+                    if (!this.open) {
+                        this.open = true
+                        if (remote && !this.searched && this.query.trim().length >= minChars) this.search()
+                        break
+                    }
+                    if (!count) break
+                    if (event.key === 'ArrowDown') this.active = (this.active + 1) % count
+                    else this.active = this.active <= 0 ? count - 1 : this.active - 1
+                    this.$nextTick(() => document.getElementById(this.optionId(this.active))?.scrollIntoView({ block: 'nearest' }))
+                    break
+                case 'Enter':
+                    // Only when an option is highlighted: otherwise Enter does what it always does in a form.
+                    if (this.open && this.rows[this.active]) {
+                        event.preventDefault()
+                        this.choose(this.rows[this.active])
+                    }
+                    break
+                case 'Escape':
+                    if (this.open) {
+                        event.preventDefault()
+                        event.stopPropagation()   // do not also close the modal the field is in
+                        this.close()
+                    }
+                    break
+                case 'Tab':
+                    this.close()   // and let the focus go on
+                    break
+            }
+        },
+
+        onFocusOut(event) {
+            if (event.relatedTarget && !this.$root.contains(event.relatedTarget)) this.close()
+        },
+
+        hover(index) { if (this.active !== index) this.active = index },
+
+        choose(row) {
+            this.committed = { id: row.id, text: row.text }
+            this.value = row.id
+            this.query = row.text
+            this.field.value = row.text
+            this.touched = false
+            this.open = false
+            this.active = -1
+            this.searched = false
+            this.syncHidden()
+            this.announce()
+            const detail = { name: config.name ?? '', value: row.id, row: row.row }
+            this.$root.dispatchEvent(new CustomEvent('select-change', { detail, bubbles: true, composed: true }))
+            if (config.onSelect) {
+                try { window.Alpine.evaluate(this.$root, config.onSelect, { scope: { row: row.row, value: row.id, name: detail.name } }) }
+                catch (error) { console.error('dbCombobox: the on-select expression failed', error) }
+            }
+        },
+
+        // Close the list. What was typed but not chosen goes back to the last choice (or to nothing), unless free text is allowed.
+        close() {
+            this.open = false
+            this.active = -1
+            if (!this.touched || config.allowFreeText) { this.announce(); return }
+            if (this.query.trim() === '') this.committed = null
+            this.query = this.committed?.text ?? ''
+            this.value = this.committed?.id ?? ''
+            this.field.value = this.query
+            this.touched = false
+            this.syncHidden()
+            this.announce()
+        },
+
+        // ── The server ──
+
+        retry() { return this.search() },
+
+        // The search failed. `on-error` (an expression with `error`, `status` and `data`) runs first; if it returns
+        // `false` the component stays quiet and the consumer paints what they want. It never throws out of here.
+        failed(error) {
+            let answer
+            if (config.onError) {
+                try { answer = window.Alpine.evaluate(this.$root, config.onError, { scope: { ...errorInfo(error), error } }) }
+                catch (failure) { console.error('dbCombobox: the on-error expression failed', failure) }
+            }
+            if (answer !== false) this.error = messageOf(config, 'searchFailed', 'Could not search')
+        },
+
+        async search() {
+            clearTimeout(timer)
+            const query = this.query.trim()
+            if (!remote || this.waiting || query.length < minChars) return
+            const { number, signal } = tracker.begin()
+            this.loading = true
+            this.error = ''
+            try {
+                const params = searchParams({
+                    queryParam: config.queryParam, query, limit: config.limit, params: config.params ?? {},
+                    dependsOn: config.dependsOn, dependencyValue: this.dependencyValue(),
+                })
+                const { data } = await http({ url: config.searchUrl, params, signal })
+                expectJson(data)
+                if (!tracker.isCurrent(number)) return   // a newer search took over
+                const process = config.processResults
+                    ? body => window.Alpine.evaluate(this.$root, config.processResults, { scope: { data: body } })
+                    : null
+                this.results = readResults(data, { processResults: process, optionLabel: config.optionLabel })
+                this.searched = true
+                this.active = -1
+            } catch (error) {
+                // A canceled request is not a failure (every keystroke cancels the one in flight), and an old answer
+                // that fails late says nothing about the current search: both are dropped in silence.
+                if (!tracker.isCurrent(number) || isCanceled(error, injectedDeps.axios ?? globalThis.window?.axios)) return
+                // Only the list of results is cleared: `value`, `query` and `committed` (what is already chosen) stay as they are.
+                this.results = []
+                this.searched = false
+                console.error('dbCombobox: could not search', error)
+                this.failed(error)
+                        } finally {
+                if (tracker.isCurrent(number)) this.loading = false
+            }
+        },
+    }
+}
+
 // ── Registration ───────────────────────────────────────────────────────────
 
 const _all = {
     dbModal, dbToast, dbTabs, dbNavbar, dbSidebar, dbSidebarTree,
     dbDataTable, dbAutoForm, dbWizard,
     dbSelectRemote, dbResourceDetails, dbTabsLazy, dbSpreadsheetImport,
-    dbKvEditor, dbListEditor,
+    dbKvEditor, dbListEditor, dbCombobox,
 }
 
 function _register(Alpine) {
@@ -550,4 +921,5 @@ export {
     dbSelectRemote, dbResourceDetails, dbTabsLazy, dbSpreadsheetImport,
     dbKvEditor, dbListEditor,
     toTexts, dependencyParams, stillOffered,
+    dbCombobox, searchParams, toRows, localRows, filterRows, latestRequest, readResults, errorInfo,
 }

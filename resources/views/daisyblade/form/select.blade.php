@@ -3,6 +3,19 @@
     'label'          => '',
     'options'        => [],
     'optionsUrl'     => '',
+    'searchUrl'      => '',
+    'queryParam'     => 'q',
+    'params'         => [],
+    'limit'          => 20,
+    'minChars'       => 2,
+    'debounce'       => 250,
+    'text'           => '',
+    'allowFreeText'  => false,
+    'onSelect'       => '',
+    'processResults' => '',
+    'optionLabel'    => '',
+    'onError'        => '',
+    'hint'           => '',
     'dependsOn'      => '',
     'placeholder'    => '',
     'multiple'       => false,
@@ -16,7 +29,17 @@
 ])
 
 @php
+// Dos orígenes de datos a la vez no tienen sentido: nunca se elige uno en silencio.
+if ($searchUrl && $optionsUrl) {
+    throw new \InvalidArgumentException('x-dbl::form.select: `search-url` and `options-url` cannot be used together. Use `options-url` to load the whole list once, or `search-url` to ask the server while the person types.');
+}
+if ($searchUrl && $multiple) {
+    throw new \InvalidArgumentException('x-dbl::form.select: `search-url` does not support `multiple`.');
+}
 $sizeClass = match($size) { 'xs'=>'select-xs','sm'=>'select-sm','lg'=>'select-lg', default=>'' };
+$inputSizeClass = match($size) { 'xs'=>'input-xs','sm'=>'input-sm','lg'=>'input-lg', default=>'' };
+$hasError = $name && isset($errors) && $errors->has($name);
+$comboId = ($name ?: 'combobox').'-'.\Illuminate\Support\Str::random(5);
 // Valor(es) seleccionados como texto, para comparar con las claves de `options` sea cual sea su tipo.
 $selected = $value === null ? [] : array_map('strval', (array) $value);
 $isSelected = fn ($key) => in_array((string) $key, $selected, true);
@@ -76,90 +99,103 @@ foreach ($options as $optVal => $optLabel) {
             <span x-text="error"></span>
             <button type="button" class="link" x-on:click="retry()">{{ __('Retry') }}</button>
         </p>
-    @elseif($searchable)
-        {{-- Alpine searchable combobox — soporta flat {k:v} y grouped {group:{k:v}} --}}
-        <div x-data="{
-            search: @js($selectedLabel),
-            open: false,
-            options: @js($options),
-            get isGrouped() {
-                const vals = Object.values(this.options)
-                return vals.length > 0 && typeof vals[0] === 'object' && vals[0] !== null
-            },
-            get filtered() {
-                if (!this.search) return this.options
-                const q = this.search.toLowerCase()
-                if (!this.isGrouped) {
-                    return Object.fromEntries(
-                        Object.entries(this.options).filter(([k, v]) =>
-                            String(v).toLowerCase().includes(q) || String(k).toLowerCase().includes(q)
-                        )
-                    )
-                }
-                const result = {}
-                Object.entries(this.options).forEach(([group, items]) => {
-                    const matched = Object.fromEntries(
-                        Object.entries(items).filter(([k, v]) =>
-                            String(v).toLowerCase().includes(q) || String(k).toLowerCase().includes(q)
-                        )
-                    )
-                    if (Object.keys(matched).length > 0) result[group] = matched
-                })
-                return result
-            },
-            get flatList() {
-                if (!this.isGrouped) {
-                    return Object.entries(this.filtered).map(([k, v]) => ({ type: 'option', key: k, label: String(v) }))
-                }
-                const list = []
-                Object.entries(this.filtered).forEach(([group, items], gi) => {
-                    list.push({ type: 'group', label: group, first: gi === 0 })
-                    Object.entries(items).forEach(([k, v]) => list.push({ type: 'option', key: k, label: String(v) }))
-                })
-                return list
-            },
-            get isEmpty() { return this.flatList.filter(i => i.type === 'option').length === 0 }
-        }" class="relative" @click.outside="open = false">
+    @elseif($searchable || $searchUrl)
+        {{-- Combobox (dbCombobox): the same input + hidden + list for the browser-side filter (`searchable`) and for the
+             server search (`search-url`). Its listeners go on this container and not on the input, so the attributes
+             the user passes to the input never hide ours. With `search-url` and without JS the input keeps the `name`
+             (what is typed is sent); with JS the hidden takes it and carries the id. --}}
+        <div x-data="dbCombobox(@js([
+                'id' => $comboId,
+                'name' => $name,
+                'options' => $searchUrl ? [] : $options,
+                'searchUrl' => $searchUrl,
+                'queryParam' => $queryParam,
+                'params' => $params,
+                'limit' => (int) $limit,
+                'minChars' => (int) $minChars,
+                'debounce' => (int) $debounce,
+                'value' => $searchUrl ? ($value ?? '') : ($selected[0] ?? ''),
+                'text' => $searchUrl ? $text : $selectedLabel,
+                'allowFreeText' => (bool) $allowFreeText,
+                'dependsOn' => $dependsOn,
+                'disabled' => (bool) $disabled,
+                'onSelect' => $onSelect,
+                'processResults' => $processResults,
+                'optionLabel' => $optionLabel,
+                'onError' => $onError,
+                'messages' => [
+                    'minChars' => __('Type :min or more characters', ['min' => (int) $minChars]),
+                    'searching' => __('Searching…'),
+                    'noResults' => $searchUrl ? __('Nothing matches that') : __('No results'),
+                    'searchFailed' => __('Could not search'),
+                ],
+            ]))"
+            class="relative"
+            x-on:click.outside="close()"
+            x-on:focusin="onFocus($event)"
+            x-on:focusout="onFocusOut($event)"
+            x-on:input="onInput($event)"
+            x-on:keydown="onKeydown($event)"
+            @if($dependsOn && $searchUrl) x-on:change.window="onDependencyChange($event)" @endif
+            x-effect="syncField()">
             <div class="relative">
                 <input
                     type="text"
-                    x-model="search"
-                    @focus="open = true"
+                    x-ref="field"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded="false"
+                    aria-controls="{{ $comboId }}-list"
+                    autocomplete="off"
+                    @if($name) id="{{ $name }}" @endif
+                    @if($searchUrl && $name) name="{{ $name }}" @endif
+                    value="{{ $searchUrl ? ($text !== '' ? $text : ($allowFreeText ? ($value ?? '') : '')) : $selectedLabel }}"
                     placeholder="{{ $placeholder ?: __('Search...') }}"
-                    class="input w-full {{ $sizeClass }}"
+                    @if($disabled) disabled @endif
+                    @if($required) required @endif
+                    {{ $attributes->except(['x-model'])->merge(['class' => trim('input w-full ' . $inputSizeClass . ' '
+                        . ($hasError ? 'input-error ' : '')
+                        . $class)]) }}
                 />
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/40">
-                    <x-heroicon-o-chevron-down class="w-4 h-4" />
+                    <span class="loading loading-spinner loading-xs" style="display: none" x-show="loading"></span>
+                    <x-heroicon-o-chevron-down class="w-4 h-4" x-show="!loading" />
                 </div>
             </div>
 
-            <div x-show="open" x-cloak class="absolute z-50 mt-1 w-full bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                <template x-for="item in flatList" :key="item.type + ':' + (item.key ?? item.label)">
-                    <div>
-                        <div
-                            x-show="item.type === 'group'"
-                            :class="item.first ? 'pt-1' : 'border-t border-base-200 mt-1 pt-1'"
-                            class="px-3 pb-0.5 text-xs font-semibold text-base-content/40 uppercase tracking-wide"
-                            x-text="item.label"
-                        ></div>
-                        <button
-                            x-show="item.type === 'option'"
-                            type="button"
-                            @click="search = item.label; open = false; $el.closest('[x-data]').querySelector('input[type=hidden]').value = item.key; $dispatch('select-change', { name: '{{ $name }}', value: item.key })"
-                            class="w-full text-left px-3 py-2 hover:bg-primary/10 text-sm"
-                            :class="{ 'pl-5': isGrouped }"
-                            x-text="item.label"
-                        ></button>
-                    </div>
-                </template>
-                <template x-if="isEmpty">
-                    <div class="px-3 py-4 text-sm text-base-content/50 text-center">{{ __('No results') }}</div>
-                </template>
+            {{-- mousedown.prevent: clicking inside the list (an option, the scrollbar) must not take the focus from the input. --}}
+            <div x-show="listOpen" x-cloak style="display: none" x-on:mousedown.prevent
+                 class="absolute z-50 mt-1 w-full bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <div id="{{ $comboId }}-list" role="listbox">
+                    <template x-for="item in items" :key="item.key">
+                        <div role="presentation">
+                            <div x-show="item.header" role="presentation" x-text="item.text"
+                                 class="px-3 pt-2 pb-0.5 text-xs font-semibold text-base-content/40 uppercase tracking-wide"></div>
+                            <div x-show="!item.header" role="option"
+                                 :id="optionId(item.index)"
+                                 :aria-selected="String(item.index === active)"
+                                 x-on:click="choose(item.row)"
+                                 x-on:mousemove="hover(item.index)"
+                                 :class="{ 'bg-primary/10': item.index === active, 'pl-5': item.row && item.row.group }"
+                                 class="cursor-pointer px-3 py-2 text-sm"
+                                 x-text="item.row ? item.row.text : ''"></div>
+                        </div>
+                    </template>
+                </div>
+                {{-- The state in words, never an empty box. If the search failed: retry (the detail is in the console). --}}
+                <div role="status" aria-live="polite" x-show="statusText" style="display: none"
+                     class="flex items-center gap-2 px-3 py-3 text-sm text-base-content/60"
+                     :class="{ 'text-error': error }">
+                    <span x-text="statusText"></span>
+                    <button type="button" class="link" x-show="error" style="display: none" x-on:click="retry()">{{ __('Retry') }}</button>
+                </div>
             </div>
 
-            @if($name)
-                <input type="hidden" name="{{ $name }}" value="{{ $selected[0] ?? '' }}" {{ $attributes->only(['x-model']) }} />
-            @endif
+            <input type="hidden" x-ref="hidden"
+                   @if(! $searchUrl && $name) name="{{ $name }}" @endif
+                   value="{{ $searchUrl ? ($value ?? ($allowFreeText ? $text : '')) : ($selected[0] ?? '') }}"
+                   @if($disabled) disabled @endif
+                   {{ $attributes->only(['x-model']) }} />
         </div>
     @else
         {{-- Native select --}}
@@ -196,5 +232,11 @@ foreach ($options as $optVal => $optLabel) {
                 <span class="text-xs text-error font-semibold">{{ $message }}</span>
             </div>
         @enderror
+    @endif
+
+    @if($hint)
+        <div class="mt-1">
+            <span class="text-xs text-base-content/60">{{ $hint }}</span>
+        </div>
     @endif
 </div>
