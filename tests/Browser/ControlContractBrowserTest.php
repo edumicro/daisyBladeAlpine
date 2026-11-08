@@ -61,6 +61,11 @@ dataset('controls', function () {
             'change' => function ($page) { $page->script("document.querySelector('input[type=text]').focus()"); pause($page, 0.2); clickText($page, 'France'); },
             'field' => 'c', 'param' => 'c',
         ]],
+        'searching select' => [[
+            'blade' => '<x-dbl::form.select name="c" search-url="/medicines" />',
+            'change' => function ($page) { $page->typeSlowly('input[type=text]', 'ibu', 20); readPage($page, "document.querySelectorAll('[role=option]').length", fn ($n) => $n >= 2); clickText($page, 'Ibuprofen 600'); },
+            'field' => 'c', 'param' => 'c',
+        ]],
         'checkbox' => [[
             'blade' => '<x-dbl::form.checkbox name="c" label="Yes" />',
             'change' => fn ($page) => $page->script("document.querySelector('input[type=checkbox][name=c]').click()"),

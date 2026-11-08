@@ -140,6 +140,7 @@ it('2. names the URL props after what the URL is for', function () {
     // Every prop that ends in Url, whatever the view. A new one has to be added here on purpose.
     $allowed = [
         'loadUrl',     // where the component reads its data from
+        'searchUrl',   // select: asks the server what to show WHILE the user types (loadUrl loads the whole list; giving both is an error)
         'submitUrl',   // where it sends what the user filled in
         'uploadUrl',   // where the files go
         'geocodeUrl',  // the address search of the map
@@ -910,7 +911,7 @@ it('10. gives the factories of the static components their configuration the sam
         ->and(xDataConfig($render('<x-dbl::display.carousel :items="[[\'image\' => \'/a.jpg\'], [\'image\' => \'/b.jpg\']]" />'), 'dblCarousel'))->toBe(['total' => 2])
         ->and(xDataConfig($render('<x-dbl::display.text-rotate :texts="[\'a\', \'b\']" :duration="1000" />'), 'dblTextRotate'))->toBe(['texts' => ['a', 'b'], 'duration' => 1000, 'autoRotate' => true])
         ->and(xDataConfig($render('<x-dbl::feedback.toast message="Hola" :auto-close="true" :duration="2500" />'), 'dblToastSingle'))->toBe(['duration' => 2500, 'autoClose' => true])
-        ->and(xDataConfig($render('<x-dbl::form.select name="a" :options="[1 => \'x\']" searchable value="1" />'), 'dblSelectSearch'))->toBe(['name' => 'a', 'search' => 'x', 'chosen' => '1', 'options' => [1 => 'x']]);
+        ->and(xDataConfig($render('<x-dbl::form.select name="a" :options="[1 => \'x\']" searchable value="1" />'), 'dblSelectSearch'))->toMatchArray(['name' => 'a', 'search' => 'x', 'chosen' => '1', 'options' => [1 => 'x'], 'searchUrl' => '']);
 });
 
 // ── 12. The wizard: the saved progress does not overwrite the values of the Blade ──

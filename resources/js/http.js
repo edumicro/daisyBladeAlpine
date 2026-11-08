@@ -529,6 +529,22 @@ function pagerOf(data) {
     return { previous: reader.previous(position), next: reader.next(position) }
 }
 
+/** One row of a search answer as `{ id, text, row }`, or undefined when it is neither `{ id, text }` nor `{ value, label }`. */
+function searchRowOf(row, textField = 'text') {
+    if (!isObject(row)) return undefined
+    if ('id' in row && textField in row) return { id: row.id, text: String(row[textField]), row }
+    if ('value' in row && 'label' in row) return { id: row.value, text: String(row.label), row }
+    return undefined
+}
+
+/** The rows of a search answer (see `answerShapes.searchResults`): `{ results: [...] }` or a bare list, or undefined. */
+function searchRowsOf(data, textField) {
+    const list = Array.isArray(data) ? data : (isObject(data) ? data.results : undefined)
+    if (!Array.isArray(list)) return undefined
+    const rows = list.map(row => searchRowOf(row, textField))
+    return rows.every(Boolean) ? rows : undefined
+}
+
 /**
  * What every component that reads JSON expects from the server. Each function receives the body of a good answer (and the URL,
  * only to name it in the warning), throws a ContractError if its form is wrong, and returns the part the component uses.
@@ -540,6 +556,21 @@ export const answerShapes = {
         expectShape(url, 'the remote select', '[{ "value": …, "label": … }] or { "data": [ … ] }',
             Array.isArray(options) && options.every(option => isObject(option) && 'value' in option && 'label' in option))
         return options
+    },
+    /**
+     * Searchable select with `search-url`: the server's answer to "what matches what was typed?" -> a list of `{ id, text, row }`.
+     * Only two forms are read, and nothing else is guessed (a body such as `{ "ok": true, "mensaje": "…" }` must never be painted as rows):
+     *   { "results": [ … ] }    select2
+     *   [ … ]                   a bare list
+     * whose rows are `{ "id", "text" }` (or `{ "value", "label" }`). `textField` is the field that holds the label when it is not
+     * `text` (`option-label`). `row` is the whole row as the server sent it (a laboratory, a photo...).
+     * Any other shape is a ContractError (the user sees the error message with Retry); `process-results` is the way to read it.
+     */
+    searchResults(data, url, textField = 'text') {
+        const rows = searchRowsOf(data, textField)
+        expectShape(url, 'the search of the select',
+            '{ "results": [{ "id": …, "text": … }] } or a list of { "id", "text" } (anything else: use `process-results`)', rows !== undefined)
+        return rows
     },
     /**
      * data-table: a resource collection `{ data, meta, links }` or a paginator as it is (`paginate()`, `simplePaginate()`,

@@ -33,6 +33,7 @@ en el preflight de CORS).
 | Componente | Petición | Respuesta que espera | ¿Vale un `204`? |
 |---|---|---|---|
 | `form.select` con `load-url` | `GET load-url` (+ `?<depends-on>=valor`) | `[{ "value": …, "label": … }]` o `{ "data": [ … ] }` (`answerShapes.selectOptions`) | No |
+| `form.select` con `search-url` | `GET search-url?q=texto&limit=20` (+ `params`, + `?<depends-on>=valor`) | `{ "results": [{ "id", "text", … }] }` o la lista pelada; **nada más se adivina** (`searchResults`); `process-results` lee cualquier otra | No |
 | `display.data-table` | `GET load-url?page&search&sort&direction&…` | `{ "data": [fila, …], "meta": { … } }`, lo que da un `paginate()` de Laravel como recurso (`tableRows`) | No |
 | `display.resource-details` | `GET load-url` | el recurso `{ … }` o `{ "data": { … } }` (`resource`) | No |
 | `sections.tabs` con `load-url` | `GET load-url` pidiendo `text/html` | **un fragmento HTML** (`Content-Type: text/html`). Es la única respuesta que no es JSON; una página completa (`<!doctype>`, `<html>`) es un error | No |

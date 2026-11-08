@@ -162,6 +162,13 @@ function registerBrowserEndpoints(): void
 
     // Select options: `{data: [...]}` is not needed here, the select accepts a plain list too.
     Route::get('/options', fn () => response()->json([['value' => '1', 'label' => 'One'], ['value' => '2', 'label' => 'Two']]));
+    // Server search of the select (`search-url`): the shape of select2, filtered by `q`; and one that fails.
+    Route::get('/medicines', fn () => response()->json(['results' => collect([
+        ['id' => 1, 'text' => 'Ibuprofen', 'lab' => 'Acme'],
+        ['id' => 2, 'text' => 'Ibuprofen 600', 'lab' => 'Zeta'],
+        ['id' => 3, 'text' => 'Paracetamol', 'lab' => 'Acme'],
+    ])->filter(fn ($row) => str_contains(strtolower($row['text']), strtolower((string) request('q'))))->values()]));
+    Route::get('/medicines-fail', fn () => response()->json(['message' => 'boom'], 500));
     // Table rows. `/rowsA`, `/rowsB`: two tables on one page.
     Route::get('/rows{suffix?}', fn () => response()->json(['data' => [['id' => 7]], 'meta' => []]))->where('suffix', '[A-Za-z]*');
     // A session that expired: the login page, with a 200.

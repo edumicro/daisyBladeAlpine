@@ -1,6 +1,6 @@
 'use strict'
 
-import { request, joinUrl, latestOnly, answerShapes } from './http.js'
+import { request, joinUrl, latestOnly, answerShapes, isCanceled } from './http.js'
 import { modelBinding, modelOfElement, isEmptyValue, writeValue, announceWhenItChanges } from './modelBinding.js'
 import { withConfig } from './factoryConfig.js'
 
@@ -140,15 +140,45 @@ const dblRepeater = withConfig({ name: '', rows: [], emptyRow: {}, min: 0, max: 
     notify() { this.$dispatch('dbl-repeater-changed', { name: config.name, rows: this.rows }) },
 }))
 
-// form.select with `searchable`: a text box that filters the options (flat { value: label } or grouped { group: { value: label } }).
-// config: { name, search (the text to show at the start), options }. Announces `dbl-select-changed` { name, value }.
-const dblSelectSearch = withConfig({ name: '', search: '', chosen: '', options: {} }, (config) => ({
+// ── form.select with `searchable` ──────────────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Evaluate an expression the CALLER wrote in a Blade prop (`on-select`, `process-results`, `on-error`), as Alpine does with
+ * `x-on:click="..."`: in the scope of the caller's elements, plus the names in `scope` (`row`, `response`, `error`).
+ * The expression travels as a TEXT inside the configuration (`@js($config)`), never glued into JavaScript by Blade.
+ */
+const evaluateExpression = (element, expression, scope) => globalThis.window?.Alpine?.evaluate(element, expression, { scope })
+
+/**
+ * The query-string params of one search: the fixed `params`, the value of the control we depend on under that control's name,
+ * the typed text under `query-param`, and `limit`. Ours win over the caller's, so a `params` cannot hide the search itself.
+ */
+const searchParams = (config, text, dependencyValue) => ({
+    ...config.params,
+    ...dependencyParams(config.dependsOn, dependencyValue),
+    [config.queryParam]: text,
+    limit: config.limit,
+})
+
+// form.select with `searchable` (a text box that filters the options, flat { value: label } or grouped { group: { value: label } })
+// and with `search-url` (the same text box, but WHAT TO SHOW is asked of the server while the user types).
+// config: { name, search (the text to show at the start), chosen, options, id, messages, + the ones of `search-url`: searchUrl,
+// queryParam, params, dependsOn, limit, minChars, debounce, allowFreeText, optionLabel, processResults, onSelect, onError }.
+// Announces `dbl-select-changed` { name, value } (+ `row` with `search-url`). With `search-url` the hidden input sends the KEY under `name`
+// and the text box sends the typed text under `{name}_text`: both travel always, with or without JavaScript.
+const dblSelectSearch = withConfig({
+    name: '', search: '', chosen: '', options: {}, id: '', messages: {},
+    searchUrl: '', queryParam: 'q', params: {}, dependsOn: '', limit: 20, minChars: 2, debounce: 250,
+    allowFreeText: false, optionLabel: 'text', processResults: '', onSelect: '', onError: '',
+}, (config) => ({
     search: config.search,
     open: false,
     choosing: false,   // true while choose() writes the label in the text box
+    active: -1,        // position in `flatList` of the option the keyboard (or the mouse) is on; -1 = none
 
     options: config.options,
     get isGrouped() {
+        if (config.searchUrl) return false
         const first = Object.values(this.options)[0]
         return typeof first === 'object' && first !== null
     },
@@ -167,8 +197,10 @@ const dblSelectSearch = withConfig({ name: '', search: '', chosen: '', options: 
         }
         return result
     },
-    // One flat list for x-for: a header for each group, then its options.
+    // One flat list for x-for: a header for each group, then its options. With `search-url` the server's rows, in ITS order
+    // (an object would reorder numeric ids).
     get flatList() {
+        if (config.searchUrl) return this.results.map(row => ({ type: 'option', key: row.id, label: row.text, row: row.row }))
         if (!this.isGrouped) return Object.entries(this.filtered).map(([key, label]) => ({ type: 'option', key, label: String(label) }))
         const list = []
         Object.entries(this.filtered).forEach(([group, items], index) => {
@@ -188,20 +220,57 @@ const dblSelectSearch = withConfig({ name: '', search: '', chosen: '', options: 
     init() {
         this.$nextTick(() => { this.starting = false })
         this.listenToTheTextBox()
+        if (config.searchUrl) this.startSearching()
     },
     // The text box is the caller's control and lives OUTSIDE this scope (so that their `x-ref`, `$root` and data stay theirs): the
-    // component finds it beside its own element and listens to it from here. Typing, focus and Escape reach it as plain DOM events.
+    // component finds it beside its own element and listens to it from here. Typing, focus and keys reach it as plain DOM events.
     listenToTheTextBox() {
         const box = this.textBox
         if (!box) return
         box.addEventListener('input', event => this.typed(event.target.value))
-        box.addEventListener('focusin', () => { this.open = true })
-        box.addEventListener('keydown', event => { if (event.key === 'Escape') this.open = false })
+        box.addEventListener('focusin', () => this.opened())
+        box.addEventListener('keydown', event => this.onKeydown(event))
     },
     // A click anywhere in the page (the window hears them all) closes the list, except in the text box and the list themselves.
     closeWhenOutside(event) {
-        if (!this.$root.parentElement.contains(event.target)) this.open = false
+        if (!this.$root.parentElement.contains(event.target)) this.close()
     },
+    close() { this.open = false; this.active = -1 },
+    // The box got the focus. With a search, a choice already made does not open a list of hints by itself (typing or ↓ does).
+    opened() {
+        if (config.searchUrl && String(this.chosen ?? '') !== '') return
+        this.open = true
+    },
+
+    // ── The keyboard: ↓ ↑ move, Enter chooses, Esc closes, Tab leaves ──
+    onKeydown(event) {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault()
+            this.open = true
+            if (config.searchUrl && !this.results.length && this.state === 'idle') this.askNow()
+            this.move(event.key === 'ArrowDown' ? 1 : -1)
+        } else if (event.key === 'Enter') {
+            const item = this.open ? this.flatList[this.active] : null
+            if (item) { event.preventDefault(); this.choose(item) }
+        } else if (event.key === 'Escape') {
+            if (!this.open) return
+            event.preventDefault()
+            event.stopPropagation()
+            this.close()
+        } else if (event.key === 'Tab') {
+            this.close()
+        }
+    },
+    // Moves to the next (or previous) OPTION of the list, skipping the headers of the groups, and wraps around.
+    move(step) {
+        const positions = this.flatList.map((item, index) => (item.type === 'option' ? index : -1)).filter(index => index >= 0)
+        if (!positions.length) return
+        const at = positions.indexOf(this.active)
+        this.active = positions[at === -1 ? (step > 0 ? 0 : positions.length - 1) : (at + step + positions.length) % positions.length]
+        this.$nextTick(() => this.textBox?.ownerDocument?.getElementById(this.optionId(this.active))?.scrollIntoView?.({ block: 'nearest' }))
+    },
+    optionId(index) { return `${config.id}-option-${index}` },
+
     // `chosen` IS the model of the caller (x-modelable): this is how the shared rule of modelBinding.js reads and writes it.
     get binding() { return modelBinding({ get: () => this.chosen, set: key => { this.chosen = key } }) },
     // Keeps the text box and the hidden input in step with `chosen` (the view calls it from an x-effect).
@@ -218,9 +287,25 @@ const dblSelectSearch = withConfig({ name: '', search: '', chosen: '', options: 
         writeValue(this.$refs.value, key)
         const box = this.textBox
         if (box && box.value !== this.search) box.value = this.search
+        this.syncAria(box)
+    },
+    // What a screen reader needs from the text box (it is a combobox): is the list open, which option is on, is it busy.
+    syncAria(box) {
+        if (!box?.setAttribute) return
+        box.setAttribute('aria-expanded', String(this.open))
+        if (this.open && this.active >= 0) box.setAttribute('aria-activedescendant', this.optionId(this.active))
+        else box.removeAttribute?.('aria-activedescendant')
+        if (!config.searchUrl) return
+        box.setAttribute('aria-busy', String(this.state === 'loading'))
+        // Not `allow-free-text`: text that is no choice would pass `required` on the box, but the key field stays empty.
+        const unchosen = !config.allowFreeText && this.search !== '' && String(this.chosen ?? '') === ''
+        box.setCustomValidity?.(unchosen ? (config.messages.chooseFromList ?? 'Choose an option from the list') : '')
+        // Disabled while the control we depend on is empty, but only if WE disabled it (as the remote select does).
+        if (this.waiting) { box.disabled = true; this.disabledByUs = true } else if (this.disabledByUs) { box.disabled = false; this.disabledByUs = false }
     },
     // The label of an option, flat or grouped ('' if there is no option with that key).
     labelOf(key) {
+        if (config.searchUrl) return this.results.find(row => String(row.id) === key)?.text ?? (key === String(config.chosen) ? config.search : this.search)
         const groups = this.isGrouped ? Object.values(this.options) : [this.options]
         for (const items of groups) if (key in items) return String(items[key])
         return ''
@@ -229,18 +314,22 @@ const dblSelectSearch = withConfig({ name: '', search: '', chosen: '', options: 
     typed(text) {
         this.search = text
         if (this.choosing) return
+        this.active = -1
         // What is typed no longer is the option that was chosen: the model and the form must not keep its key.
         if (String(this.chosen ?? '') !== '') {
             this.shown = ''
             this.binding.write('')
             writeValue(this.$refs.value, '')
-            this.$dispatch('dbl-select-changed', { name: config.name, value: '' })
+            this.$dispatch('dbl-select-changed', config.searchUrl ? { name: config.name, value: '', row: null } : { name: config.name, value: '' })
+        }
+        if (config.searchUrl) {
+            this.scheduleSearch(text)
         }
     },
     // The user chose an option: the model gets its key, the text box shows its label, the hidden input (x-ref="value") gets the key.
     choose(item) {
         this.search = item.label
-        this.open = false
+        this.close()
         this.shown = String(item.key)
         this.binding.write(item.key)
         // Telling the text box with an `input` lets an `@input` of the caller see the label (`choosing` stops typed() from emptying the choice).
@@ -252,8 +341,139 @@ const dblSelectSearch = withConfig({ name: '', search: '', chosen: '', options: 
             this.choosing = false
         }
         writeValue(this.$refs.value, String(item.key))
-        this.$dispatch('dbl-select-changed', { name: config.name, value: item.key })
+        this.$dispatch('dbl-select-changed', config.searchUrl ? { name: config.name, value: item.key, row: item.row ?? null } : { name: config.name, value: item.key })
+        if (config.searchUrl && config.onSelect) this.runExpression(config.onSelect, { row: item.row ?? null })
     },
+
+    // ── With `search-url`: asking the server what to show ──
+    results: [],            // [{ id, text, row }] of the last answer that counts
+    state: 'idle',          // idle | loading | ready | error
+    waiting: false,         // true while the control we depend on is empty: nothing is asked
+    disabledByUs: false,
+    parentKey: null,        // the value of the control we depend on for which the list is valid
+    latest: latestOnly(),   // only the newest request counts (see latestOnly in http.js)
+    timer: null,            // the debounce
+    controller: null,       // the AbortController of the request in flight
+    failure: false,         // true when the component paints its own error message (an `on-error` returning false silences it)
+
+    // The field (hidden input: the KEY) and the text box (`{name}_text`) are both in the HTML from the start and both always travel.
+    startSearching() {
+        this.$nextTick(() => this.followTheParent())
+    },
+    // The text of the message that stands for the state, in words (never an empty box). '' = the list has options to show.
+    get statusText() {
+        const messages = config.messages
+        if (this.state === 'error') return this.failure ? (messages.loadFailed ?? 'Could not load the results') : ''
+        if (this.state === 'loading') return messages.searching ?? 'Searching...'
+        if (this.search.length < config.minChars) return messages.minChars ?? `Type at least ${config.minChars} characters`
+        if (this.state === 'ready' && !this.results.length) return messages.empty ?? 'Nothing matches that'
+        return ''
+    },
+    get hasRetry() { return this.state === 'error' && this.failure },
+
+    scheduleSearch(text) {
+        clearTimeout(this.timer)
+        this.cancelSearch()
+        this.results = []
+        this.open = true
+        if (text.length < config.minChars || this.waiting) return
+        this.state = 'loading'
+        this.timer = setTimeout(() => this.runSearch(text), config.debounce)
+    },
+    askNow() { if (this.search.length >= config.minChars && !this.waiting) this.runSearch(this.search) },
+    retry() { return this.runSearch(this.search) },
+    // Whatever is in flight or waiting for its turn is old from now on, and nothing is asked.
+    cancelSearch() {
+        clearTimeout(this.timer)
+        this.controller?.abort()
+        this.latest.cancel()
+        this.state = 'idle'
+    },
+
+    // Ask the server. It never throws: every way of failing ends in `fail()`, and `state` never stays at 'loading'.
+    async runSearch(text) {
+        clearTimeout(this.timer)
+        this.controller?.abort()    // the request in flight is old (and a cancellation is not an error: see fail())
+        const controller = this.controller = new AbortController()
+        this.state = 'loading'
+        const outcome = await this.latest.run(async () => {
+            const params = searchParams(config, text, this.dependencyValue())
+            const { data } = await http({ url: config.searchUrl, params, signal: controller.signal })
+            return this.readAnswer(data)
+        })
+        if (outcome.stale) return    // a newer search took over (or the text went below the minimum): it owns the state
+        if (outcome.error) return this.fail(outcome.error)
+        this.results = outcome.value
+        this.active = -1
+        this.failure = false
+        this.state = 'ready'
+    },
+    // The rows of the answer: the caller's `process-results` if it wrote one (it gets the whole body), else the four forms.
+    readAnswer(data) {
+        if (!config.processResults) return answerShapes.searchResults(data, config.searchUrl, config.optionLabel)
+        const rows = this.runExpression(config.processResults, { response: data }, true)
+        return answerShapes.searchResults(rows, config.searchUrl)    // `process-results` wins: its rows say `text`, `option-label` is not read
+    },
+    // Runs an expression of the caller. `strict`: its exceptions go on (a `process-results` that fails is a failed search);
+    // otherwise they only reach the console (a callback of the caller must never break the control).
+    runExpression(expression, scope, strict = false) {
+        try {
+            return evaluateExpression(this.$root.parentElement, expression, scope)
+        } catch (error) {
+            if (strict) throw error
+            console.error('dblSelectSearch: the expression of the page failed', error)
+        }
+    },
+    // A search failed (a 500, a 404, a JSON nobody can read, a `process-results` that threw). What was chosen stays as it is.
+    fail(error) {
+        // A canceled request is not a failure: with a debounce one is canceled on almost every key.
+        if (isCanceled(error)) { this.state = 'idle'; return }
+        console.error('dblSelectSearch: could not search', error)
+        this.results = []
+        this.active = -1
+        // `on-error` is told, and may return false to say "I paint it myself": then the component keeps quiet.
+        this.failure = !config.onError || this.runExpression(config.onError, { error, status: error?.response?.status ?? null, data: error?.response?.data ?? null }) !== false
+        this.state = 'error'
+    },
+
+    // `depends-on`: as in the remote select, the VALUE of the other control is followed; when it changes what was chosen is out of
+    // date (a medicine of another country): it is emptied, and the next search carries the new value.
+    dependencyKey() { return JSON.stringify(this.dependencyValue()) },
+    dependencyValue() {
+        return config.dependsOn ? valueOfControlNamed(this.textBox?.form ?? document, config.dependsOn) : null
+    },
+    followTheParent() {
+        if (!config.dependsOn) return
+        this.parentKey = this.dependencyKey()
+        this.waiting = this.dependencyValue() === ''
+        this.$watch(() => this.dependencyKey(), () => this.parentChanged())
+    },
+    // The `change` of every control of the page reaches the window: only the one we depend on matters (a control without a model).
+    onChange(event) {
+        if (!config.dependsOn) return
+        const isTheParent = [config.dependsOn, `${config.dependsOn}[]`].includes(event.target.name)
+        if (isTheParent && event.target.form === this.textBox?.form) this.parentChanged()
+    },
+    parentChanged() {
+        if (this.dependencyKey() === this.parentKey) return    // the same value twice is not a change
+        this.parentKey = this.dependencyKey()
+        this.waiting = this.dependencyValue() === ''
+        this.cancelSearch()
+        this.results = []
+        this.close()
+        if (this.search !== '' || String(this.chosen ?? '') !== '') {
+            this.search = ''
+            const box = this.textBox
+            if (box) { this.choosing = true; box.value = ''; box.dispatchEvent(new Event('input', { bubbles: true })); this.choosing = false }
+            if (String(this.chosen ?? '') !== '') {
+                this.shown = ''
+                this.binding.write('')
+                writeValue(this.$refs.value, '')
+                this.$dispatch('dbl-select-changed', { name: config.name, value: '', row: null })
+            }
+        }
+    },
+    destroy() { clearTimeout(this.timer); this.controller?.abort() },
 }))
 
 // form.textarea with `max-length`: the number of characters typed (the "12/200" of the label).
@@ -346,6 +566,22 @@ function valuesSentBy(control) {
     return isUnchecked ? [] : [control.value]
 }
 
+/**
+ * The value of the control called `name` in `root` (a form, or the document): the one the form would SEND for that name, or what
+ * its model holds when it has one. Shared by every control that has a `depends-on` (the remote select and the searching one).
+ */
+function valueOfControlNamed(root, name) {
+    const controls = controlsNamed(root, name)
+    // A control with a model is followed through it (rule 3 of modelBinding.js): reading it inside Alpine's watch tracks it.
+    const parentModel = controls.map(modelOfElement).find(Boolean)
+    if (parentModel) return valueOfModel(modelBinding(parentModel).current())
+    const sent = controls.flatMap(valuesSentBy)
+    // A name that ends in `[]` sends a LIST; any other name sends one value: the last one when several controls send it
+    // (hidden 0 + checked checkbox), as in a submitted form.
+    const sendsAList = controls.some(control => control.name.endsWith('[]'))
+    return sendsAList ? valueOfModel(sent.filter(text => text !== '')) : (sent[sent.length - 1] ?? '')
+}
+
 /** Query-string params that carry the value of the control we depend on, under that control's name. */
 const dependencyParams = (name, value) => (name ? { [name]: value } : {})
 
@@ -423,16 +659,7 @@ const dblSelectRemote = withConfig({ name: '', loadUrl: '', multiple: false, val
     // ('' if none is), and an unchecked checkbox sends nothing. `form.checkbox` and `form.toggle` write a hidden
     // `0` before the checkbox, so when the checkbox is unchecked the value is that 0.
     dependencyValue() {
-        if (!config.dependsOn) return null
-        const controls = controlsNamed(this.field.form ?? document, config.dependsOn)
-        // A control with a model is followed through it (rule 3 of modelBinding.js): reading it inside Alpine's watch tracks it.
-        const parentModel = controls.map(modelOfElement).find(Boolean)
-        if (parentModel) return valueOfModel(modelBinding(parentModel).current())
-        const sent = controls.flatMap(valuesSentBy)
-        // A name that ends in `[]` sends a LIST; any other name sends one value: the last one when several controls send it
-        // (hidden 0 + checked checkbox), as in a submitted form.
-        const sendsAList = controls.some(control => control.name.endsWith('[]'))
-        return sendsAList ? valueOfModel(sent.filter(text => text !== '')) : (sent[sent.length - 1] ?? '')
+        return config.dependsOn ? valueOfControlNamed(this.field.form ?? document, config.dependsOn) : null
     },
 
     // The window hears the `change` of every control of the page (our <select> is not inside our element, so its `change`
@@ -574,7 +801,7 @@ const dblSelectRemote = withConfig({ name: '', loadUrl: '', multiple: false, val
         // The options kept from the server are selected too (they were written selected, but a new choice may have changed that).
         field.querySelectorAll('option[data-initial]').forEach(option => { option.selected = true })
     },
-}), { optional: ['params'] })
+}))
 
 const dblResourceDetails = withConfig({ loadUrl: '', fields: [], messages: {} }, (config) => ({
     resource: null, loading: true, error: null,
@@ -978,5 +1205,5 @@ export {
     dblDataTable, dblAutoForm, dblWizard,
     dblSelectRemote, dblResourceDetails, dblTabsLazy, dblSpreadsheetImport,
     dblKvEditor, dblListEditor,
-    toTexts, dependencyParams, stillOffered, readStored,
+    toTexts, dependencyParams, stillOffered, readStored, searchParams,
 }
