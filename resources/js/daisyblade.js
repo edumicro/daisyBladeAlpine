@@ -573,7 +573,7 @@ const hasMore = (body, count, limit) => {
 const readResults = (body, { processResults = null, optionLabel = '' } = {}) =>
     processResults ? toRows(processResults(body)) : toRows(body, { optionLabel })
 
-/** What `on-error` gets to know about a failure: the status and the body of the answer, as in axios (`error.response`). */
+/** What `select-error` gets to know about a failure: the status and the body of the answer, as in axios (`error.response`). */
 const errorInfo = error => ({ status: error?.response?.status ?? null, data: error?.response?.data ?? null, message: error?.message ?? '' })
 
 /** The `options` of the searchable select (`{k: v}` or `{group: {k: v}}`) -> list of `{ id, text, row, group }`. */
