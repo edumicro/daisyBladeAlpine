@@ -3,7 +3,7 @@
 Formato: lo que está sin publicar arriba. Al sacar versión, esa sección pasa a llevar su número
 y su fecha, y se etiqueta.
 
-## [2.5.0] — sin publicar
+## [2.5.0] — 2026-11-08
 
 ### Añadido
 - `form.select`: prop `search-url`, un modo más para las listas que no caben en la página (20.000 medicamentos, un fichero de clientes, un callejero). El desplegable pregunta al servidor según lo que se teclea, en vez de filtrar lo que ya está en el HTML: espera `debounce` ms (250) desde la última tecla, no pregunta con menos de `min-chars` caracteres (2) y pide `?q=…&limit=20`. Si dos peticiones se cruzan solo vale la de la última, y la que va en vuelo se cancela. No cambia ningún otro modo: `searchable` sigue filtrando en el navegador, `options-url` sigue cargando la lista entera y el select normal queda igual.
